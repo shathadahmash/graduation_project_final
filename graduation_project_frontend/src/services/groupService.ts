@@ -75,10 +75,15 @@ export const groupService = {
     const res = await api.post('/groups/', { ...payload, created_by_role: 'supervisor' });
     return res.data;
   },//till here
+
+
   async linkProjectToGroup(groupId: number, projectId: number) {
-    const res = await api.post(`/groups/${groupId}/link-project/`, { project_id: projectId });
+    // التأكد من أن المسار ينتهي بـ /link-project/ ليطابق الباك إيند
+    const res = await api.post(`/groups/${groupId}/link-project/`, { 
+        project_id: projectId 
+    });
     return res.data;
-  },
+},
 //////////////////////////////////////////////
   // --- جلب المجموعات ---
   async getGroups() {

@@ -86,9 +86,9 @@ ASGI_APPLICATION = 'GraduationProjects.asgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'GraduationProjects_DB',
+        'NAME': 'Graduation_DB',
         'USER': 'root',
-        'PASSWORD': '',
+        'PASSWORD': 'root',
         'HOST': 'localhost',
         'PORT': '3307',
     }
