@@ -1,0 +1,71 @@
+flowchart TD
+    %% ====================== Group Creation & Approval ======================
+    subgraph Group_Creation ["Group Creation & Approval"]
+        A1[Student submits Group Creation Request] --> A2{Is request valid?}
+        A2 -->|Yes| A3[Create GroupCreationRequest object]
+        A2 -->|No| A0[Return error to student]
+
+        A3 --> A4[Create GroupMemberApproval for creator]
+        A4 --> A5[Create GroupMemberApproval for invited students]
+        A5 --> A6[Send notifications to invitees]
+
+        A6 --> A7{All members approved?}
+        A7 -->|Yes| A8[Finalize Group creation: Create Group object]
+        A7 -->|No| A9[Wait for responses]
+
+        A8 --> A10[Notify all members: Group ready]
+        A9 --> A6
+    end
+
+    %% ====================== Invitations ======================
+    subgraph Invitations ["Group Invitations"]
+        B1[Supervisor or Student sends invitation] --> B2[Create GroupInvitation object]
+        B2 --> B3{Invitee responds?}
+        B3 -->|Accept| B4[Add invitee to GroupMembers or GroupSupervisors]
+        B3 -->|Reject| B5[Update invitation status to rejected]
+        B4 --> B6[Send notification: Invitation accepted]
+        B5 --> B6
+    end
+
+    %% ====================== Project Assignment & Tracking ======================
+    subgraph Project_Workflow ["Project Assignment & Progress Tracking"]
+        C1[Project created] --> C2{Project type?}
+        C2 -->|Internal| C3[Assign to department & college]
+        C2 -->|External| C4[Assign supervisors manually]
+        C3 --> C5[Assign to group]
+        C4 --> C5
+
+        C5 --> C6[Select ProgressPattern for group]
+        C6 --> C7[Assign stages via PatternStageAssignment]
+        C7 --> C8[Assign sub-stages via PatternSubStageAssignment]
+
+        C8 --> C9[Students work on stages/sub-stages]
+        C9 --> C10[Teachers evaluate & update StudentProgress]
+        C10 --> C11{All stages completed?}
+        C11 -->|Yes| C12[Project marked as Completed]
+        C11 -->|No| C9
+    end
+
+    %% ====================== Approvals ======================
+    subgraph Approvals ["Approval Requests"]
+        D1[ApprovalRequest created] --> D2{Current approver is authorized?}
+        D2 -->|Yes| D3[Approve or Reject]
+        D2 -->|No| D4[Return error: Not authorized]
+        D3 --> D5[Update ApprovalRequest status]
+        D5 --> D6[Send notifications to requester and next approver]
+    end
+
+    %% ====================== Notifications ======================
+    subgraph Notifications ["Notifications"]
+        N1[System triggers notification] --> N2[NotificationLog created]
+        N2 --> N3[User sees notification]
+        N3 --> N4{Read?}
+        N4 -->|Yes| N5[Update status: read]
+        N4 -->|No| N3
+    end
+
+    %% ====================== Connections Between Subgraphs ======================
+    A10 --> C1
+    B4 --> C5
+    D6 --> N1
+    A6 --> N1

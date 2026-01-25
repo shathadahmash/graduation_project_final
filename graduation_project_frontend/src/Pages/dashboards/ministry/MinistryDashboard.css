@@ -1,0 +1,512 @@
+/* MinistryDashboard Enhanced Styles with Animations */
+
+/* Import base animations */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&display=swap');
+
+/* Enhanced animations for Tailwind */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(30, 104, 216, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(30, 104, 216, 0.5);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+/* Enhanced Ministry Dashboard Container */
+.ministry-dashboard-container {
+  font-family: 'Cairo', sans-serif;
+  background: white;
+  min-height: 100vh;
+}
+
+/* Enhanced Sidebar Styles */
+.ministry-sidebar {
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid rgba(148, 163, 184, 0.1);
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1);
+}
+
+.ministry-sidebar-header {
+  background: linear-gradient(135deg, rgba(30, 104, 216, 0.1) 0%, rgba(30, 104, 216, 0.05) 100%);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.ministry-sidebar-nav {
+  padding: 1rem;
+}
+
+.ministry-nav-item {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 1rem;
+}
+
+.ministry-nav-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.ministry-nav-item:hover::before {
+  left: 100%;
+}
+
+.ministry-nav-item.active {
+  background: linear-gradient(135deg, #1e68d8 0%, #1554ad 100%);
+  box-shadow: 0 8px 32px rgba(30, 104, 216, 0.3);
+  transform: translateX(-4px);
+}
+
+.ministry-nav-item.active::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 60%;
+  background: white;
+  border-radius: 2px 0 0 2px;
+}
+
+/* Enhanced Header Styles */
+.ministry-header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.ministry-header-button {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.ministry-header-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(30, 104, 216, 0.15);
+  border-color: rgba(30, 104, 216, 0.3);
+}
+
+/* Enhanced Welcome Hero Section */
+.ministry-hero {
+  background: linear-gradient(135deg, #1e68d8 0%, #1554ad 50%, #0f172a 100%);
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  box-shadow: 0 20px 40px rgba(30, 104, 216, 0.2);
+}
+
+.ministry-hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  animation: float 6s ease-in-out infinite;
+}
+
+.ministry-hero-title {
+  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 900;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.ministry-hero-subtitle {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+/* Enhanced Stats Cards */
+.ministry-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.ministry-stat-card {
+  background: white;
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.ministry-stat-card:nth-child(1) { animation-delay: 0.1s; }
+.ministry-stat-card:nth-child(2) { animation-delay: 0.2s; }
+.ministry-stat-card:nth-child(3) { animation-delay: 0.3s; }
+.ministry-stat-card:nth-child(4) { animation-delay: 0.4s; }
+.ministry-stat-card:nth-child(5) { animation-delay: 0.5s; }
+
+.ministry-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #1e68d8, #1554ad, #1e68d8);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.ministry-stat-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(30, 104, 216, 0.15);
+}
+
+.ministry-stat-card:hover::before {
+  transform: scaleX(1);
+}
+
+.ministry-stat-card-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #1e68d8 0%, #1554ad 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 8px 24px rgba(30, 104, 216, 0.3);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.ministry-stat-card-icon::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transform: rotate(45deg);
+  transition: all 0.5s ease;
+}
+
+.ministry-stat-card:hover .ministry-stat-card-icon {
+  transform: scale(1.1) rotate(5deg);
+  animation: pulseGlow 2s infinite;
+}
+
+.ministry-stat-card:hover .ministry-stat-card-icon::before {
+  animation: shimmer 1.5s ease-in-out;
+}
+
+.ministry-stat-card-title {
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #1e68d8;
+  margin-bottom: 0.5rem;
+}
+
+.ministry-stat-card-value {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.ministry-stat-card-trend {
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #1e68d8, #1554ad);
+  color: white;
+}
+
+.ministry-stat-card-description {
+  color: #64748b;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Enhanced Action Panel */
+.ministry-action-panel {
+  background: white;
+  border-radius: 1.5rem;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  animation: slideInRight 0.5s ease-out;
+}
+
+.ministry-action-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.ministry-action-button {
+  background: white;
+  border: 2px solid rgba(148, 163, 184, 0.2);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  text-align: right;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.ministry-action-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(30, 104, 216, 0.05) 0%, rgba(30, 104, 216, 0.02) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.ministry-action-button:hover::before {
+  opacity: 1;
+}
+
+.ministry-action-button.active {
+  border-color: #1e68d8;
+  background: rgba(30, 104, 216, 0.05);
+  transform: scale(1.02);
+  box-shadow: 0 10px 30px rgba(30, 104, 216, 0.15);
+}
+
+.ministry-action-button:hover {
+  border-color: rgba(30, 104, 216, 0.3);
+  transform: translateY(-4px);
+  box-shadow: 0 15px 35px rgba(30, 104, 216, 0.2);
+}
+
+.ministry-action-button-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  margin-bottom: 1rem;
+}
+
+.ministry-action-button.active .ministry-action-button-icon {
+  background: linear-gradient(135deg, #1e68d8 0%, #1554ad 100%);
+  color: white;
+  transform: scale(1.1);
+}
+
+.ministry-action-button-title {
+  font-size: 1.125rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin-bottom: 0.5rem;
+  transition: color 0.3s ease;
+}
+
+.ministry-action-button.active .ministry-action-button-title {
+  color: #1e68d8;
+}
+
+.ministry-action-button-description {
+  color: #64748b;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Enhanced Content Areas */
+.ministry-content-card {
+  background: white;
+  border-radius: 1.5rem;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  animation: fadeInUp 0.5s ease-out;
+}
+
+/* Custom Scrollbar */
+.ministry-custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(30, 104, 216, 0.3) transparent;
+}
+
+.ministry-custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ministry-custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(148, 163, 184, 0.1);
+  border-radius: 3px;
+}
+
+.ministry-custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #1e68d8, #1554ad);
+  border-radius: 3px;
+}
+
+.ministry-custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #1554ad, #1e68d8);
+}
+
+/* Loading States */
+.ministry-loading-skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Notification Badge Animation */
+.ministry-notification-badge {
+  animation: bounceIn 0.6s ease-out;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .ministry-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .ministry-action-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .ministry-sidebar {
+    transform: translateX(100%);
+  }
+
+  .ministry-sidebar.open {
+    transform: translateX(0);
+  }
+}
+
+/* Dark mode support (if needed in future) */
+@media (prefers-color-scheme: dark) {
+  .ministry-dashboard-container {
+    background: #1e293b;
+  }
+
+  .ministry-stat-card,
+  .ministry-action-panel,
+  .ministry-content-card {
+    background: #1e293b;
+    border-color: rgba(148, 163, 184, 0.2);
+    color: white;
+  }
+
+  .ministry-stat-card-title {
+    color: #60a5fa;
+  }
+
+  .ministry-stat-card-value {
+    color: white;
+  }
+}
+
+/* Accessibility Improvements */
+@media (prefers-reduced-motion: reduce) {
+  .ministry-stat-card,
+  .ministry-action-button,
+  .ministry-header-button {
+    animation: none;
+    transition: none;
+  }
+
+  .ministry-stat-card-icon::before {
+    animation: none;
+  }
+}
+
+/* Focus states for keyboard navigation */
+.ministry-nav-item:focus-visible,
+.ministry-header-button:focus-visible,
+.ministry-action-button:focus-visible {
+  outline: 2px solid #1e68d8;
+  outline-offset: 2px;
+}

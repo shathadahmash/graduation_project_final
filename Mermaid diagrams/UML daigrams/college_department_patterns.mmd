@@ -1,0 +1,19 @@
+classDiagram
+    class CollegeProgressPattern {
+        +College college
+        +ProgressPattern pattern
+        +bool is_default
+        +datetime assigned_at
+    }
+
+    class DepartmentProgressPattern {
+        +Department department
+        +ProgressPattern pattern
+        +bool is_default
+        +dat
+    }
+
+    College "1" --> "0..*" CollegeProgressPattern : has
+    Department "1" --> "0..*" DepartmentProgressPattern : has
+    ProgressPattern "1" --> "0..*" CollegeProgressPattern : assigned to
+    ProgressPattern "1" --> "0..*" DepartmentProgressPattern : assigned to

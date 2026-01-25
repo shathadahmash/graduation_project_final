@@ -1,0 +1,43 @@
+/* Login Page Styles - Enhanced with animations and theme tokens */
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Spin for loader (keeps the same classname used in the component) */
+@keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+.animate-spin { animation: spin 1s linear infinite; }
+
+/* Fade/slide utilities used by components */
+@keyframes fadeInUp { from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:none} }
+.animate-fade-in { animation: fadeInUp .7s cubic-bezier(.2,.9,.3,1) both; }
+@keyframes slideUp { from{opacity:0; transform:translateY(18px)} to{opacity:1; transform:none} }
+.animate-slide-up { animation: slideUp .6s ease both; }
+
+/* Subtle floating blobs used in background */
+@keyframes float-slow { 0%{transform:translateY(0)}50%{transform:translateY(-14px)}100%{transform:translateY(0)} }
+.animate-float { animation: float-slow 8s ease-in-out infinite; }
+
+/* Bounce for lock icon */
+@keyframes bounce-subtle { 0%{transform:scale(1)} 50%{transform:scale(1.06)} 100%{transform:scale(1)} }
+.animate-bounce-subtle { animation: bounce-subtle 2.6s ease-in-out infinite; }
+
+/* Card & inputs */
+.login-card {
+  border-radius: 1rem;
+  box-shadow: 0 12px 36px rgba(14,76,146,0.08);
+}
+.login-input:focus { box-shadow: 0 8px 30px rgba(14,76,146,0.06); }
+/* Error box */
+.login-error { border-right-width: 4px; border-right-color: #ef4444; background: #fff5f5; color:#b91c1c; }
+
+/* CTA hover glow */
+.login-cta { transition: transform .28s, box-shadow .28s; }
+.login-cta:hover { transform:translateY(-3px) scale(1.01); box-shadow:0 20px 60px rgba(14,76,146,0.12); }
+
+/* Small helpers to use theme tokens from index.css */
+.ghost-blue { color: var(--primary-blue-700); }
+.badge-blue { background: var(--primary-blue); color: #fff; }
+

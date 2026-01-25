@@ -1,0 +1,41 @@
+classDiagram
+    class City {
+        +int bid
+        +str bname_ar
+        +str bname_en
+    }
+
+    class University {
+        +int uid
+        +str uname_ar
+        +str uname_en
+        +str type
+    }
+
+    class Branch {
+        +int ubid
+        +City city
+        +University university
+        +str location
+        +str address
+        +str contact
+    }
+
+    class College {
+        +int cid
+        +Branch branch
+        +str name_ar
+        +str name_en
+    }
+
+    class Department {
+        +int department_id
+        +College college
+        +str name
+        +str description
+    }
+
+    City "1" --> "0..*" Branch : has
+    University "1" --> "0..*" Branch : has
+    Branch "1" --> "0..*" College : has
+    College "1" --> "0..*" Department : has

@@ -1,0 +1,246 @@
+classDiagram
+%% ==========================
+%% 1. Geography Models
+%% ==========================
+class City {
+    +int bid
+    +str bname_ar
+    +str bname_en
+}
+class University {
+    +int uid
+    +str uname_ar
+    +str uname_en
+    +str type
+}
+class Branch {
+    +int ubid
+    +University university
+    +City city
+    +str location
+    +str address
+    +str contact
+}
+class College {
+    +int cid
+    +Branch branch
+    +str name_ar
+    +str name_en
+}
+class Department {
+    +int department_id
+    +College college
+    +str name
+    +str description
+}
+
+City "1" --> "0..*" Branch : has
+University "1" --> "0..*" Branch : has
+Branch "1" --> "0..*" College : has
+College "1" --> "0..*" Department : has
+
+%% ==========================
+%% 2. Progress Models
+%% ==========================
+class ProgressStage {
+    +str name
+    +str description
+}
+class ProgressSubStage {
+    +ProgressStage stage
+    +str name
+    +str description
+    +int order
+    +float max_mark
+}
+class ProgressPattern {
+    +str name
+}
+class PatternStageAssignment {
+    +ProgressPattern pattern
+    +ProgressStage stage
+    +int order
+    +float max_mark
+}
+class PatternSubStageAssignment {
+    +PatternStageAssignment pattern_stage_assignment
+    +ProgressSubStage sub_stage
+    +int order
+    +float max_mark
+}
+
+ProgressStage "1" --> "0..*" ProgressSubStage : has
+ProgressPattern "1" --> "0..*" PatternStageAssignment : assigns
+PatternStageAssignment "1" --> "0..*" PatternSubStageAssignment : assigns
+ProgressStage "1" --> "0..*" PatternStageAssignment : assigned in
+
+%% ==========================
+%% 3. College & Department Patterns
+%% ==========================
+class CollegeProgressPattern {
+    +College college
+    +ProgressPattern pattern
+    +bool is_default
+}
+class DepartmentProgressPattern {
+    +Department department
+    +ProgressPattern pattern
+    +bool is_default
+}
+
+College "1" --> "0..*" CollegeProgressPattern : has patterns
+Department "1" --> "0..*" DepartmentProgressPattern : has patterns
+ProgressPattern "1" --> "0..*" CollegeProgressPattern : assigned to
+ProgressPattern "1" --> "0..*" DepartmentProgressPattern : assigned to
+
+%% ==========================
+%% 4. Users, Roles, Permissions
+%% ==========================
+class User {
+    +str username
+    +str name
+    +str phone
+    +str company_name
+    +str gender
+}
+class Role {
+    +str type
+    +str role_type
+}
+class Permission {
+    +str name
+    +str description
+}
+class RolePermission {
+    +Role role
+    +Permission permission
+}
+class UserRoles {
+    +User user
+    +Role role
+}
+
+User "1" --> "0..*" UserRoles : has
+Role "1" --> "0..*" UserRoles : assigned to
+Role "1" --> "0..*" RolePermission : has
+Permission "1" --> "0..*" RolePermission : assigned to
+
+%% ==========================
+%% 5. Projects & Groups
+%% ==========================
+class Project {
+    +int project_id
+    +str title
+    +str type
+    +College college
+    +date start_date
+    +date end_date
+    +str state
+    +str description
+    +User created_by
+}
+class Group {
+    +int group_id
+    +str group_name
+    +Department department
+    +Program program
+    +str academic_year
+    +ProgressPattern pattern
+    +Project project
+}
+class GroupMembers {
+    +User user
+    +Group group
+}
+class GroupSupervisors {
+    +User user
+    +Group group
+    +str type
+}
+class Program {
+    +int pid
+    +str p_name
+    +Department department
+}
+
+Project "1" --> "0..*" Group : has
+Group "1" --> "0..*" GroupMembers : has
+Group "1" --> "0..*" GroupSupervisors : has
+Department "1" --> "0..*" Program : offers
+Program "1" --> "0..*" Group : assigned to
+
+%% ==========================
+%% 6. Notifications & Logs
+%% ==========================
+class Notification {
+    +int not_ID
+    +User user
+    +str message
+    +str state
+    +datetime date
+}
+class NotificationLog {
+    +int notification_id
+    +User recipient
+    +str notification_type
+    +str title
+    +str message
+    +Group related_group
+    +Project related_project
+    +User related_user
+    +ApprovalRequest related_approval
+    +bool is_read
+    +bool is_sent_email
+    +datetime created_at
+    +datetime read_at
+}
+
+User "1" --> "0..*" Notification : receives
+User "1" --> "0..*" NotificationLog : receives logs
+Group "0..1" --> "0..*" NotificationLog : related
+Project "0..1" --> "0..*" NotificationLog : related
+
+%% ==========================
+%% 7. System Settings & Approval Sequence
+%% ==========================
+class SystemSettings {
+    +str setting_key
+    +str setting_value
+    +str description
+    +datetime updated_at
+}
+class ApprovalSequence {
+    +int sequence_id
+    +str sequence_type
+    +list approval_levels
+    +str description
+    +Group group
+    +Project project
+}
+
+Group "0..1" --> "0..1" ApprovalSequence : linked
+Project "0..1" --> "0..1" ApprovalSequence : linked
+
+%% ==========================
+%% 8. Group Creation Requests
+%% ==========================
+class GroupCreationRequest {
+    +str group_name
+    +User creator
+    +int department_id
+    +int college_id
+    +str note
+    +datetime created_at
+    +bool is_fully_confirmed
+}
+class GroupMemberApproval {
+    +GroupCreationRequest request
+    +User user
+    +str role
+    +str status
+    +datetime responded_at
+}
+
+User "1" --> "0..*" GroupCreationRequest : creates
+User "1" --> "0..*" GroupMemberApproval : approves
+GroupCreationRequest "1" --> "0..*" GroupMemberApproval : approvals

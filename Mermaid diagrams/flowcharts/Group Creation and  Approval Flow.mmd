@@ -1,0 +1,16 @@
+flowchart TD
+    A[Student submits Group Creation Request] --> B{Is request valid?}
+    B -->|Yes| C[Create GroupCreationRequest object]
+    B -->|No| Z[Return error to student]
+
+    C --> D[Create GroupMemberApproval for creator]
+    D --> E[Create GroupMemberApproval for invited students]
+    E --> F[Create notifications for all invitees]
+
+    F --> G{Do all members approve?}
+    G -->|Yes| H[Finalize Group creation]
+    G -->|No| I[Wait for responses]
+
+    H --> J[Group object created with members and supervisors]
+    J --> K[Notify all members: Group ready]
+    I --> L[Pending approvals]

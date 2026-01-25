@@ -1,0 +1,36 @@
+classDiagram
+    class ProgressStage {
+        +str name
+        +str description
+    }
+
+    class ProgressSubStage {
+        +ProgressStage stage
+        +str name
+        +str description
+        +int order
+        +float max_mark
+    }
+
+    class ProgressPattern {
+        +str name
+    }
+
+    class PatternStageAssignment {
+        +ProgressPattern pattern
+        +ProgressStage stage
+        +int order
+        +float max_mark
+    }
+
+    class PatternSubStageAssignment {
+        +PatternStageAssignment pattern_stage_assignment
+        +ProgressSubStage sub_stage
+        +int order
+        +float max_mark
+    }
+
+    ProgressPattern "1" --> "0..*" PatternStageAssignment : contains
+    ProgressStage "1" --> "0..*" PatternStageAssignment : included in
+    PatternStageAssignment "1" --> "0..*" PatternSubStageAssignment : has
+    ProgressSubStage "1" --> "0..*" PatternSubStageAssignment : included in

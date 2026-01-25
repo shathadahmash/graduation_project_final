@@ -1,0 +1,49 @@
+classDiagram
+    class Project {
+        +int project_id
+        +str title
+        +str type
+        +str state
+        +datetime start_date
+        +datetime end_date
+        +str description
+    }
+
+    class Group {
+        +int group_id
+        +str group_name
+        +Department department
+        +Program program
+        +ProgressPattern pattern
+        +Project project
+        +str academic_year
+    }
+
+    class GroupMembers {
+        +User user
+        +Group group
+    }
+
+    class GroupSupervisors {
+        +User user
+        +Group group
+        +str type
+    }
+
+    class GroupInvitation {
+        +Group group
+        +User invited_student
+        +User invited_by
+        +str status
+        +datetime created_at
+        +datetime expires_at
+        +datetime responded_at
+    }
+
+    Project "1" --> "0..*" Group : has
+    Group "1" --> "0..*" GroupMembers : has
+    Group "1" --> "0..*" GroupSupervisors : has
+    Group "1" --> "0..*" GroupInvitation : receives
+    User "1" --> "0..*" GroupMembers : member of
+    User "1" --> "0..*" GroupSupervisors : supervises
+    User "1" --> "0..*" GroupInvitation : invited

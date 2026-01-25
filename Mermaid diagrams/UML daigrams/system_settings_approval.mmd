@@ -1,0 +1,20 @@
+classDiagram
+    class SystemSettings {
+        +str setting_key
+        +str setting_value
+        +str description
+        +datetime updated_at
+    }
+
+    class ApprovalSequence {
+        +int sequence_id
+        +str sequence_type
+        +list approval_levels
+        +str description
+        +Group group
+        +Project project
+        +datetime assigned_at
+    }
+
+    Group "0..1" --> "0..1" ApprovalSequence : linked
+    Project "0..1" --> "0..1" ApprovalSequence : linked

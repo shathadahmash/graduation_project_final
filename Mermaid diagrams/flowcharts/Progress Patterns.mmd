@@ -1,0 +1,34 @@
+flowchart TD
+    %% Patterns
+    P1["Pattern Thesis Proposal"] --> P2["Pattern Stage 1 Draft"]
+    P2 --> P3["Pattern Stage 2 Review"]
+    P3 --> P4["Pattern Stage 3 Final Submission"]
+
+    %% Groups
+    G0["Submit Group Request"] --> G1["Notify Students"]
+    G1 --> G2["Notify Supervisors"]
+    G2 --> G3["Check Approvals"]
+    G3 --> G4["Group Ready"]
+
+    %% Connections between Patterns and Groups
+    P4 --> G0
+    P3 --> G1
+
+    %% Tasks / Roles
+    T1["Student Upload Document"] --> T2["Supervisor Review"]
+    T2 --> T3["Feedback Provided"]
+    T3 --> T4["Document Revision"]
+    T4 --> T5["Final Submission"]
+
+    %% Linking Tasks with Patterns
+    P1 --> T1
+    P2 --> T2
+    P3 --> T3
+    P4 --> T4
+
+    %% Notifications
+    N1["Notify Completion"] --> N2["Notify Supervisor"]
+    N2 --> N3["Notify Student"]
+
+    %% Linking Groups to Notifications
+    G4 --> N1

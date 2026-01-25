@@ -1,0 +1,15 @@
+sequenceDiagram
+    participant Invitee
+    participant Browser
+    participant Django
+    participant InvitationModel as GroupInvitation
+    participant NotificationService
+
+    Invitee->>Browser: Accept/Reject invitation
+    Browser->>Django: POST /invitations/{id}/accept or reject
+    Django->>InvitationModel: Update invitation status
+    InvitationModel-->>Django: Confirm update
+    Django->>NotificationService: Notify inviter about response
+    NotificationService-->>Django: Confirmation
+    Django-->>Browser: Return success response
+    Browser-->>Invitee: Show confirmation

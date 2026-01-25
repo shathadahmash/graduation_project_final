@@ -1,0 +1,35 @@
+classDiagram
+    class User {
+        +str username
+        +str name
+        +str phone
+        +str company_name
+        +str gender
+    }
+
+    class Role {
+        +int role_ID
+        +str type
+        +str role_type
+    }
+
+    class Permission {
+        +int perm_ID
+        +str name
+        +str Description
+    }
+
+    class RolePermission {
+        +Role role
+        +Permission permission
+    }
+
+    class UserRoles {
+        +User user
+        +Role role
+    }
+
+    User "1" --> "0..*" UserRoles : assigned to
+    Role "1" --> "0..*" UserRoles : has
+    Role "1" --> "0..*" RolePermission : has
+    Permission "1" --> "0..*" RolePermission : assigned to

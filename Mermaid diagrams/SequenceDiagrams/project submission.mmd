@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant Student
+    participant Browser
+    participant Django
+    participant ProjectModel as Project
+    participant ProgressModel as StudentProgress
+    participant NotificationService
+
+    Student->>Browser: Submit project update / progress
+    Browser->>Django: POST /projects/ or /progress/
+    Django->>ProjectModel: Validate project
+    ProjectModel-->>Django: Confirm project exists
+    Django->>ProgressModel: Create / update student progress record
+    ProgressModel-->>Django: Confirm saved
+    Django->>NotificationService: Notify supervisors / team members
+    NotificationService-->>Django: Confirmation
+    Django-->>Browser: Return success response
+    Browser-->>Student: Show confirmation

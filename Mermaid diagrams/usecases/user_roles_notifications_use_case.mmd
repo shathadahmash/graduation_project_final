@@ -1,0 +1,23 @@
+graph TD
+    subgraph Actors
+        admin[Admin]
+        user[User]
+    end
+
+    subgraph "User Roles & Notifications"
+        UC16(Define Roles)
+        UC17(Define Permissions)
+        UC18(Assign Permissions to Roles)
+        UC19(Assign Roles to Users)
+        UC20(Receive Notifications)
+        UC21(View Notification Logs)
+        UC22(Manage System Settings)
+    end
+
+    admin --> UC16
+    admin --> UC17
+    admin --> UC18
+    admin --> UC19
+    admin --> UC22
+    user --> UC20
+    user --> UC21

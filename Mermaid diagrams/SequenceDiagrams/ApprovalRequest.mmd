@@ -1,0 +1,17 @@
+sequenceDiagram
+    participant Approver
+    participant Browser
+    participant Django
+    participant ApprovalRequestModel as ApprovalRequest
+    participant NotificationService
+
+    Approver->>Browser: Click approve/reject button
+    Browser->>Django: POST /approvals/{id}/approve or reject
+    Django->>ApprovalRequestModel: Validate current approver
+    ApprovalRequestModel-->>Django: Return approval object
+    Django->>ApprovalRequestModel: Update status (approved/rejected)
+    ApprovalRequestModel-->>Django: Confirm update
+    Django->>NotificationService: Notify request creator
+    NotificationService-->>Django: Confirmation
+    Django-->>Browser: Return success/failure response
+    Browser-->>Approver: Show result

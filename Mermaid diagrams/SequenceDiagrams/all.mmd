@@ -1,0 +1,109 @@
+%% =========================================
+%% Django System Sequence Diagrams
+%% Combined Mermaid File
+%% =========================================
+
+%% ================================
+%% 1️⃣ Group Creation & Approval Flow
+%% ================================
+sequenceDiagram
+    participant Student
+    participant Browser
+    participant Django
+    participant GroupCreationRequestModel as GroupCreationRequest
+    participant ApprovalModel as GroupMemberApproval
+    participant NotificationService
+
+    Student->>Browser: Fill and submit group creation form
+    Browser->>Django: POST /submit_group_creation_request/
+    Django->>GroupCreationRequestModel: Create group request
+    GroupCreationRequestModel-->>Django: Return group request instance
+    Django->>ApprovalModel: Create approvals for students & supervisors
+    ApprovalModel-->>Django: Return approval records
+    Django->>NotificationService: Send notifications
+    NotificationService-->>Django: Confirm notifications sent
+    Django-->>Browser: Return success response
+    Browser-->>Student: Show confirmation message
+
+%% ================================
+%% 2️⃣ Approve or Reject Group/ApprovalRequest
+%% ================================
+sequenceDiagram
+    participant Approver
+    participant Browser
+    participant Django
+    participant ApprovalRequestModel as ApprovalRequest
+    participant NotificationService
+
+    Approver->>Browser: Click approve/reject button
+    Browser->>Django: POST /approvals/{id}/approve or reject
+    Django->>ApprovalRequestModel: Validate current approver
+    ApprovalRequestModel-->>Django: Return approval object
+    Django->>ApprovalRequestModel: Update status (approved/rejected)
+    ApprovalRequestModel-->>Django: Confirm update
+    Django->>NotificationService: Notify request creator
+    NotificationService-->>Django: Confirmation
+    Django-->>Browser: Return success/failure response
+    Browser-->>Approver: Show result
+
+%% ================================
+%% 3️⃣ Group Invitation Flow
+%% ================================
+sequenceDiagram
+    participant Inviter
+    participant Browser
+    participant Django
+    participant InvitationModel as GroupInvitation
+    participant NotificationService
+    participant Invitee
+
+    Inviter->>Browser: Send invitation
+    Browser->>Django: POST /invitations/
+    Django->>InvitationModel: Create invitation object
+    InvitationModel-->>Django: Return invitation
+    Django->>NotificationService: Send notification to invitee
+    NotificationService-->>Django: Confirm notification
+    Django-->>Browser: Return success response
+    Browser-->>Inviter: Show confirmation
+    Note right of Invitee: Invitee receives notification
+
+%% ================================
+%% 4️⃣ Student Accepting/Rejecting an Invitation
+%% ================================
+sequenceDiagram
+    participant Invitee
+    participant Browser
+    participant Django
+    participant InvitationModel as GroupInvitation
+    participant NotificationService
+
+    Invitee->>Browser: Accept/Reject invitation
+    Browser->>Django: POST /invitations/{id}/accept or reject
+    Django->>InvitationModel: Update invitation status
+    InvitationModel-->>Django: Confirm update
+    Django->>NotificationService: Notify inviter about response
+    NotificationService-->>Django: Confirmation
+    Django-->>Browser: Return success response
+    Browser-->>Invitee: Show confirmation
+
+%% ================================
+%% 5️⃣ Project Submission / Progress Tracking Flow
+%% ================================
+sequenceDiagram
+    participant Student
+    participant Browser
+    participant Django
+    participant ProjectModel as Project
+    participant ProgressModel as StudentProgress
+    participant NotificationService
+
+    Student->>Browser: Submit project update / progress
+    Browser->>Django: POST /projects/ or /progress/
+    Django->>ProjectModel: Validate project
+    ProjectModel-->>Django: Confirm project exists
+    Django->>ProgressModel: Create / update student progress record
+    ProgressModel-->>Django: Confirm saved
+    Django->>NotificationService: Notify supervisors / team members
+    NotificationService-->>Django: Confirmation
+    Django-->>Browser: Return success response
+    Browser-->>Student: Show confirmation

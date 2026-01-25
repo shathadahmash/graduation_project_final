@@ -1,0 +1,83 @@
+/* Home Page styles — modern dean dashboard theme */
+
+/* Hero */
+.home-hero {
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+  overflow: hidden;
+  position: relative;
+}
+
+.hero-inner {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.hero-title {
+  color: white;
+  background: linear-gradient(90deg, #ffffff 0%, #e2e8f0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-cta {
+  background: linear-gradient(90deg, var(--primary-blue), var(--primary-blue-700));
+  color: white;
+  border-radius: 0.75rem;
+  padding: 0.75rem 2rem;
+  transition: transform .28s cubic-bezier(.2,.9,.3,1), box-shadow .28s, filter .28s;
+  box-shadow: 0 8px 28px rgba(30,104,216,0.3);
+  position: relative;
+  overflow: hidden;
+  font-size: 1.125rem;
+  font-weight: 600;
+  border: none;
+}
+
+.hero-cta:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 18px 48px rgba(30,104,216,0.4);
+  filter: brightness(1.1);
+}
+
+.hero-cta::after {
+  content: "";
+  position: absolute;
+  left: -40%;
+  top: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05));
+  transform: skewX(-20deg) translateX(0);
+  transition: transform .9s ease;
+}
+.hero-cta:hover::after { transform: translateX(300%); }
+
+/* Hero images styling */
+.hero-arch {
+  width: 320px;
+  height: auto;
+  border-radius: 1rem;
+  box-shadow: 0 18px 48px rgba(0,0,0,0.3);
+  transform: translateY(0) rotate(-2deg);
+  transition: transform .7s cubic-bezier(.2,.9,.3,1), box-shadow .5s;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.hero-arch:hover { 
+  transform: translateY(-8px) rotate(0deg) scale(1.02); 
+  box-shadow: 0 30px 60px rgba(0,0,0,0.4); 
+}
+
+/* Floating decorative animation */
+@keyframes floaty { 0%{transform:translateY(0)}50%{transform:translateY(-10px)}100%{transform:translateY(0)} }
+.float-decor { animation: floaty 6s ease-in-out infinite; }
+
+/* Fade-in utility */
+@keyframes page-fade { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none} }
+.animate-page-fade { animation: page-fade .9s ease both; }
+
+/* Responsive tweaks */
+@media (max-width: 1024px) {
+  .hero-arch { display: none; }
+}

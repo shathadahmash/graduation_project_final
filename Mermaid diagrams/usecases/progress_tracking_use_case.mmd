@@ -1,0 +1,25 @@
+graph TD
+    subgraph Actors
+        admin[Admin]
+        supervisor[co-supervisor/Supervisor]
+        student[Student]
+    end
+
+    subgraph "Progress Tracking System"
+        UC1(Define Progress Stages)
+        UC2(Define Progress Sub-Stages)
+        UC3(Create Progress Patterns)
+        UC4(Assign Pattern to College/Department)
+        UC5(Select Pattern for Group if from the allowed pattrens)
+        UC6(Record Student Progress/Score)
+        UC7(View Progress Records)
+    end
+
+    admin --> UC1
+    admin --> UC2
+    admin --> UC3
+    admin --> UC4
+    supervisor --> UC6
+    supervisor --> UC7
+    student --> UC7
+    student --> UC5

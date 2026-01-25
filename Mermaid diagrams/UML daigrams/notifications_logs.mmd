@@ -1,0 +1,30 @@
+classDiagram
+    class Notification {
+        +int not_ID
+        +User user
+        +str message
+        +str state
+        +datetime date
+    }
+
+    class NotificationLog {
+        +int notification_id
+        +User recipient
+        +str notification_type
+        +str title
+        +str message
+        +Group related_group
+        +Project related_project
+        +User related_user
+        +ApprovalRequest related_approval
+        +bool is_read
+        +bool is_sent_email
+        +datetime created_at
+        +datetime read_at
+    }
+
+    Notification "1" --> "1" User : belongs to
+    NotificationLog "1" --> "1" User : recipient
+    NotificationLog "0..1" --> "0..1" Group : related
+    NotificationLog "0..1" --> "0..1" Project : related
+    NotificationLog "0..1" --> "0..1" ApprovalRequest : related

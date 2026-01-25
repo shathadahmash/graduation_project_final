@@ -1,0 +1,19 @@
+flowchart TD
+    A[Project created by supervisor/student] --> B{Project type?}
+    B -->|Internal| C[Assign to department & college]
+    B -->|External| D[Assign supervisors manually]
+
+    C --> E[Create Group or assign to existing group]
+    D --> E
+
+    E --> F[Select ProgressPattern for Group]
+    F --> G[Assign stages via PatternStageAssignment]
+    G --> H[Assign sub-stages via PatternSubStageAssignment]
+
+    H --> I[Students start working on stages]
+    I --> J[Teachers evaluate stages/sub-stages]
+    J --> K[Update StudentProgress record]
+
+    K --> L{All stages completed?}
+    L -->|Yes| M[Project marked as Completed]
+    L -->|No| I[Continue evaluation]

@@ -1,0 +1,22 @@
+classDiagram
+    class GroupCreationRequest {
+        +str group_name
+        +User creator
+        +int department_id
+        +int college_id
+        +str note
+        +datetime created_at
+        +bool is_fully_confirmed
+    }
+
+    class GroupMemberApproval {
+        +GroupCreationRequest request
+        +User user
+        +str role
+        +str status
+        +datetime responded_at
+    }
+
+    GroupCreationRequest "1" --> "0..*" GroupMemberApproval : approvals
+    User "1" --> "0..*" GroupCreationRequest : created
+    User "1" --> "0..*" GroupMemberApproval : approval by

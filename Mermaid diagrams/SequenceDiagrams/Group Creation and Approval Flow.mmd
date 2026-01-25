@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant Student
+    participant Browser
+    participant Django
+    participant GroupCreationRequestModel as GroupCreationRequest
+    participant ApprovalModel as GroupMemberApproval
+    participant NotificationService
+
+    Student->>Browser: Fill and submit group creation form
+    Browser->>Django: POST /submit_group_creation_request/
+    Django->>GroupCreationRequestModel: Create group request
+    GroupCreationRequestModel-->>Django: Return group request instance
+    Django->>ApprovalModel: Create approvals for students & supervisors
+    ApprovalModel-->>Django: Return approval records
+    Django->>NotificationService: Send notifications
+    NotificationService-->>Django: Confirm notifications sent
+    Django-->>Browser: Return success response
+    Browser-->>Student: Show confirmation message

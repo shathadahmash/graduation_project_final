@@ -1,0 +1,17 @@
+sequenceDiagram
+    participant Inviter
+    participant Browser
+    participant Django
+    participant InvitationModel as GroupInvitation
+    participant NotificationService
+    participant Invitee
+
+    Inviter->>Browser: Send invitation
+    Browser->>Django: POST /invitations/
+    Django->>InvitationModel: Create invitation object
+    InvitationModel-->>Django: Return invitation
+    Django->>NotificationService: Send notification to invitee
+    NotificationService-->>Django: Confirm notification
+    Django-->>Browser: Return success response
+    Browser-->>Inviter: Show confirmation
+    Note right of Invitee: Invitee receives notification

@@ -1,0 +1,27 @@
+graph TD
+    subgraph Actors
+        user[User]
+        student[Student]
+        supervisor[Supervisor]
+        approver[Approver]
+    end
+
+    subgraph "Project & Group Management"
+        UC8(Create Project)
+        UC9(Request Group Creation)
+        UC10(Invite Student to Group)
+        UC11(Accept/Reject Group Invitation)
+        UC12(Approve Group Member)
+        UC13(Submit Approval Request)
+        UC14(Review Approval Request)
+        UC15(Manage Academic Affiliation)
+    end
+
+    user --> UC8
+    student --> UC9
+    student --> UC10
+    student --> UC11
+    supervisor --> UC12
+    user --> UC13
+    approver --> UC14
+    user --> UC15
