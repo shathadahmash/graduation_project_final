@@ -7,7 +7,7 @@ export interface Project {
   type: string; // must match backend choices
   state?: string;
   description: string;
-  start_date: string; // required, format: YYYY-MM-DD
+  start_date?: string; // required, format: YYYY-MM-DD
   supervisor?: { name: string; id: number };
   supervisor_id?: number; // if backend expects an ID
   college?: string;
@@ -139,6 +139,37 @@ export const projectService = {
       throw error;
     }
   },
+
+
+async proposeAndLinkProject(payload: Project) {
+    // 1. ضمان وجود تاريخ البدء كما يطلبه الموديل (YYYY-MM-DD)
+    if (!payload.start_date) {
+      payload.start_date = new Date().toISOString().slice(0, 10);
+    }
+
+    // 2. تجهيز البيانات لتطابق خيارات الباك إيند (شغل نظيف)
+    const cleanPayload = {
+      ...payload,
+      type: 'ProposedProject', // مطابقة لـ TYPE_CHOICES في Django
+      state: 'Pending'         // مطابقة لـ STATE_CHOICES في Django
+    };
+
+    try {
+      console.log('[projectService] Sending to -> /projects/propose-project/ :', cleanPayload);
+      
+      // 3. الطلب للرابط الجديد في الباك إيند
+      const resp = await api.post('/projects/propose-project/', cleanPayload);
+      
+      console.log('[projectService] Success:', resp.data);
+      return resp.data;
+    } catch (err: any) {
+      console.error('[projectService] Failed in proposeAndLinkProject:', err?.response?.data || err.message);
+      throw err;
+    }
+  },
+
+
+
 
   async getProjectsWithGroups(fields?: string[]) {
     const req = [
