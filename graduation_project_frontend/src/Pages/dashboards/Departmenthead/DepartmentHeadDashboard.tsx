@@ -285,9 +285,11 @@ const DepartmentHeadDashboard: React.FC = () => {
       case 'الطلاب':
         return <UsersTable />;
       case 'المشرفون':
-        return <SupervisorTable />;
+        return <SupervisorTable departmentId={departmentHeadDepartmentId} />;
+
       case 'المشرفون المساعدون':
-        return <COSupervisorTable />;
+       return <COSupervisorTable departmentId={departmentHeadDepartmentId} />;
+
       case 'المجموعات':
         return <GroupsTable departmentId={departmentHeadDepartmentId} />;
       case 'المشاريع':
@@ -485,7 +487,7 @@ const DepartmentHeadDashboard: React.FC = () => {
                     <FiUsers className="text-xl" />
                     <span className="font-medium">{user?.name}</span>
                     <span className="text-blue-300">•</span>
-                    <span>قسم {departments.find(d => d.id === departmentHeadDepartmentId)?.name || 'القسم'}</span>
+                    <span>رئيس {departments.find(d => d.id === departmentHeadDepartmentId)?.name || 'القسم'}</span>
                   </div>
                 </div>
                 <div className="absolute top-[-20px] left-[-20px] w-40 h-40 bg-white/10 rounded-full blur-2xl" />

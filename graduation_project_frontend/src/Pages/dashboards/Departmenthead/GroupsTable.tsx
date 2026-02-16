@@ -91,8 +91,13 @@ const GroupsTable: React.FC<GroupsTableProps> = ({ departmentId }) => {
       return user?.department_id || null;
     }
   };
+  
 
-  useEffect(() => { fetchGroups(); }, []);
+useEffect(() => {
+  if (user?.id) {
+    fetchGroups();
+  }
+}, [user]);
 
   const fetchGroups = async () => {
     try {
@@ -108,36 +113,37 @@ const GroupsTable: React.FC<GroupsTableProps> = ({ departmentId }) => {
         console.log('[GroupsTable] department head department_id from props:', departmentHeadDepartmentId);
       }
 
+
       const [data, fetchedDepartments, fetchedColleges] = await Promise.all([
         groupService.getGroups(),
         fetchTableFields('departments'),
         fetchTableFields('colleges')
       ]);
       console.log('[GroupsTable] fetched groups before filtering:', data?.length || 0);
-
       setAllDepartments(fetchedDepartments);
       setColleges(fetchedColleges);
 
-      // Filter groups by department head's department using direct department_id
-      const filteredGroups = departmentHeadDepartmentId ? (data || []).filter((g: any) => {
-        if (g && g.department) {
-          const groupDepartmentId = typeof g.department === 'number' ? g.department :
-            (g.department.department_id || g.department.id);
+      // طباعة جميع بيانات المجموعات قبل الفلترة
+      console.log('[GroupsTable] All groups data:', data);
+      // طباعة department_id لرئيس القسم
+      const deptHeadId = Number(departmentHeadDepartmentId);
+      console.log('[GroupsTable] Department Head department_id:', deptHeadId);
 
-          // Ensure both IDs are numbers for comparison
-          const deptHeadId = Number(departmentHeadDepartmentId);
-          const groupDeptId = groupDepartmentId ? Number(groupDepartmentId) : null;
+      const filteredGroups = (data || []).filter((g: any) => {
+        let groupDeptId = null;
+        if (g.department_id) groupDeptId = Number(g.department_id);
+        else if (typeof g.department === 'number') groupDeptId = g.department;
+        else if (g.department?.department_id) groupDeptId = g.department.department_id;
+        else if (g.department?.id) groupDeptId = g.department.id;
 
-          const matches = groupDeptId === deptHeadId;
-          console.log(`[GroupsTable] Group ${g.group_id} (${g.group_name}): group_dept_id=${groupDeptId}, dept_head_dept=${deptHeadId}, matches=${matches}`);
+        // طباعة بيانات كل مجموعة وقيم القسم
+        console.log('[GroupsTable][Filter] group_name:', g.group_name, '| groupDeptId:', groupDeptId, '| deptHeadId:', deptHeadId);
 
-          return matches;
-        }
-        console.log(`[GroupsTable] Group ${g?.group_id} (${g?.group_name}): no department field or null`);
-        return false;
-      }) : [];
-      console.log('[GroupsTable] filtered groups:', filteredGroups.length);
+        // عرض المجموعة فقط إذا كان لديها قسم مطابق للقسم الحالي
+        return groupDeptId && deptHeadId ? groupDeptId === Number(deptHeadId) : false;
+      });
 
+      console.log('[GroupsTable] filtered groups:', filteredGroups.length, filteredGroups);
       setGroups(filteredGroups);
 
       const projectIds = Array.from(new Set(
