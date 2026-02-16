@@ -19,6 +19,8 @@ from django.contrib import admin
 from django.urls import path, include
 from core.auth_views import CustomLoginView
 
+# for the sup.
+
 urlpatterns = [
     # Admin panel
     path('admin/', admin.site.urls),

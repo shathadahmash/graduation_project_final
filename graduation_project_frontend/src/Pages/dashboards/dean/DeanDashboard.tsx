@@ -9,8 +9,8 @@ import { projectService } from '../../../services/projectService';
 import { groupService } from '../../../services/groupService';
 import { fetchTableFields } from '../../../services/bulkService';
 import ProjectSearch from '../ProjectSearch';
-import NotificationsPanel from '../../../components/NotificationsPanel'; 
-import { useNotifications } from '../../../hooks/useNotifications'; 
+import NotificationsPanel from '../../../components/NotificationsPanel';
+import { useNotifications } from '../../../hooks/useNotifications';
 import SupervisorsTable from './SupervisorsTable';
 import CoSupervisorsTable from './CoSupervisorsTable';
 import ProjectTable from './ProjectTable';
@@ -35,15 +35,15 @@ const DeanDashboard: React.FC = () => {
   const [departments, setDepartments] = useState<any[]>([]);
   const [affiliations, setAffiliations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
-  const [activeCardPanel, setActiveCardPanel] = useState<string | null>(null); 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeCardPanel, setActiveCardPanel] = useState<string | null>(null);
   const [showManagementContent, setShowManagementContent] = useState(false);
   const [isNotifPanelOpen, setIsNotifPanelOpen] = useState(false);
   const [activeReport, setActiveReport] = useState<string | null>(null);
 
-/* ==========================
-     Fetch Data (like System Manager)
-  ========================== */
+  /* ==========================
+       Fetch Data (like System Manager)
+    ========================== */
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -135,7 +135,7 @@ const DeanDashboard: React.FC = () => {
     const result = projects.filter((project: any) => {
       // Check different possible college field structures
       let projectCollegeId = null;
-      
+
       if (typeof project.college === 'number') {
         // College is serialized as primary key (integer)
         projectCollegeId = project.college;
@@ -146,7 +146,7 @@ const DeanDashboard: React.FC = () => {
         // Direct college_id field
         projectCollegeId = project.college_id;
       }
-      
+
       console.log('Project college check:', project.project_id || project.id, 'college field:', project.college, 'extracted ID:', projectCollegeId, 'dean college:', deanCollegeId);
       return projectCollegeId === deanCollegeId;
     });
@@ -172,7 +172,7 @@ const DeanDashboard: React.FC = () => {
     const result = users.filter((user: any) => {
       const userAffiliation = affiliations.find((aff: any) => aff.user_id === user.id);
       const hasCoSupervisorRole = user.roles?.some((role: any) =>
-        role.type?.toLowerCase() === 'co_supervisor' || 
+        role.type?.toLowerCase() === 'co_supervisor' ||
         role.type?.toLowerCase() === 'co-supervisor' ||
         role.type?.toLowerCase() === 'مشرف مشارك'
       );
@@ -195,7 +195,7 @@ const DeanDashboard: React.FC = () => {
           return departmentCollegeId === deanCollegeId;
         }
       }
-      
+
       // Fallback: check if group's project belongs to dean's college
       if (group.project) {
         const project = projects.find((p: any) => p.project_id === group.project || p.id === group.project);
@@ -212,7 +212,7 @@ const DeanDashboard: React.FC = () => {
           return projectCollegeId === deanCollegeId;
         }
       }
-      
+
       // Fallback: check if any group member belongs to dean's college
       return group.members?.some((member: any) => {
         const memberAffiliation = affiliations.find((aff: any) => aff.user_id === member.user?.id || aff.user_id === member.id);
@@ -361,9 +361,9 @@ const DeanDashboard: React.FC = () => {
                 if (tab.id === 'home') {
                   setActiveTab('home');
                   setActiveCardPanel(null);
-                } else if (tab.cardPanel) {
+                } else if ((tab as any).cardPanel) {
                   setActiveTab('home');
-                  setActiveCardPanel(tab.cardPanel);
+                  setActiveCardPanel((tab as any).cardPanel);
                 } else {
                   setActiveTab(tab.id as any);
                   setActiveCardPanel(null);
@@ -393,37 +393,68 @@ const DeanDashboard: React.FC = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-blue-600 text-white p-4 shadow-lg">
-          <div className="flex items-center justify-between">
-            <button onClick={() => setIsSidebarOpen(true)} className="p-2 hover:bg-blue-700 rounded-lg transition-all"><FiMenu size={24} /></button>
-            <div className="flex-1 flex justify-center">
-              <div className="hidden lg:flex justify-center gap-4">
-                {tabs.map(item => (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      if (item.id === 'home') {
-                        setActiveTab('home');
-                        setActiveCardPanel(null);
-                      } else if (item.cardPanel) {
-                        setActiveTab('home');
-                        setActiveCardPanel(item.cardPanel);
-                      } else {
-                        setActiveTab(item.id as any);
-                        setActiveCardPanel(null);
-                      }
-                      setShowManagementContent(false);
-                      setActiveReport(null);
-                    }}
-                    className={`px-4 py-2 rounded-lg font-semibold transition-all transform hover:scale-105 ${activeTab === item.id ? 'bg-white text-blue-600 shadow-md' : 'hover:bg-blue-700'}`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
+        {/* Header (NEW DESIGN ONLY) */}
+        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 lg:px-8 flex items-center justify-between sticky top-0 z-40">
+          {/* Left: menu + title */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl transition-all border border-slate-200"
+              aria-label="فتح القائمة"
+            >
+              <FiMenu size={20} />
+            </button>
+
+            <h2 className="text-xl font-black text-slate-800">لوحة العميد</h2>
+          </div>
+
+          {/* Center: tabs pill (same data: tabs array) */}
+          <nav className="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-1">
+            {tabs.map((t: any) => {
+              const active = activeTab === t.id;
+
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    if (t.id === 'home') {
+                      setActiveTab('home');
+                      setActiveCardPanel(null);
+                    } else if (t.cardPanel) {
+                      setActiveTab('home');
+                      setActiveCardPanel(t.cardPanel);
+                    } else {
+                      setActiveTab(t.id as any);
+                      setActiveCardPanel(null);
+                    }
+
+                    setShowManagementContent(false);
+                    setActiveReport(null);
+                  }}
+                  className={`px-5 py-2 rounded-xl text-sm font-black transition-all ${
+                    active
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                      : 'text-slate-600 hover:bg-white'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Right: hello + avatar */}
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:block text-right">
+              <p className="text-xs font-black text-slate-800 leading-none">مرحباً</p>
+              <p className="text-[11px] text-slate-400 font-bold mt-1">
+                {user?.name || user?.username || 'عميد الكلية'}
+              </p>
             </div>
-            <div className="w-10"></div> {/* Spacer for balance */}
+
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md flex items-center justify-center text-white font-black">
+              {(user?.name || user?.username || 'ع')?.charAt(0)?.toUpperCase()}
+            </div>
           </div>
         </header>
 
@@ -432,7 +463,7 @@ const DeanDashboard: React.FC = () => {
             <div className="space-y-6">
               <div>
                 {/* Welcome Banner */}
-                <div className="relative bg-gradient-to-r from-blue-600 to-blue-700 rounded-3xl p-10 text-white overflow-hidden shadow-lg">
+                <div className="relative overflow-hidden bg-gradient-to-r from-[#0E4C92] to-[#0E4C92] rounded-3xl p-10 text-white shadow-2xl">
                   <div className="relative z-10">
                     <h1 className="text-3xl font-black mb-3 flex items-center gap-2">
                       مرحباً بك مجدداً، عميد الكلية 👋
@@ -494,6 +525,7 @@ const DeanDashboard: React.FC = () => {
               </div>
             </div>
           )}
+
           {activeCardPanel && (
             <div className="relative mt-8">
               {/* Animated background waves */}
@@ -600,6 +632,7 @@ const DeanDashboard: React.FC = () => {
               </div>
             </div>
           )}
+
           {(showManagementContent && activeCardPanel) && renderManagementContent()}
           {activeReport && renderReport()}
 
@@ -620,6 +653,7 @@ const DeanDashboard: React.FC = () => {
             </div>
           )}
         </main>
+
         <NotificationsPanel isOpen={isNotifPanelOpen} onClose={() => setIsNotifPanelOpen(false)} />
       </div>
     </div>

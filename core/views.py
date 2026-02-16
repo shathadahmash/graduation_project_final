@@ -26,6 +26,27 @@ from .serializers import UserRolesSerializer
 from .permissions import PermissionManager
 from .utils import InvitationService, NotificationService
 from core.notification_manager import NotificationManager
+# this is added for supervisor group  info 
+from .serializers import SupervisorGroupSerializer 
+
+class SupervisorGroupViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = SupervisorGroupSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        # ✅ رجّع فقط المجموعات التي هذا المستخدم مشرف عليها
+        return (
+            Group.objects.filter(
+                groupsupervisors__user=user,
+                groupsupervisors__type__in=["supervisor", "co_supervisor"]  # أو ["supervisor"] فقط
+            )
+            .select_related("project", "department")
+            .distinct()
+        )
+
+# till here 
 
 
 # ============================================================================================
@@ -340,7 +361,7 @@ class GroupViewSet(viewsets.ModelViewSet):
                         "state": group_obj.project.state if group_obj.project else "active"
                     },
                     "members": [{"user_detail": {"name": m.user.name or m.user.username}} for m in members_list],
-                    "supervisors": [{"user_detail": {"name": s.user.name or s.user.username}} for s in supervisors_list],
+                    "supervisors": [{"user_detail": {"name": s.user.name or s.user.username},"type": s.type} for s in supervisors_list],
                     "approvals": approvals_data, # هذا الحقل هو المسؤول عن ظهور واجهة حالة الفريق
                     "members_count": members_list.count()
                 }])
@@ -398,6 +419,29 @@ class GroupViewSet(viewsets.ModelViewSet):
             )
 
         return Response({"message": "تم إرسال الدعوة"}, status=201)
+    
+
+  
+
+# داخل كلاس GroupViewSet
+    @action(detail=True, methods=['post'], url_path='link-project')
+    def link_project(self, request, pk=None):
+        group = self.get_object()
+        project_id = request.data.get('project_id')
+        project = get_object_or_404(Project, project_id=project_id)
+
+        # فحص الحالة بناءً على الموديل (يجب أن يكون مقبولاً ليتم حجزه)
+        if project.state != 'Accepted':
+            return Response({"error": "هذا المشروع غير متاح للارتباط حالياً"}, status=400)
+
+        group.project = project
+        group.save()
+
+        # تحديث الحالة إلى إحدى خيارات الموديل (Reserved)
+        project.state = 'Reserved' 
+        project.save()
+
+        return Response({"message": "تم ربط المشروع بنجاح"})
 
 # ============================================================================================
 # 2. ApprovalRequestViewSet
@@ -579,7 +623,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if PermissionManager.is_student(user) or PermissionManager.is_admin(user):
             return qs
         if PermissionManager.is_supervisor(user):
-            return qs.filter(group__groupsupervisors__user=user).distinct()
+            return qs.filter(groups__groupsupervisors__user=user).distinct()
         return qs.none()
 
     def create(self, request, *args, **kwargs):
@@ -630,6 +674,37 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if not project:
             return Response({'message': 'No project found'}, status=200)
         return Response(ProjectSerializer(project).data)
+
+
+#afnan add it
+
+    @action(detail=False, methods=['post'], url_path='propose-project')
+    def propose_project(self, request):
+        data = request.data
+        user = request.user
+        
+        # شغل نظيف: التأكد من تخزين القيم حسب الـ Choices في الموديل
+        new_project = Project.objects.create(
+        title=data.get('title'),
+        description=data.get('description'),
+        type='ProposedProject',
+        state='Pending',
+        start_date=timezone.now().date(),
+        created_by=user,
+        # جلب المعرفات مباشرة إذا كان المستخدم طالباً
+        college_id=getattr(user, 'college_id', None),
+        department_id=getattr(user, 'department_id', None)
+             )
+        
+        return Response({
+            "project_id": new_project.project_id,
+            "message": "Project proposed successfully"
+        }, status=201)
+
+
+
+
+
 
     @action(detail=False, methods=['post'])
     def propose(self, request):

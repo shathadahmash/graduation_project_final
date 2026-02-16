@@ -1,7 +1,7 @@
 import React from "react";
 import { FiBell, FiMenu } from "react-icons/fi";
 
-export type SupervisorTab = "home" | "projects" | "groups" | "notifications" | "groups-projects";
+export type SupervisorTab = "home" | "groups-projects" | "notifications";
 
 type Props = {
   displayName: string;
@@ -9,13 +9,12 @@ type Props = {
   activeTab: SupervisorTab;
   onTabChange: (tab: SupervisorTab) => void;
   onOpenSidebar: () => void;
-  onOpenNotifications: () => void; // NEW prop for notifications sidebar
+  onOpenNotifications: () => void;
 };
 
 const tabs: { id: SupervisorTab; label: string }[] = [
   { id: "home", label: "الرئيسية" },
-  { id: "projects", label: "المشاريع" },
-  { id: "groups", label: "المجموعات" },
+  { id: "groups-projects", label: "المجموعات والمشاريع" },
   { id: "notifications", label: "الإشعارات" },
 ];
 
@@ -25,7 +24,7 @@ const SupervisorHeader: React.FC<Props> = ({
   activeTab,
   onTabChange,
   onOpenSidebar,
-  onOpenNotifications, // NEW
+  onOpenNotifications,
 }) => {
   return (
     <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 px-8 flex items-center justify-between sticky top-0 z-40">
@@ -39,7 +38,7 @@ const SupervisorHeader: React.FC<Props> = ({
           <FiMenu size={20} />
         </button>
 
-        <h2 className="text-xl font-black text-slate-800">لوحة تحكم المشرف المساعد</h2>
+        <h2 className="text-xl font-black text-slate-800">لوحة تحكم المشرف</h2>
       </div>
 
       {/* Center: tabs */}
@@ -49,37 +48,34 @@ const SupervisorHeader: React.FC<Props> = ({
           return (
             <button
               key={t.id}
-              onClick={() => onTabChange(t.id)}
+              onClick={() =>
+                t.id === "notifications"
+                  ? onOpenNotifications()
+                  : onTabChange(t.id)
+              }
               className={`px-5 py-2 rounded-xl text-sm font-black transition-all ${
-                active ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-slate-600 hover:bg-white"
+                active
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                  : "text-slate-600 hover:bg-white"
               }`}
             >
               {t.label}
+              {t.id === "notifications" && unreadCount > 0 && (
+                <span className="ml-2 px-2 py-0.5 rounded-full bg-blue-600 text-white text-[10px] font-black">
+                  {unreadCount}
+                </span>
+              )}
             </button>
           );
         })}
       </nav>
 
-      {/* Right: hello + bell */}
+      {/* Right: hello + avatar */}
       <div className="flex items-center gap-3">
         <div className="hidden sm:block text-right">
           <p className="text-xs font-black text-slate-800 leading-none">مرحباً</p>
           <p className="text-[11px] text-slate-400 font-bold mt-1">{displayName}</p>
         </div>
-
-        {/* 🔔 Bell now opens sidebar instead of switching tab */}
-        <button
-          onClick={onOpenNotifications}
-          className="relative p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl transition-all border border-slate-200"
-          aria-label="الإشعارات"
-        >
-          <FiBell size={20} />
-          {unreadCount > 0 && (
-            <span className="absolute top-2 right-2 w-4 h-4 badge-blue text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white">
-              {unreadCount}
-            </span>
-          )}
-        </button>
 
         <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md flex items-center justify-center text-white font-black">
           {displayName?.charAt(0)?.toUpperCase()}

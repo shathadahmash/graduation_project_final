@@ -120,25 +120,36 @@ const ExternalCompanyDashboard: React.FC = () => {
         <main className="flex-1 overflow-y-auto p-8">
           <div className="max-w-7xl mx-auto space-y-10">
             {/* Hero / Header (SystemManager style) */}
-            <div className="relative overflow-hidden hero-blue p-10 rounded-2xl shadow-2xl">
-              <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                <div>
-                  <h1 className="text-3xl font-black mb-2 text-white">مرحباً، {user?.name || user?.username} 👋</h1>
-                  <p className="max-w-xl leading-relaxed font-medium text-white/90">لوحة تحكم الشركة الخارجية — إدارة ومتابعة مشاريع التخرج بشكل متناسق مع نظام لوحة التحكم.</p>
-                </div>
+<div className="relative overflow-hidden bg-gradient-to-r from-[#0E4C92] to-[#0E4C92] p-10 rounded-3xl shadow-2xl text-white">
+  <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+    <div>
+      <h1 className="text-3xl font-black mb-2">
+        مرحباً، {user?.name || user?.username} 👋
+      </h1>
+      <p className="max-w-xl leading-relaxed font-medium text-white/90">
+        لوحة تحكم الشركة الخارجية — إدارة ومتابعة مشاريع التخرج بشكل متناسق مع نظام لوحة التحكم.
+      </p>
+    </div>
 
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => { setEditingProject(null); setFormData({ title: '', description: '', type: 'external' }); setShowForm(true); }}
-                    className="flex items-center gap-2 bg-white/90 text-slate-800 px-6 py-3 rounded-xl hover:bg-white transition-all shadow-md font-bold"
-                  >
-                    <FiPlus className="w-5 h-5" />
-                    تقديم مقترح جديد
-                  </button>
-                </div>
-              </div>
-              <div className="absolute -top-24 -left-24 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-            </div>
+    <div className="flex items-center gap-4">
+      <button
+        onClick={() => {
+          setEditingProject(null);
+          setFormData({ title: '', description: '', type: 'external' });
+          setShowForm(true);
+        }}
+        className="flex items-center gap-2 bg-white/95 text-slate-800 px-6 py-3 rounded-xl hover:bg-white transition-all shadow-lg font-black"
+      >
+        <FiPlus className="w-5 h-5" />
+        تقديم مقترح جديد
+      </button>
+    </div>
+  </div>
+
+  {/* Decorative blur circles */}
+  <div className="absolute -top-24 -left-24 w-72 h-72 bg-white/10 rounded-full blur-3xl"></div>
+  <div className="absolute -bottom-24 -right-24 w-60 h-60 bg-white/10 rounded-full blur-3xl"></div>
+</div>
 
             {/* Stats (SystemManager style) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

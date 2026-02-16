@@ -17,31 +17,19 @@ function groupName(g: AnyObj): string {
 }
 
 function projectTitle(g: AnyObj): string {
-  const p = g.project;
-  if (!p) return "—";
-  if (typeof p === "object") return p.title ?? p.name ?? "—";
-  return String(p);
+  return g.project_title ?? g.project?.title ?? g.project?.name ?? "—";
 }
 
 function memberNames(g: AnyObj): string[] {
-  const buckets = [g.students, g.members, g.group_members, g.groupMembers];
+  // SupervisorGroupSerializer يرجّع members كقائمة أسماء (strings)
+  const buckets = [g.members];
   const names: string[] = [];
 
   buckets.forEach((b) => {
     safeArray(b).forEach((m: AnyObj) => {
       if (typeof m === "string") {
         names.push(m);
-        return;
       }
-      const u = m.user ?? m.student ?? m;
-      const n =
-        u?.name ||
-        `${u?.first_name || ""} ${u?.last_name || ""}`.trim() ||
-        u?.username ||
-        m?.name ||
-        m?.username;
-
-      if (n) names.push(n);
     });
   });
 
@@ -57,10 +45,12 @@ const SupervisorGroupsProjectsTable: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await groupService.getGroups();
+      const res = await groupService.getSupervisorGroups(); // ✅ الدالة الجديدة
+      console.log("Supervisor Groups API response:", res);
       const arr = Array.isArray(res) ? res : (res?.results || []);
       setGroups(arr);
-    } catch {
+    } catch (err) {
+      console.error("Supervisor Groups API error:", err);
       setError("تعذر جلب البيانات حالياً.");
       setGroups([]);
     } finally {
@@ -76,13 +66,14 @@ const SupervisorGroupsProjectsTable: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-50 text-blue-700 rounded-2xl flex items-center justify-center">
             <FiUsers size={18} />
           </div>
           <div>
-            <h3 className="text-lg font-black text-slate-800">Groups & Projects</h3>
+            <h3 className="text-lg font-black text-slate-800">المجموعات والمشاريع</h3>
             <p className="text-slate-400 text-xs font-bold">Total: {rows.length}</p>
           </div>
         </div>
@@ -96,12 +87,14 @@ const SupervisorGroupsProjectsTable: React.FC = () => {
         </button>
       </div>
 
+      {/* Error */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl font-bold">
           {error}
         </div>
       )}
 
+      {/* Table */}
       <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-right">
@@ -125,12 +118,14 @@ const SupervisorGroupsProjectsTable: React.FC = () => {
                   const members = memberNames(g);
 
                   return (
-                    <tr key={String(groupId(g))} className="border-t border-slate-100 hover:bg-slate-50/60">
+                    <tr
+                      key={String(groupId(g))}
+                      className="border-t border-slate-100 hover:bg-slate-50/60"
+                    >
                       <td className="p-4 font-black text-slate-800">{groupName(g)}</td>
                       <td className="p-4 text-slate-600 font-bold">{projectTitle(g)}</td>
                       <td className="p-4">
-
-{members.length ? (
+                        {members.length ? (
                           <div className="flex flex-wrap gap-2">
                             {members.slice(0, 8).map((m, idx) => (
                               <span
@@ -147,7 +142,9 @@ const SupervisorGroupsProjectsTable: React.FC = () => {
                             )}
                           </div>
                         ) : (
-                          <span className="text-slate-400 text-sm font-bold">غير متاح من الـ API</span>
+                          <span className="text-slate-400 text-sm font-bold">
+                            غير متاح من الـ API
+                          </span>
                         )}
                       </td>
                     </tr>
@@ -155,7 +152,10 @@ const SupervisorGroupsProjectsTable: React.FC = () => {
                 })
               ) : (
                 <tr>
-                  <td className="p-8 text-slate-500 font-bold text-center" colSpan={3}>
+                  <td
+                    className="p-8 text-slate-500 font-bold text-center"
+                    colSpan={3}
+                  >
                     No data
                   </td>
                 </tr>
@@ -166,7 +166,7 @@ const SupervisorGroupsProjectsTable: React.FC = () => {
       </div>
 
       <p className="text-slate-400 text-[11px] font-bold">
-        إذا لم تظهر الأعضاء: هذا يعني أن endpoint /groups لا يرجّع members داخل نفس الـ response. وقتها نضيف endpoint أو bulk fetch لاحقاً بدون تغيير الواجهة.
+       
       </p>
     </div>
   );

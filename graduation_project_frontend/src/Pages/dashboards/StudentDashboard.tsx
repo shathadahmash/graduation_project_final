@@ -203,7 +203,7 @@ const StudentDashboard: React.FC = () => {
                 ))}
               </div>
 
-              <div className="bg-[#1E293B] rounded-[3rem] p-10 text-white relative overflow-hidden shadow-2xl shadow-slate-200">
+              <div className="bg-[#0E4C92] rounded-[3rem] p-10 text-white relative overflow-hidden shadow-2xl shadow-slate-200">
               <div className="relative z-10 flex flex-col lg:flex-row justify-between items-center gap-8">
                 <div className="text-right">
                   <h2 className="text-3xl font-black mb-3 text-right">حالة مشروع التخرج الحالي <span className="text-blue-500">.</span></h2>
@@ -285,11 +285,49 @@ const StudentDashboard: React.FC = () => {
                         ))}
                       </div>
                     </div>
+                    
                     <div className="space-y-6 text-right">
-                      <h5 className="font-black text-lg border-r-4 border-indigo-600 pr-3">المشرف الأكاديمي</h5>
-                      <div className="p-10 bg-indigo-50/30 border-2 border-indigo-100 border-dashed rounded-[2.5rem] text-center">
-                        <div className="text-3xl mb-4">🎓</div>
-                        <p className="text-2xl font-black text-indigo-900 mb-1">{myGroup.supervisors?.[0]?.user_detail?.name || 'لم يحدد بعد'}</p>
+                      <h5 className="font-black text-lg border-r-4 border-indigo-600 pr-3 text-right">الإشراف الأكاديمي</h5>
+                      
+                      <div className="space-y-4">
+                        {/* 1. عرض المشرف الرئيسي مع أيقونة الكوفية */}
+                        {myGroup.supervisors?.filter((s: any) => s.type === 'supervisor').map((mainSup: any, i: number) => (
+                          <div key={i} className="p-8 bg-indigo-50/50 border-2 border-indigo-100 border-dashed rounded-[2.5rem] text-center relative overflow-hidden group">
+                            {/* أيقونة كوفية التخرج */}
+                            <div className="text-4xl mb-4 transform group-hover:scale-110 transition-transform duration-300">🎓</div>
+                            
+                            <p className="text-[10px] text-indigo-500 font-black uppercase mb-1 tracking-widest">المشرف الأكاديمي الرئيسي</p>
+                            <p className="text-2xl font-black text-indigo-900 mb-1">
+                              {mainSup.user_detail?.name || 'لم يحدد بعد'}
+                            </p>
+                            
+                            {/* زخرفة خفيفة في الزاوية */}
+                            <div className="absolute -left-2 -bottom-2 opacity-10 text-indigo-900 rotate-12">
+                              <FiCheckCircle size={80} />
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* 2. عرض المشرفين المشاركين */}
+                        <div className="space-y-3 mt-6">
+                          <p className="text-[10px] text-slate-400 font-black uppercase pr-2 tracking-tighter">هيئة الإشراف المساعدة</p>
+                          
+                          {myGroup.supervisors?.filter((s: any) => s.type === 'co_supervisor').length > 0 ? (
+                            myGroup.supervisors?.filter((s: any) => s.type === 'co_supervisor').map((assistSup: any, i: number) => (
+                              <div key={i} className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center justify-between group hover:border-blue-200 transition-all shadow-sm">
+                                <div className="flex items-center gap-3">
+                                  <span className="text-blue-600 bg-blue-50 p-2 rounded-lg text-sm">👨‍🏫</span>
+                                  <span className="font-bold text-slate-700">{assistSup.user_detail?.name}</span>
+                                </div>
+                                <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">مشرف مشارك</span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="p-4 bg-slate-50/50 border border-dashed border-slate-200 rounded-2xl text-center text-xs text-slate-400 font-medium">
+                              لا يوجد مشرفون مشاركون حالياً
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

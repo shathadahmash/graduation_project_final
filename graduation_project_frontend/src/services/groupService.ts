@@ -1,6 +1,8 @@
 // src/services/groupService.ts
 import api from './api';
 
+
+
 // --- أنواع البيانات بعد الاعتماد على الكود الثاني (الأحدث) ---
 export interface Department {
   id: number;
@@ -75,10 +77,15 @@ export const groupService = {
     const res = await api.post('/groups/', { ...payload, created_by_role: 'supervisor' });
     return res.data;
   },//till here
+
+
   async linkProjectToGroup(groupId: number, projectId: number) {
-    const res = await api.post(`/groups/${groupId}/link-project/`, { project_id: projectId });
+    // التأكد من أن المسار ينتهي بـ /link-project/ ليطابق الباك إيند
+    const res = await api.post(`/groups/${groupId}/link-project/`, { 
+        project_id: projectId 
+    });
     return res.data;
-  },
+},
 //////////////////////////////////////////////
   // --- جلب المجموعات ---
   async getGroups() {
@@ -160,7 +167,12 @@ async sendIndividualInvite(requestId: number, userId: number, role: string) {
     role: role
   });
   return response.data;
-}
+},
+// --- جلب المجموعات للمشرف (باستخدام SupervisorGroupSerializer) --- 
+async getSupervisorGroups() { 
+  const response = await api.get('/supervisor/groups/'); 
+  return response.data; 
+},
 
 
 
