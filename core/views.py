@@ -26,6 +26,27 @@ from .serializers import UserRolesSerializer
 from .permissions import PermissionManager
 from .utils import InvitationService, NotificationService
 from core.notification_manager import NotificationManager
+# this is added for supervisor group  info 
+from .serializers import SupervisorGroupSerializer 
+
+class SupervisorGroupViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = SupervisorGroupSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        # ✅ رجّع فقط المجموعات التي هذا المستخدم مشرف عليها
+        return (
+            Group.objects.filter(
+                groupsupervisors__user=user,
+                groupsupervisors__type__in=["supervisor", "co_supervisor"]  # أو ["supervisor"] فقط
+            )
+            .select_related("project", "department")
+            .distinct()
+        )
+
+# till here 
 
 
 # ============================================================================================
@@ -602,7 +623,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if PermissionManager.is_student(user) or PermissionManager.is_admin(user):
             return qs
         if PermissionManager.is_supervisor(user):
-            return qs.filter(group__groupsupervisors__user=user).distinct()
+            return qs.filter(groups__groupsupervisors__user=user).distinct()
         return qs.none()
 
     def create(self, request, *args, **kwargs):

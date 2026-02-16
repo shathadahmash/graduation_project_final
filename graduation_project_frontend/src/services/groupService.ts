@@ -1,6 +1,8 @@
 // src/services/groupService.ts
 import api from './api';
 
+
+
 // --- أنواع البيانات بعد الاعتماد على الكود الثاني (الأحدث) ---
 export interface Department {
   id: number;
@@ -165,7 +167,12 @@ async sendIndividualInvite(requestId: number, userId: number, role: string) {
     role: role
   });
   return response.data;
-}
+},
+// --- جلب المجموعات للمشرف (باستخدام SupervisorGroupSerializer) --- 
+async getSupervisorGroups() { 
+  const response = await api.get('/supervisor/groups/'); 
+  return response.data; 
+},
 
 
 

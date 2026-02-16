@@ -86,9 +86,9 @@ ASGI_APPLICATION = 'GraduationProjects.asgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'Graduation_DB',
+        'NAME': 'graduationprojects_db',
         'USER': 'root',
-        'PASSWORD': 'root',
+        'PASSWORD': '',
         'HOST': 'localhost',
         'PORT': '3307',
     }
@@ -164,6 +164,8 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:5173',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
+    'http://localhost:5174',
+
 ]
 
 # -------------------------

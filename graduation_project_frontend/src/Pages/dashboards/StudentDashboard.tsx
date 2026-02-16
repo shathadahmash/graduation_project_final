@@ -203,7 +203,7 @@ const StudentDashboard: React.FC = () => {
                 ))}
               </div>
 
-              <div className="bg-[#1E293B] rounded-[3rem] p-10 text-white relative overflow-hidden shadow-2xl shadow-slate-200">
+              <div className="bg-[#0E4C92] rounded-[3rem] p-10 text-white relative overflow-hidden shadow-2xl shadow-slate-200">
               <div className="relative z-10 flex flex-col lg:flex-row justify-between items-center gap-8">
                 <div className="text-right">
                   <h2 className="text-3xl font-black mb-3 text-right">حالة مشروع التخرج الحالي <span className="text-blue-500">.</span></h2>

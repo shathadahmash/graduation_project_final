@@ -449,54 +449,88 @@ const SystemManagerDashboard: React.FC = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-[#0E4C92] text-white p-4 shadow-lg">
-              <div className="flex items-center">
-                <button onClick={() => setIsSidebarOpen(true)} className="p-2 hover:bg-[#0b3a6c] rounded-lg transition-all"><FiMenu size={24} /></button>
-                <div className="hidden lg:flex gap-4 flex-1 justify-center">
-                  {[
-                    { id: 'home', label: 'الرئيسية' },
-                    { id: 'users', label: 'المستخدمون', cardPanel: 'المستخدمون' },
-                    { id: 'projects', label: 'المشاريع', cardPanel: 'المشاريع' },
-                    { id: 'groups', label: 'المجموعات', cardPanel: 'المجموعات' },
-                    { id: 'approvals', label: 'الموافقات' },
-                    { id: 'settings', label: 'الإعدادات' },
-                  ].map(item => (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        if (item.id === 'home') {
-                          setActiveTab('home'); 
-                          setActiveCardPanel(null); 
-                        } else if (item.cardPanel) {
-                          setActiveTab('home');
-                          setActiveCardPanel(item.cardPanel);
-                        } else {
-                          setActiveTab(item.id as any);
-                          setActiveCardPanel(null);
-                        }
-                        setShowManagementContent(false);
-                        setActiveReport(null);
-                      }}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-all transform hover:scale-105 ${
-                    activeTab === item.id ? 'bg-white text-[#0E4C92] shadow-md' : 'hover:bg-[#0b3a6c]'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right hidden md:block">
-                <p className="text-sm font-bold">{user?.name}</p>
-                <p className="text-xs opacity-80">مدير النظام</p>
-              </div>
-              <button onClick={() => setIsNotifPanelOpen(true)} className="relative p-2 hover:bg-[#0b3a6c] rounded-full transition-all">
-                <FiBell size={22} />
-                {unreadCount > 0 && <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full border-2 border-blue-600">{unreadCount}</span>}
-              </button>
-            </div>
-          </div>
-        </header>
+ {/* Header (DESIGN ONLY - like DepartmentHead) */}
+<header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 lg:px-8 flex items-center justify-between sticky top-0 z-40">
+  {/* Left: menu + title */}
+  <div className="flex items-center gap-4">
+    <button
+      onClick={() => setIsSidebarOpen(true)}
+      className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl transition-all border border-slate-200"
+      aria-label="فتح القائمة"
+    >
+      <FiMenu size={20} />
+    </button>
+
+    <h2 className="text-xl font-black text-slate-800">نظام الإدارة</h2>
+  </div>
+
+  {/* Center: tabs */}
+  <nav className="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-1">
+    {[
+      { id: 'home', label: 'الرئيسية' },
+      { id: 'users', label: 'المستخدمون', cardPanel: 'المستخدمون' },
+      { id: 'projects', label: 'المشاريع', cardPanel: 'المشاريع' },
+      { id: 'groups', label: 'المجموعات', cardPanel: 'المجموعات' },
+      { id: 'approvals', label: 'الموافقات' },
+      { id: 'settings', label: 'الإعدادات' },
+    ].map(item => {
+      const active = activeTab === item.id;
+      return (
+        <button
+          key={item.id}
+          onClick={() => {
+            if (item.id === 'home') {
+              setActiveTab('home');
+              setActiveCardPanel(null);
+            } else if ((item as any).cardPanel) {
+              setActiveTab('home');
+              setActiveCardPanel((item as any).cardPanel);
+            } else {
+              setActiveTab(item.id as any);
+              setActiveCardPanel(null);
+            }
+            setShowManagementContent(false);
+            setActiveReport(null);
+          }}
+          className={`px-5 py-2 rounded-xl text-sm font-black transition-all ${
+            active
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+              : 'text-slate-600 hover:bg-white'
+          }`}
+        >
+          {item.label}
+        </button>
+      );
+    })}
+  </nav>
+
+  {/* Right: notifications + hello + avatar */}
+  <div className="flex items-center gap-3">
+    <button
+      onClick={() => setIsNotifPanelOpen(true)}
+      className="relative p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl transition-all border border-slate-200"
+      aria-label="فتح الإشعارات"
+    >
+      <FiBell size={20} />
+      {unreadCount > 0 && (
+        <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] font-black rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center">
+          {unreadCount}
+        </span>
+      )}
+    </button>
+
+    <div className="hidden sm:block text-right">
+      <p className="text-xs font-black text-slate-800 leading-none">مرحباً</p>
+      <p className="text-[11px] text-slate-400 font-bold mt-1">
+        {user?.name || 'مدير النظام'}
+      </p>
+    </div>
+
+    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md flex items-center justify-center text-white font-black">
+      {(user?.name || 'م')?.charAt(0)?.toUpperCase()}
+    </div>
+  </div>
+</header>
 
         {/* Main Scrollable Content */}
         <main className="flex-1 overflow-y-auto">

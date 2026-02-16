@@ -10,6 +10,7 @@ from .models import (
     GroupCreationRequest, AcademicAffiliation, GroupMemberApproval
 )
 
+
 # ==============================================================================
 # 1. Serializers الموقع الجغرافي (Cities / Universities / Branches / Colleges)
 # ==============================================================================
@@ -112,6 +113,38 @@ class AcademicAffiliationSerializer(serializers.ModelSerializer):
 # ==============================================================================
 # 3. Serializers المجموعات
 # ==============================================================================
+from .models import Group, GroupMembers, GroupSupervisors
+
+class SupervisorGroupSerializer(serializers.ModelSerializer):
+    project_title = serializers.CharField(source="project.title", read_only=True)
+    project_type = serializers.CharField(source="project.type", read_only=True)
+    members = serializers.SerializerMethodField()
+    supervisors = serializers.SerializerMethodField()
+    members_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Group
+        fields = [
+            "group_id",
+            "group_name",
+            "project_title",
+            "project_type",
+            "department",
+            "members",
+            "supervisors",
+            "members_count",
+        ]
+
+    def get_members(self, obj):
+        qs = GroupMembers.objects.filter(group=obj).select_related("user")
+        return [m.user.name or m.user.username for m in qs]
+
+    def get_supervisors(self, obj):
+        qs = GroupSupervisors.objects.filter(group=obj).select_related("user")
+        return [s.user.name or s.user.username for s in qs]
+
+    def get_members_count(self, obj):
+        return GroupMembers.objects.filter(group=obj).count()
 
 class GroupMembersSerializer(serializers.ModelSerializer):
     user_detail = UserSerializer(source='user', read_only=True)
