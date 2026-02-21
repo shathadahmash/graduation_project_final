@@ -15,7 +15,6 @@ INSTALLED_APPS = [
     'daphne',
     'channels',
     'core',
-
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -40,19 +39,38 @@ INSTALLED_APPS = [
 ]
 
 SITE_ID = 1
+# 1. Update Trusted Origins to be exhaustive
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+]
 
+# 2. Make CORS match exactly
+CORS_ALLOWED_ORIGINS = CSRF_TRUSTED_ORIGINS
+CORS_ALLOW_CREDENTIALS = True
+
+# 3. Add these two lines to help with cross-domain cookies
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+
+# 2. Ensure CORS is configured to allow credentials
 # -------------------------
 # MIDDLEWARE
 # -------------------------
 MIDDLEWARE = [
-    'allauth.account.middleware.AccountMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware', # Move this up
+    'django.contrib.sessions.middleware.SessionMiddleware', # Move this up
     'django.middleware.common.CommonMiddleware',
-
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -118,12 +136,15 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
+# settings.py - Line 133
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
+        # Move SessionAuthentication to the bottom or remove it
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'dj_rest_auth.jwt_auth.JWTCookieAuthentication',
+        'rest_framework.authentication.SessionAuthentication', 
     ],
+    # ... rest of settings
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
@@ -152,21 +173,21 @@ DEFAULT_FROM_EMAIL = 'noreply@gpms.edu.ye'
 # -------------------------
 # CORS
 # -------------------------
+# settings.py - Bottom of file
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-]
-
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:5174',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
-    'http://localhost:5174',
-
+    'http://127.0.0.1:8000', # Add the backend itself
 ]
+
+CORS_ALLOWED_ORIGINS = CSRF_TRUSTED_ORIGINS # Use the same list
+
 
 # -------------------------
 # CHANNELS (WebSocket)

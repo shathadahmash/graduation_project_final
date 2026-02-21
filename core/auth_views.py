@@ -1,34 +1,36 @@
+# core/auth_views.py
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from dj_rest_auth.views import LoginView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import UserRoles
-import logging
-# أضف هذا السطر في الأعلى
+from rest_framework.permissions import AllowAny
+
 from .serializers import UserSerializer
 
-logger = logging.getLogger(__name__)
 
+@method_decorator(csrf_exempt, name='dispatch')
 class CustomLoginView(LoginView):
+    # Ensure the view allows anonymous access and does not depend on SessionAuthentication
+    authentication_classes = []
+    permission_classes = (AllowAny,)
+
     def post(self, request, *args, **kwargs):
-        self.request = request
-        self.serializer = self.get_serializer(data=request.data)
-        self.serializer.is_valid(raise_exception=True)
-        self.login()
-        
-        # الحصول على التوكنات الأصلية من dj_rest_auth
-        response = self.get_response()
-        
+        # Use parent implementation to validate and create tokens
+        response = super().post(request, *args, **kwargs)
+
         if response.status_code == 200:
-            user = self.user
-            # استخدام السيريالايزر الجديد الذي أنشأناه بالأعلى
-            user_data = UserSerializer(user).data
-            
-            # بناء الرد الموحد
+            # `self.user` is set by the parent LoginView during login()
+            try:
+                user_data = UserSerializer(self.user).data
+            except Exception:
+                user_data = None
+
             custom_data = {
                 "access": response.data.get('access'),
                 "refresh": response.data.get('refresh'),
-                "user": user_data
+                "user": user_data,
             }
             return Response(custom_data, status=status.HTTP_200_OK)
-        
+
         return response

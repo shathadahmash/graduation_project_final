@@ -1,0 +1,18 @@
+%% Sequence: Create Group (frontend -> backend -> notifications)
+sequenceDiagram
+  participant FE as Frontend
+  participant API as DRF API
+  participant DB as Database
+  participant NM as NotificationManager
+  participant WS as WebSocket (Channels)
+
+  FE->>API: POST /api/groups/ (GroupCreate payload)
+  API->>API: validate (GroupCreateSerializer)
+  API->>DB: create Project
+  API->>DB: create GroupCreationRequest
+  API->>DB: create GroupMemberApproval (for each participant)
+  API->>NM: NotificationManager.create_notification(...) (loop)
+  NM->>DB: insert NotificationLog
+  NM->>WS: send websocket message to recipients
+  WS->>FE: push notification JSON
+  API-->>FE: 201 { request_id }

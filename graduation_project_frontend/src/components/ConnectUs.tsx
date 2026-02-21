@@ -10,7 +10,7 @@ export default function ConnectUs() {
 
         <div className="md:w-1/2">
           <img 
-            src="/contact-illustration.png"
+            src="/contact-illustration.jpg"
             alt="contact"
             className="w-full h-auto"
           />

@@ -2,13 +2,26 @@ from django.urls import path, include
 from django.views.generic import TemplateView
 from django.contrib.auth.decorators import login_required
 from rest_framework.routers import DefaultRouter
-from .views import (
-    RoleViewSet, UserViewSet, GroupViewSet, GroupInvitationViewSet,
-    ProjectViewSet, ApprovalRequestViewSet, NotificationViewSet,
-    dropdown_data, UserRolesViewSet, bulk_fetch,
-    respond_to_group_request, dean_stats,
-    SupervisorGroupViewSet,   # ✅ أضفنا هنا
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+
+from core.views import (
+    RoleViewSet,
+    UserViewSet,
+    GroupViewSet,
+    GroupInvitationViewSet,
+    ProjectViewSet,
+    ApprovalRequestViewSet,
+    NotificationViewSet,
+    UserRolesViewSet,
+    bulk_fetch,
+    respond_to_group_request,
+    dean_stats,
+    SupervisorGroupViewSet,
+    dropdown_data,
 )
+
+from .views import get_csrf_token
 
 # إنشاء router واحد فقط
 router = DefaultRouter()
@@ -25,12 +38,15 @@ router.register(r'user-roles', UserRolesViewSet, basename='userrole')
 urlpatterns = [
     path('approvals/<int:approval_id>/approve/', respond_to_group_request, name='approval-approve'),
     path('approvals/<int:approval_id>/reject/', respond_to_group_request, name='approval-reject'),
-
+    
     # API Endpoints
     path('', include(router.urls)),   # ✅ هنا يشمل كل الـ routes بما فيها supervisor/groups
     path('dropdown-data/', dropdown_data, name='dropdown-data'),
     path('bulk-fetch/', bulk_fetch, name='bulk-fetch'),
     path('dean-stats/', dean_stats, name='dean-stats'),
+
+    # Endpoint to set CSRF cookie for SPA clients
+    path('csrf/', get_csrf_token, name='get-csrf'),
 
     # Custom Approval Actions
     path('approvals/<int:pk>/approve/', ApprovalRequestViewSet.as_view({'post': 'approve'}), name='approval-approve'),

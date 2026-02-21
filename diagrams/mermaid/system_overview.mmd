@@ -1,0 +1,18 @@
+%% System overview (simplified for rendering)
+flowchart LR
+  FE[React App (Vite)]
+  API[DRF API]
+  DB[(MariaDB / MySQL)]
+  Channels[Channels Consumers]
+
+  FE -->|REST JSON| API
+  API -->|ORM| DB
+  API -->|push events| Channels
+  FE -->|WebSocket| Channels
+  Channels -->|DB read/write| DB
+
+  %% short labels
+  FE_note([Axios + token + components])
+  API_note([serializers, viewsets, routers, permissions])
+  FE -.-> FE_note
+  API -.-> API_note

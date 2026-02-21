@@ -1,0 +1,58 @@
+openapi: 3.0.0
+info:
+  title: Graduation Project API (partial)
+  version: 1.0.0
+servers:
+  - url: http://127.0.0.1:8000/api
+paths:
+  /projects/:
+    get:
+      summary: List projects
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create project (use Group creation flow instead)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+                start_date: { type: string, format: date }
+                state: { type: string }
+      responses:
+        '201': { description: Created }
+  /groups/:
+    get:
+      summary: List groups for current user
+      responses:
+        '200': { description: OK }
+    post:
+      summary: Create group request
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_name: { type: string }
+                student_ids:
+                  type: array
+                  items: { type: integer }
+                department_id: { type: integer }
+                college_id: { type: integer }
+                project_title: { type: string }
+                project_type: { type: string }
+      responses:
+        '201': { description: Created }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []

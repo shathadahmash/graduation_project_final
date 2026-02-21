@@ -6,10 +6,14 @@ import axios from "axios";
    Axios Instance
 ======================= */
 const api = axios.create({
-  baseURL: "http://127.0.0.1:8000/api",
+  baseURL: "http://localhost:8000/api",
   headers: {
     "Content-Type": "application/json",
+    "Accept": "application/json",
+    "X-Requested-With": "XMLHttpRequest",
   },
+  // allow sending/receiving cookies for CSRF/session flows
+  withCredentials: true,
 });
 
 // Log outgoing requests for debugging (URL, method, Authorization header)
@@ -18,6 +22,20 @@ api.interceptors.request.use((config) => {
     const auth = config.headers?.Authorization || api.defaults.headers.common["Authorization"];
     // eslint-disable-next-line no-console
     console.log('[api] request ->', (config.method || 'GET').toUpperCase(), config.url, 'params:', config.params || null, 'auth:', auth ? 'present' : 'missing');
+    // Attach CSRF token from cookie for unsafe HTTP methods
+    const method = (config.method || 'get').toLowerCase();
+    const unsafe = ['post', 'put', 'patch', 'delete'];
+    const getCookie = (name: string) => {
+      const matches = document.cookie.match(new RegExp('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)'));
+      return matches ? decodeURIComponent(matches[2]) : null;
+    };
+    if (unsafe.includes(method)) {
+      const csrftoken = getCookie('csrftoken') || getCookie('CSRF-TOKEN');
+      if (csrftoken && !(config.headers && ('X-CSRFToken' in config.headers || 'X-CSRF-Token' in config.headers))) {
+        if (!config.headers) config.headers = {};
+        config.headers['X-CSRFToken'] = csrftoken;
+      }
+    }
   } catch (e) {
     // ignore
   }

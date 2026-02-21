@@ -1,0 +1,248 @@
+openapi: 3.0.0
+info:
+  title: Graduation Project API (full)
+  version: 1.0.0
+servers:
+  - url: http://127.0.0.1:8000/api
+paths:
+  /projects/:
+    get:
+      summary: List projects
+      tags: [Projects]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A paginated list of projects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProjects'
+    post:
+      summary: Create a project (typically via group creation flow)
+      tags: [Projects]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreate'
+      responses:
+        '201':
+          description: Created project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+  /projects/{id}/:
+    get:
+      summary: Retrieve a project
+      tags: [Projects]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Project object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+    put:
+      summary: Update a project
+      tags: [Projects]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectUpdate'
+      responses:
+        '200':
+          description: Updated project
+  /groups/:
+    get:
+      summary: List groups visible to the current user
+      tags: [Groups]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of groups
+    post:
+      summary: Create a group request (GroupCreateSerializer)
+      tags: [Groups]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupCreate'
+      responses:
+        '201':
+          description: Created request
+  /groups/create-by-supervisor/:
+    post:
+      summary: Supervisor creates a group directly
+      tags: [Groups]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_name: { type: string }
+                student_ids:
+                  type: array
+                  items: { type: integer }
+      responses:
+        '201':
+          description: Group created
+  /supervisor/groups/:
+    get:
+      summary: Groups where the current user is supervisor
+      tags: [Groups]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of groups
+  /invitations/:
+    get:
+      summary: List invitations
+      tags: [Invitations]
+    post:
+      summary: Create invitation
+      tags: [Invitations]
+  /notifications/:
+    get:
+      summary: List notifications
+      tags: [Notifications]
+  /approvals/:
+    get:
+      summary: List approval requests
+      tags: [Approvals]
+  /approvals/{id}/approve/:
+    post:
+      summary: Approve an approval request
+      tags: [Approvals]
+  /approvals/{id}/reject/:
+    post:
+      summary: Reject an approval request
+      tags: [Approvals]
+  /dropdown-data/:
+    get:
+      summary: Fetch dropdown lists (universities, colleges, departments, programs)
+      tags: [Helpers]
+  /bulk-fetch/:
+    get:
+      summary: Fetch multiple resources in a single call
+      tags: [Helpers]
+  /dean-stats/:
+    get:
+      summary: Dean statistics and aggregations
+      tags: [Helpers]
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Project:
+      type: object
+      properties:
+        project_id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        state:
+          oneOf:
+            - type: integer
+            - type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        created_by:
+          $ref: '#/components/schemas/User'
+    ProjectCreate:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        start_date: { type: string, format: date }
+        state: { type: string }
+    ProjectUpdate:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        end_date: { type: string, format: date }
+    PaginatedProjects:
+      type: object
+      properties:
+        count: { type: integer }
+        next: { type: string, nullable: true }
+        previous: { type: string, nullable: true }
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Project'
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        username: { type: string }
+        name: { type: string }
+        email: { type: string }
+    Group:
+      type: object
+      properties:
+        group_id: { type: integer }
+        group_name: { type: string }
+        project: { $ref: '#/components/schemas/Project' }
+        members: 
+          type: array
+          items: { $ref: '#/components/schemas/User' }
+    GroupCreate:
+      type: object
+      properties:
+        group_name: { type: string }
+        student_ids:
+          type: array
+          items: { type: integer }
+        supervisor_ids:
+          type: array
+          items: { type: integer }
+        co_supervisor_ids:
+          type: array
+          items: { type: integer }
+        department_id: { type: integer }
+        college_id: { type: integer }
+        project_title: { type: string }
+        project_type: { type: string }
+        project_description: { type: string }
+    GroupCreateResponse:
+      type: object
+      properties:
+        message: { type: string }
+        request_id: { type: integer }
+security:
+  - bearerAuth: []

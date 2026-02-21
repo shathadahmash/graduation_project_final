@@ -11,12 +11,13 @@ from .models import (
     ProgressPattern,
     PatternStageAssignment,
     CollegeProgressPattern,
-    DepartmentProgressPattern
+    DepartmentProgressPattern,ProgressSubStage, PatternSubStageAssignment, StudentProgress,
+    GroupCreationRequest, GroupMemberApproval,ContactUs
 )
-from .models import (
-    ProgressSubStage, PatternSubStageAssignment, StudentProgress,
-    GroupCreationRequest, GroupMemberApproval
-)
+
+
+# Ensure registration of remaining models
+from .models import ProjectState, programProject
 
 # ============================================================================== 
 # 1. إدارة مراحل التقدم (ProgressStage)
@@ -179,21 +180,21 @@ class UserRolesAdmin(admin.ModelAdmin):
 # ==============================================================================
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ('project_id', 'title', 'type', 'state', 'get_college_name', 'created_by', 'start_date')
-    list_filter = ('college', 'type', 'state', 'start_date')
-    search_fields = ('title', 'description', 'college__name_ar', 'created_by__username')
+    list_display = ('project_id', 'title', 'state', 'created_by', 'start_date', 'end_date')
+    list_filter = ('state', 'start_date')
+    search_fields = ('title', 'description', 'created_by__username')
     readonly_fields = ('project_id',)
     ordering = ('-start_date',)
-    list_select_related = ('college', 'created_by')
+    list_select_related = ('state', 'created_by')
     list_per_page = 25
     list_editable = ('state',)
 
     fieldsets = (
-        ('الارتباط الأكاديمي', {
-            'fields': ('college', 'created_by')
+        ('Metadata', {
+            'fields': ('created_by',)
         }),
-        ('معلومات المشروع الأساسية', {
-            'fields': ('title', 'description', 'type', 'state')
+        ('Basic Info', {
+            'fields': ('title', 'description', 'state')
         }),
         ('التواريخ', {
             'fields': ('start_date', 'end_date')
@@ -207,57 +208,28 @@ class ProjectAdmin(admin.ModelAdmin):
     
 @admin.register(Group)
 class GroupAdmin(admin.ModelAdmin):
-    # 1. الحقول التي تظهر في القائمة الرئيسية
-    list_display = (
-        'group_name', 
-        'get_department', 
-        'program', 
-        'academic_year', 
-        'pattern', 
-        'project', 
-        'created_at'
-    )
-
-    # 2. إضافة فلاتر جانبية لتسهيل الوصول
-    list_filter = (
-        'academic_year', 
-        'program__department', 
-        'program', 
-        'pattern'
-    )
-
-    # 3. إضافة شريط بحث (يبحث في اسم المجموعة، البرنامج، والمشروع)
-    search_fields = (
-        'group_name', 
-        'program__p_name', 
-        'project__title'
-    )
-
-    # 4. تنظيم الحقول داخل صفحة الإضافة والتعديل (Fieldsets)
+    list_display = ('group_id', 'group_name', 'academic_year', 'pattern', 'project', 'created_at')
+    list_filter = ('academic_year', 'pattern', 'created_at')
+    search_fields = ('group_name', 'project__title')
     fieldsets = (
         ('Basic Information', {
             'fields': ('group_name', 'academic_year')
         }),
-        ('Academic Context', {
-            'fields': ('department', 'program', 'pattern')
+        ('Academic', {
+            'fields': ('pattern',)
         }),
         ('Project Assignment', {
             'fields': ('project',)
         }),
         ('Metadata', {
             'fields': ('created_at',),
-            'classes': ('collapse',), # إخفاء هذا القسم افتراضياً
+            'classes': ('collapse',),
         }),
     )
-
-    # 5. جعل حقل التاريخ للقراءة فقط لأنه auto_now_add
     readonly_fields = ('created_at',)
+    raw_id_fields = ('project',)
+    autocomplete_fields = ('pattern',)
 
-    # 6. تحسين واجهة اختيار العلاقات (بدلاً من القائمة المنسدلة الطويلة)
-    raw_id_fields = ('project',) # مفيد جداً إذا كان عدد المشاريع كبيراً جداً
-    autocomplete_fields = ('program', 'pattern') # يتطلب وجود search_fields في Admin الخاص بهما
-
-    # Inline members and supervisors for quick editing
     class GroupMembersInline(admin.TabularInline):
         model = GroupMembers
         extra = 0
@@ -269,21 +241,6 @@ class GroupAdmin(admin.ModelAdmin):
         autocomplete_fields = ('user',)
 
     inlines = [GroupMembersInline, GroupSupervisorsInline]
-
-    # 7. دالة مخصصة لعرض القسم في القائمة (لأن العلاقة عبر البرنامج)
-    def get_department(self, obj):
-        if obj.program:
-            return obj.program.department
-        return obj.department
-    get_department.short_description = 'Department'
-
-    # 8. (اختياري) تصفية الأنماط المتاحة بناءً على القسم المختار
-    # ملاحظة: هذا يعمل بشكل ثابت عند تحميل الصفحة
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == "pattern":
-            # يمكنك هنا إضافة منطق لتصفية الأنماط إذا أردت
-            pass
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 
@@ -395,5 +352,44 @@ class ApprovalSequenceAdmin(admin.ModelAdmin):
     search_fields = ('sequence_type',)
 
 
+@admin.register(ProjectState)
+class ProjectStateAdmin(admin.ModelAdmin):
+    list_display = ('ProjectStateId', 'name')
+    search_fields = ('name',)
 
+
+@admin.register(programProject)
+class ProgramProjectAdmin(admin.ModelAdmin):
+    list_display = ('program', 'project')
+    search_fields = ('program__p_name', 'project__title')
+
+
+# CONNECT US
+@admin.register(ContactUs)
+class ContactUsAdmin(admin.ModelAdmin):
+    list_display = ('id', 'get_name', 'email', 'user', 'created_at')
+    list_filter = ('created_at', 'user')
+    search_fields = ('first_name', 'last_name', 'email', 'message', 'user__username')
+    readonly_fields = ('created_at', 'user')
+    ordering = ('-created_at',)
+    list_per_page = 25
+
+    fieldsets = (
+        ('User Info', {
+            'fields': ('user', 'first_name', 'last_name', 'email')
+        }),
+        ('Message', {
+            'fields': ('message',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at',)
+        }),
+    )
+
+    def get_name(self, obj):
+        # Show full name or "Guest" if not provided
+        if obj.first_name or obj.last_name:
+            return f"{obj.first_name} {obj.last_name}".strip()
+        return "Guest"
+    get_name.short_description = "Name"
 

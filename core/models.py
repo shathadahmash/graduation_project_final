@@ -48,17 +48,7 @@ class Branch(models.Model):
         verbose_name_plural = "Branches"
         unique_together = ('university', 'city')
 
-# class College(models.Model):
-#     cid = models.AutoField(primary_key=True)
-#     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
-#     name_ar = models.CharField(max_length=255)
-#     name_en = models.CharField(max_length=255, blank=True, null=True)
 
-#     def __str__(self):
-#         return f"{self.name_ar} - {self.branch}"
-
-#     class Meta:
-#         verbose_name_plural = "Colleges"
 class College(models.Model):
     cid = models.AutoField(primary_key=True)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
@@ -73,19 +63,6 @@ class College(models.Model):
     class Meta:
         verbose_name_plural = "Colleges"
 
-
-
-# class Department(models.Model):
-#     department_id = models.AutoField(primary_key=True)
-#     college = models.ForeignKey(College, on_delete=models.CASCADE)
-#     name = models.CharField(max_length=255)
-#     description = models.TextField(blank=True, null=True)
-    
-#     def __str__(self):
-#         return f"{self.name} - {self.college.name_ar}"
-
-#     class Meta:
-#         verbose_name_plural = "Departments"
 class Department(models.Model):
     department_id = models.AutoField(primary_key=True)
     college = models.ForeignKey(College, on_delete=models.CASCADE)
@@ -100,55 +77,8 @@ class Department(models.Model):
     class Meta:
         verbose_name_plural = "Departments"
 
-# ==============================================================================
-# class ProgressStage(models.Model):
-#     """
-#     A generic stage definition (e.g., 'Proposal', 'Midterm', 'Final').
-#     This can now be reused across many patterns.
-#     """
-#     name = models.CharField(max_length=255, unique=True,null=True)
-#     description = models.TextField(blank=True, null=True)
 
-#     def __str__(self):
-#         return self.name
 
-# class ProgressPattern(models.Model):
-#     name = models.CharField(max_length=255)
-#     # ... other fields (is_active, colleges, etc.) ...
-
-#     # The Many-to-Many relationship
-#     stages = models.ManyToManyField(
-#         ProgressStage, 
-#         through='PatternStageAssignment',
-#         related_name='patterns'
-#     )
-
-#     def __str__(self):
-#         return self.name
-
-# class PatternStageAssignment(models.Model):
-#     """
-#     The 'Bridge' table that connects Patterns and Stages.
-#     This allows sharing a stage while keeping specific settings for each pattern.
-#     """
-#     pattern = models.ForeignKey(ProgressPattern, on_delete=models.CASCADE)
-#     stage = models.ForeignKey(ProgressStage, on_delete=models.CASCADE)
-    
-#     # Specific settings for THIS pattern
-#     order = models.PositiveIntegerField()
-#     max_mark = models.FloatField(null=True, blank=True)
-
-#     class Meta:
-#         ordering = ['order']
-#         # Ensures a pattern doesn't have the same stage twice 
-#         # and doesn't have two stages with the same order
-#         unique_together = [
-#             ('pattern', 'stage'),
-#             ('pattern', 'order'),
-#         ]
-
-#     def __str__(self):
-#         return f"{self.pattern.name} -> {self.stage.name} (Order: {self.order})"
 
 class ProgressStage(models.Model):
     """
@@ -337,26 +267,68 @@ class User(AbstractUser):
     def __str__(self):
         return self.name or self.username
 
+
+# ============================================================================== 
+# 4. تواصل معنا
+# ==============================================================================
+
+class ContactUs(models.Model):
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='contact_messages'
+    )
+    first_name = models.CharField(max_length=50, blank=True)
+    last_name = models.CharField(max_length=50, blank=True)
+    email = models.EmailField(blank=True)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Contact Message'
+        verbose_name_plural = 'Contact Messages'
+
+    def __str__(self):
+        return f"Message from {self.first_name or 'Guest'} {self.last_name or ''} ({self.email or 'No Email'})"
 # ============================================================================== 
 # 4. المشاريع والمجموعات والإشعارات
 # ==============================================================================
-class Project(models.Model):
-    TYPE_CHOICES = [('Government','مشاريع حكومية'),('PrivateCompany','شركات خارجية'),('ProposedProject','مشاريع مقترحة')]
-    STATE_CHOICES = [('Completed','مكتمل'),('Incomplete','غير مكتمل'),('Reserved','محجوز'),('Accepted','مقبول'),('Rejected','مرفوض'),('Pending','معلق')]
 
+
+class ProjectState(models.Model):
+    ProjectStateId = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=100, unique=True)  
+    # ('Completed','مكتمل'),('Incomplete','غير مكتمل'),('Reserved','محجوز'),('Accepted','مقبول')
+    def __str__(self):
+        return self.name
+
+class programProject(models.Model):
+    program = models.ForeignKey(Program, on_delete=models.CASCADE, related_name='program_projects')
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='program_projects')
+
+    class Meta:
+        unique_together = ('program', 'project')
+        verbose_name_plural = "Program Projects"
+
+class Project(models.Model):
+    # STATE_CHOICES = [('Completed','مكتمل'),('Incomplete','غير مكتمل'),('Reserved','محجوز'),('Accepted','مقبول'),('Rejected','مرفوض'),('Pending','معلق')]
+    state  = models.ForeignKey(
+        ProjectState,
+        on_delete=models.PROTECT,
+        related_name='projects',
+    )
     project_id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=500)
-    type = models.CharField(max_length=100, choices=TYPE_CHOICES, default='Government')
-    college = models.ForeignKey('College', on_delete=models.SET_NULL, null=True, blank=True, related_name='projects')
-    department = models.ForeignKey('Department', on_delete=models.SET_NULL, null=True, blank=True, related_name='projects')
     start_date = models.DateField()
     end_date = models.DateField(blank=True, null=True)
-    state = models.CharField(max_length=100, choices=STATE_CHOICES, default='Pending')
     description = models.TextField()
     created_by = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_projects')
 
     def save(self, *args, **kwargs):
-        if self.state == 'Approved' and not self.end_date:
+        if self.state.name == 'Approved' and not self.end_date:
             self.end_date = timezone.now().date()
         super().save(*args, **kwargs)
 
@@ -365,38 +337,11 @@ class Project(models.Model):
 
     class Meta:
         verbose_name_plural = "Projects"
-# group model modified to have one-to-one relationship with project
-# class Group(models.Model):
-#     group_id = models.AutoField(primary_key=True)
-#     project = models.OneToOneField(Project, on_delete=models.CASCADE, null=True, blank=True)
-#     group_name = models.CharField(max_length=255)
 
-#     def __str__(self):
-#         return self.group_name
 
-#     class Meta:
-#         verbose_name_plural = "Groups"
 class Group(models.Model):
     group_id = models.AutoField(primary_key=True)
     group_name = models.CharField(max_length=255)
-
-    # الارتباط بالقسم
-    department = models.ForeignKey(
-        'Department',
-        on_delete=models.PROTECT,
-        related_name='groups',
-        null=True,
-        blank=True
-    )
-
-    # الارتباط بالبرنامج الأكاديمي
-    program = models.ForeignKey(
-        'Program',
-        on_delete=models.PROTECT,
-        related_name='groups',
-        null=True,
-        blank=True
-    )
 
     academic_year = models.CharField(max_length=9, null=True)
 
@@ -422,11 +367,10 @@ class Group(models.Model):
 
     def __str__(self):
         # تصحيح: استخدام self.project.title بدلاً من project_name
-        p_name = self.program.p_name if self.program else 'No Program'
         pat_name = self.pattern.name if self.pattern else 'No Pattern'
         proj_title = self.project.title if self.project else 'No Project'
         
-        return f"{self.group_name} - {p_name} - {pat_name} - {proj_title}"
+        return f"{self.group_name} - {pat_name} - {proj_title}"
 
     def clean(self):
         """

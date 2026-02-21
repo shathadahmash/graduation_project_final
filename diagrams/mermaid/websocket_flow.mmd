@@ -1,0 +1,13 @@
+%% WebSocket flow
+sequenceDiagram
+  participant FE as Frontend (browser)
+  participant WS as Channels Consumer
+  participant API as DRF API
+  participant DB as DB
+
+  FE->>WS: open ws://.../ws/notifications/ (auth via cookie/token)
+  WS-->>FE: accept connection
+  API->>DB: create NotificationLog
+  API->>WS: channel_layer.group_send to notifications_{user_id}
+  WS->>FE: push {type:'notification', notification: {...}}
+  FE->>API: GET /api/notifications/ to refresh list
