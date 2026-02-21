@@ -117,8 +117,209 @@ const DepartmentHeadDashboard: React.FC = () => {
         const userAffiliation = affiliations.find((aff: any) => aff && aff.user_id === user.id);
         if (!userAffiliation || !userAffiliation.department_id) return false;
 
+  /* ==========================
+     Filtered Data (department-based filtering)
+  ========================== */
+  const departmentHeadDepartmentId = getDepartmentHeadDepartmentId();
+
+  console.log('Department Head Dashboard - departmentHeadDepartmentId:', departmentHeadDepartmentId);
+  console.log('Department Head Dashboard - affiliations sample:', affiliations.slice(0, 3));
+  console.log('Department Head Dashboard - users sample:', users.slice(0, 3));
+  console.log('Department Head Dashboard - projects sample:', projects.slice(0, 3));
+  console.log('Department Head Dashboard - groups sample:', groups.slice(0, 3));
+
+  const filteredStudents = useMemo(() => {
+    if (!departmentHeadDepartmentId) return [];
+    const result = users.filter((user: any) => {
+      if (!user || !user.roles || !Array.isArray(user.roles)) return false;
+
+      const userAffiliation = affiliations.find((aff: any) => aff && aff.user_id === user.id);
+      if (!userAffiliation || !userAffiliation.department_id) return false;
+
+      const hasStudentRole = user.roles.some((role: any) =>
+        role && role.type && role.type.toLowerCase() === 'student'
+      );
+      return hasStudentRole && userAffiliation.department_id === departmentHeadDepartmentId;
+    });
+    console.log('Department Head Dashboard - filteredStudents count:', result.length);
+    return result;
+  }, [users, affiliations, departmentHeadDepartmentId]);
+
+  const filteredProjects = useMemo(() => {
+    if (!departmentHeadDepartmentId) return [];
+    const result = projects.filter((project: any) => {
+      if (!project) return false;
+
+      // Check if project belongs to department head's department
+      let projectDepartmentId = null;
+
+      if (typeof project.department === 'number') {
+        // Department is serialized as primary key (integer)
+        projectDepartmentId = project.department;
+      } else if (typeof project.department === 'object' && project.department) {
+        // Department is serialized as object
+        projectDepartmentId = project.department.id || project.department.department_id;
+      } else if (project.department_id) {
+        // Direct department_id field
+        projectDepartmentId = project.department_id;
+      }
+
+      console.log('Project department check:', project.project_id || project.id, 'department field:', project.department, 'extracted ID:', projectDepartmentId, 'dept head department:', departmentHeadDepartmentId);
+      return projectDepartmentId === departmentHeadDepartmentId;
+    });
+    console.log('Department Head Dashboard - filteredProjects count:', result.length);
+    return result;
+  }, [projects, departmentHeadDepartmentId]);
+
+  const filteredSupervisors = useMemo(() => {
+    if (!departmentHeadDepartmentId) return [];
+    const result = users.filter((user: any) => {
+      if (!user || !user.roles || !Array.isArray(user.roles)) return false;
+
+      const userAffiliation = affiliations.find((aff: any) => aff && aff.user_id === user.id);
+      if (!userAffiliation || !userAffiliation.department_id) return false;
+
+      const hasSupervisorRole = user.roles.some((role: any) =>
+        role && role.type && (role.type.toLowerCase() === 'supervisor' || role.type.toLowerCase() === 'مشرف')
+      );
+      return hasSupervisorRole && userAffiliation.department_id === departmentHeadDepartmentId;
+    });
+    console.log('Department Head Dashboard - filteredSupervisors count:', result.length);
+    return result;
+  }, [users, affiliations, departmentHeadDepartmentId]);
+
+  const filteredCoSupervisors = useMemo(() => {
+    if (!departmentHeadDepartmentId) return [];
+    const result = users.filter((user: any) => {
+      if (!user || !user.roles || !Array.isArray(user.roles)) return false;
+
+      const userAffiliation = affiliations.find((aff: any) => aff && aff.user_id === user.id);
+      if (!userAffiliation || !userAffiliation.department_id) return false;
+
+      const hasCoSupervisorRole = user.roles.some((role: any) =>
+        role && role.type && (
+          role.type.toLowerCase() === 'co_supervisor' ||
+          role.type.toLowerCase() === 'co-supervisor' ||
+          role.type.toLowerCase() === 'مشرف مشارك'
+        )
+      );
+      console.log('Co-supervisor check:', user.id, user.roles, hasCoSupervisorRole, userAffiliation?.department_id);
+      return hasCoSupervisorRole && userAffiliation.department_id === departmentHeadDepartmentId;
+    });
+    console.log('Department Head Dashboard - filteredCoSupervisors count:', result.length);
+    return result;
+  }, [users, affiliations, departmentHeadDepartmentId]);
+
+  const filteredGroups = useMemo(() => {
+    if (!departmentHeadDepartmentId) return [];
+    const result = groups.filter((group: any) => {
+      if (!group) return false;
+
+      // Check if group's department matches department head's department
+      if (group.department) {
+        const groupDepartmentId = typeof group.department === 'object' ?
+          (group.department.id || group.department.department_id) :
+          group.department;
+
+        console.log('Group department check:', group.group_id || group.id, 'department:', groupDepartmentId, 'dept head department:', departmentHeadDepartmentId);
+        return groupDepartmentId === departmentHeadDepartmentId;
+      }
+
+      // Fallback: check if group's project belongs to department head's department
+      if (group.project) {
+        const relatedProject = projects.find((p: any) => p && (p.project_id === group.project || p.id === group.project));
+        if (relatedProject) {
+          let projectDepartmentId = null;
+          if (typeof relatedProject.department === 'number') {
+            projectDepartmentId = relatedProject.department;
+          } else if (typeof relatedProject.department === 'object' && relatedProject.department) {
+            projectDepartmentId = relatedProject.department.id || relatedProject.department.department_id;
+          } else if (relatedProject.department_id) {
+            projectDepartmentId = relatedProject.department_id;
+          }
+          return projectDepartmentId === departmentHeadDepartmentId;
+        }
+      }
+
+      return false;
+    });
+    console.log('Department Head Dashboard - filteredGroups count:', result.length);
+    return result;
+  }, [groups, projects, departmentHeadDepartmentId]);
+
+  /* ==========================
+     Dashboard Cards
+  ========================== */
+  const dashboardCards = useMemo(() => {
+    return [
+      {
+        id: 'users',
+        title: 'الطلاب',
+        value: filteredStudents.length,
+        icon: <FiUsers />,
+        gradient: 'from-blue-500 to-blue-700',
+        description: 'إدارة الطلاب في القسم'
+      },
+      {
+        id: 'supervisors',
+        title: 'المشرفون',
+        value: filteredSupervisors.length,
+        icon: <FiUsers />,
+        gradient: 'from-green-500 to-green-700',
+        description: 'المشرفون في القسم'
+      },
+      {
+        id: 'co-supervisors',
+        title: 'المشرفون المساعدون',
+        value: filteredCoSupervisors.length,
+        icon: <FiUsers />,
+        gradient: 'from-teal-500 to-teal-700',
+        description: 'المشرفون المساعدون في القسم'
+      },
+      {
+        id: 'projects',
+        title: 'المشاريع',
+        value: filteredProjects.length,
+        icon: <FiLayers />,
+        gradient: 'from-purple-500 to-purple-700',
+        description: 'مشاريع القسم'
+      },
+      {
+        id: 'groups',
+        title: 'المجموعات',
+        value: filteredGroups.length,
+        icon: <FiUsers />,
+        gradient: 'from-orange-500 to-orange-700',
+        description: 'مجموعات القسم'
+      }
+    ];
+  }, [filteredStudents, filteredSupervisors, filteredCoSupervisors, filteredProjects, filteredGroups]);
+
+  /* ==========================
+     Render Management Content
+  ========================== */
+  const renderManagementContent = () => {
+    if (!activeCardPanel || !showManagementContent) return null;
+
+    switch (activeCardPanel) {
+      case 'الطلاب':
+        return <UsersTable />;
+      case 'المشرفون':
+        return <SupervisorTable departmentId={departmentHeadDepartmentId} />;
+
+      case 'المشرفون المساعدون':
+       return <COSupervisorTable departmentId={departmentHeadDepartmentId} />;
+
+      case 'المجموعات':
+        return <GroupsTable departmentId={departmentHeadDepartmentId} />;
+      case 'المشاريع':
+        return (
+          <div className="mt-6">
+            <ProjectsTable departmentId={departmentHeadDepartmentId} />
+          </div>
         const hasStudentRole = user.roles.some((role: any) =>
           role && role.type && role.type.toLowerCase() === 'student'
+
         );
         return hasStudentRole && userAffiliation.department_id === departmentHeadDepartmentId;
       });
@@ -490,6 +691,47 @@ const DepartmentHeadDashboard: React.FC = () => {
             </div>
           </header>
 
+<<<<<<< HEAD
+        {/* Main Scrollable Content */}
+        <main className="flex-1 overflow-y-auto">
+          {activeTab === 'home' && (
+            <div className="p-6 space-y-6">
+              {/* Welcome Banner */}
+              <div className="relative bg-gradient-to-r from-[#0E4C92] to-[#0E4C92]  rounded-3xl p-10 text-white overflow-hidden shadow-lg">
+                <div className="relative z-10">
+                  <h1 className="text-3xl font-black mb-3 flex items-center gap-2">
+                    مرحباً بك مجدداً، رئيس القسم 👋
+                  </h1>
+                  <p className="text-blue-100 text-base max-w-2xl leading-relaxed mb-4">
+                    إليك نظرة سريعة على حالة القسم اليوم. يمكنك إدارة الطلاب، المشرفين، والمجموعات من خلال البطاقات أدناه.
+                  </p>
+                  <div className="flex items-center gap-4 text-blue-200">
+                    <FiUsers className="text-xl" />
+                    <span className="font-medium">{user?.name}</span>
+                    <span className="text-blue-300">•</span>
+                    <span>رئيس {departments.find(d => d.id === departmentHeadDepartmentId)?.name || 'القسم'}</span>
+                  </div>
+                </div>
+                <div className="absolute top-[-20px] left-[-20px] w-40 h-40 bg-white/10 rounded-full blur-2xl" />
+                <div className="absolute bottom-[-20px] right-[-20px] w-32 h-32 bg-white/5 rounded-full blur-xl" />
+              </div>
+
+              {/* Stats Cards Grid - 5 Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                {dashboardCards.map((card, i) => (
+                  <div key={i} onClick={() => { setActiveCardPanel(card.title); setShowManagementContent(false); setActiveReport(null); }}
+                    className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all cursor-pointer group">
+                    <div className="flex flex-col items-center text-center">
+                      <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${card.gradient} text-white flex items-center justify-center mb-4 shadow-md`}>
+                        {React.cloneElement(card.icon as React.ReactElement, { size: 24 })}
+                      </div>
+                      <p className="text-slate-400 text-xs font-medium mb-1">{card.title}</p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="bg-blue-50 text-blue-600 px-3 py-0.5 rounded-full text-[10px] font-bold">نظرة</span>
+                        <h3 className="text-2xl font-black text-slate-900">{card.value}</h3>
+                      </div>
+                      <p className="text-slate-400 text-[10px]">{card.description}</p>
+=======
           {/* Main Scrollable Content */}
           <main className="flex-1 overflow-y-auto">
             {activeTab === 'home' && (
@@ -508,6 +750,7 @@ const DepartmentHeadDashboard: React.FC = () => {
                       <span className="font-medium">{user?.name}</span>
                       <span className="text-blue-300">•</span>
                       <span>قسم {departments.find(d => d.id === departmentHeadDepartmentId)?.name || 'القسم'}</span>
+>>>>>>> ae558ba00daba66d97b998b48cd35d957ec9463f
                     </div>
                   </div>
                   <div className="absolute top-[-20px] left-[-20px] w-40 h-40 bg-white/10 rounded-full blur-2xl" />
