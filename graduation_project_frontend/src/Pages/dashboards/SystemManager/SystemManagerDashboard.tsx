@@ -584,7 +584,12 @@ const SystemManagerDashboard: React.FC = () => {
               </div>
             </div>
           )}
-
+<button
+  onClick={() => navigate("/dashboard/system-manager/import-users")}
+  className="px-4 py-2 rounded-xl bg-blue-600 text-white"
+>
+  استيراد مستخدمين (Excel)
+</button>
           {/* Management Panel - Full screen when active */}
           {activeCardPanel && (
             <div className="relative mt-8">

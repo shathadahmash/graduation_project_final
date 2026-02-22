@@ -4,7 +4,9 @@ from django.contrib.auth.decorators import login_required
 from rest_framework.routers import DefaultRouter
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-
+#this is added for the import
+from .views .import_views import import_users_validate, import_users_commit
+#till here
 from core.views import (
     RoleViewSet,
     UserViewSet,
@@ -43,6 +45,12 @@ urlpatterns = [
     
     # API Endpoints
     path('', include(router.urls)),   # ✅ هنا يشمل كل الـ routes بما فيها supervisor/groups
+    
+    #this is for import
+    path('system/import/users/validate/', import_users_validate, name='import-users-validate'),
+    path('system/import/users/commit/', import_users_commit, name='import-users-commit'),
+    #till here
+
     path('dropdown-data/', dropdown_data, name='dropdown-data'),
     path('bulk-fetch/', bulk_fetch, name='bulk-fetch'),
     path('dean-stats/', dean_stats, name='dean-stats'),
