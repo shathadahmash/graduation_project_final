@@ -94,4 +94,4 @@ class UserRolesSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserRoles
-        fields = ['id', 'user', 'user_detail', 'role', 'ROLE_CHOICES', 'role_detail']
+        fields = ['id', 'user', 'user_detail', 'role', 'role_detail']

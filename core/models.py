@@ -305,13 +305,7 @@ class ProjectState(models.Model):
     def __str__(self):
         return self.name
 
-class programProject(models.Model):
-    program = models.ForeignKey(Program, on_delete=models.CASCADE, related_name='program_projects')
-    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='program_projects')
 
-    class Meta:
-        unique_together = ('program', 'project')
-        verbose_name_plural = "Program Projects"
 
 class Project(models.Model):
     # STATE_CHOICES = [('Completed','مكتمل'),('Incomplete','غير مكتمل'),('Reserved','محجوز'),('Accepted','مقبول'),('Rejected','مرفوض'),('Pending','معلق')]
@@ -322,16 +316,12 @@ class Project(models.Model):
     )
     project_id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=500)
-    start_date = models.DateField()
-    end_date = models.DateField(blank=True, null=True)
     description = models.TextField()
     created_by = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_projects')
-
-    def save(self, *args, **kwargs):
-        if self.state.name == 'Approved' and not self.end_date:
-            self.end_date = timezone.now().date()
-        super().save(*args, **kwargs)
-
+    # adding the year and removing start_date and end_date to simplify filtering and sorting by year
+    start_date = models.IntegerField(("Start Year"), null=True, blank=True)
+    end_date = models.IntegerField(("End Year"), null=True, blank=True)
+    
     def __str__(self):
         return self.title
 
@@ -339,12 +329,17 @@ class Project(models.Model):
         verbose_name_plural = "Projects"
 
 
+class programgroup(models.Model):
+    program = models.ForeignKey(Program, on_delete=models.CASCADE, related_name='program_groups')
+    group = models.ForeignKey('Group', on_delete=models.CASCADE, related_name='program_groups')
+
+    class Meta:
+        unique_together = ('program', 'group')
+        verbose_name_plural = "Program Groups"
+
 class Group(models.Model):
     group_id = models.AutoField(primary_key=True)
-    group_name = models.CharField(max_length=255)
-
     academic_year = models.CharField(max_length=9, null=True)
-
     # النمط الذي تختاره المجموعة (يجب أن يكون من أنماط القسم الخاص بالبرنامج)
     pattern = models.ForeignKey(
         'ProgressPattern',
@@ -370,7 +365,7 @@ class Group(models.Model):
         pat_name = self.pattern.name if self.pattern else 'No Pattern'
         proj_title = self.project.title if self.project else 'No Project'
         
-        return f"{self.group_name} - {pat_name} - {proj_title}"
+        return f" {pat_name} - {proj_title}"
 
     def clean(self):
         """
@@ -385,10 +380,6 @@ class Group(models.Model):
             
             if self.pattern.id not in allowed_patterns:
                 raise ValidationError("The selected pattern must belong to the program's department.")
-
-
-
-
 
 
 class Notification(models.Model):
@@ -425,7 +416,7 @@ class GroupMembers(models.Model):
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"Member {self.user.username} in Group {self.group.group_name}"
+        return f"Member {self.user.username} in the group with the project {self.group.project.title if self.group.project else 'No Project'}"
 
     class Meta:
         unique_together = ('user', 'group')
@@ -438,7 +429,8 @@ class GroupSupervisors(models.Model):
     type = models.CharField(max_length=20, choices=SUPERVISOR_TYPE_CHOICES, default='supervisor')
 
     def __str__(self):
-        return f"{self.get_type_display()} {self.user.username} for Group {self.group.group_name}"
+        proj_title = self.group.project.title if self.group.project else 'No Project'
+        return f"{self.get_type_display()} {self.user.username} for Group with the project name  {proj_title}"
 
     class Meta:
         unique_together = ('user', 'group')

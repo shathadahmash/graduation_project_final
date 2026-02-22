@@ -5,5 +5,4 @@ from .notifications import *
 from .users import *
 from .roles import *
 from .stats import *
-from .utils import *
 from .invitations import *

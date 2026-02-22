@@ -1,5 +1,9 @@
 from rest_framework import serializers
 from core.serializers.users import UserSerializer
+from rest_framework import serializers
+from core.models import programgroup
+from .location import ProgramSerializer
+from .projects import ProjectSerializer
 from core.models import (
     Group, GroupMembers, GroupSupervisors, GroupMemberApproval,GroupCreationRequest
 )
@@ -15,13 +19,13 @@ class SupervisorGroupSerializer(serializers.ModelSerializer):
         model = Group
         fields = [
             "group_id",
-            "group_name",
             "project_title",
             "project_type",
-            "department",
+            "programs",
             "members",
             "supervisors",
             "members_count",
+            "group_type",
         ]
 
     def get_members(self, obj):
@@ -34,6 +38,44 @@ class SupervisorGroupSerializer(serializers.ModelSerializer):
 
     def get_members_count(self, obj):
         return GroupMembers.objects.filter(group=obj).count()
+
+    def get_group_type(self, obj):
+    # Get all programs associated with this group
+     program_links = obj.programs.all().select_related(
+        'department__college__university',  # Ensure hierarchy is loaded
+        'department__college',
+        'department'
+     )
+
+     universities = set()
+     colleges = set()
+     departments = set()
+     programs = set()
+
+     for link in program_links:
+        program = link.program
+        if not program:
+            continue
+        programs.add(program.id)
+        if program.department_id:
+            departments.add(program.department_id)
+        if program.department and program.department.college_id:
+            colleges.add(program.department.college_id)
+        if program.department and program.department.college and program.department.college.university_id:
+            universities.add(program.department.college.university_id)
+
+    # Classification logic
+     if len(universities) > 1:
+        return 'multi_university'
+     if len(colleges) > 1:
+        return 'multi_college'
+     if len(departments) > 1:
+        return 'multi_department'
+     if len(programs) > 1:
+        return 'multi_program'
+     return 'single_program'
+
+   
 
 class GroupMembersSerializer(serializers.ModelSerializer):
     user_detail = UserSerializer(source='user', read_only=True)
@@ -58,7 +100,7 @@ class GroupSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Group
-        fields = ['group_id', 'group_name', 'project', 'department', 'members', 'supervisors', 'members_count']
+        fields = ['group_id', 'project', 'members', 'supervisors', 'members_count']
 
     def get_members(self, obj):
         qs = GroupMembers.objects.filter(group=obj)
@@ -78,7 +120,7 @@ class GroupDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Group # سنستخدمه بشكل مرن
-        fields = ['group_id', 'group_name', 'project_detail', 'members_count']
+        fields = ['group_id', 'project_detail', 'members_count']
 
     def get_project_detail(self, obj):
         # التأكد من وجود مشروع سواء في الطلب أو المجموعة الرسمية
@@ -121,4 +163,23 @@ class GroupDetailSerializer(serializers.ModelSerializer):
     class Meta:
      
         model = GroupCreationRequest
-        fields = ['id', 'group_name', 'creator', 'approvals', 'is_fully_confirmed']
+        fields = ['id', 'creator', 'approvals', 'is_fully_confirmed']
+
+
+class GroupProgramSerializer(serializers.ModelSerializer):
+    program_name = serializers.CharField(source='program.p_name', read_only=True)
+    department_name = serializers.CharField(source='program.department.name', read_only=True)
+    college_name = serializers.CharField(source='program.department.college.name_ar', read_only=True)
+    branch_name = serializers.SerializerMethodField()
+    university_name = serializers.CharField(source='program.department.college.branch.university.name_ar', read_only=True)
+
+    class Meta:
+        model = programgroup
+        fields = ['program_name', 'department_name', 'college_name', 'branch_name', 'university_name']
+
+    def get_branch_name(self, obj):
+        # safe traversal
+        try:
+            return obj.program.department.college.branch.city.bname_ar
+        except AttributeError:
+            return None

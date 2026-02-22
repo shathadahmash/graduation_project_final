@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db import  transaction
@@ -13,10 +13,10 @@ from rest_framework.decorators import api_view
 
 from core.models import (
     User, Group, GroupMembers, GroupSupervisors,
-    Project,GroupCreationRequest, GroupMemberApproval, NotificationLog, 
+    Project,GroupCreationRequest, GroupMemberApproval, NotificationLog,programgroup 
 )
 from core.serializers.groups import (
-    GroupSerializer, GroupDetailSerializer
+    GroupProgramSerializer, GroupSerializer, GroupDetailSerializer
 )
 from core.serializers.approvals import GroupCreateSerializer
 from core.permissions import PermissionManager
@@ -503,3 +503,38 @@ def submit_group_creation_request(request):
     except Exception as e:
         return Response({"error": str(e)}, status=400)
     
+    # group program viewset for showing the programs conected to each group
+class GroupProgramViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = GroupProgramSerializer
+
+    # 👇 Allow API root to see this endpoint
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        # user = self.request.user
+
+        # # 🔒 Anonymous users see NOTHING (but endpoint exists)
+        # if not user.is_authenticated:
+        #     return programgroup.objects.none()
+
+        # # ✅ Admin: all programs
+        # if PermissionManager.is_admin(user):
+        #     return programgroup.objects.all()
+
+        # # ✅ Supervisor: only their groups
+        # if PermissionManager.is_supervisor(user):
+        #     return programgroup.objects.filter(
+        #         group__groupsupervisors__user=user
+        #     ).distinct()
+
+        # # ✅ Student: only their groups
+        # if PermissionManager.is_student(user):
+        #     return programgroup.objects.filter(
+        #         group__groupmembers__user=user
+        #     ).distinct()
+
+        return programgroup.objects.all()
+      
+        
+
+        

@@ -1,8 +1,10 @@
 from django.contrib import admin
 from django.urls import path, include
 from core.auth_views import CustomLoginView
+from django.views.generic import RedirectView
 
 urlpatterns = [
+    path("", RedirectView.as_view(url="/admin/", permanent=False)),
     # Admin panel (moved to /admin/ to avoid URL conflicts with API)
     path('admin/', admin.site.urls),
 
