@@ -7,7 +7,7 @@ from django.utils.dateparse import parse_date
 
 import openpyxl
 
-from ..models import User, Role, UserRoles, AcademicAffiliation, University
+from core.models import User, Role, UserRoles, AcademicAffiliation, University
 
 
 # ---------------------------

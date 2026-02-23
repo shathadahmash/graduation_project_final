@@ -10,17 +10,17 @@ from core.models import (
 
 class SupervisorGroupSerializer(serializers.ModelSerializer):
     project_title = serializers.CharField(source="project.title", read_only=True)
-    project_type = serializers.CharField(source="project.type", read_only=True)
     members = serializers.SerializerMethodField()
     supervisors = serializers.SerializerMethodField()
     members_count = serializers.SerializerMethodField()
+    group_type = serializers.SerializerMethodField()
+    programs = serializers.SerializerMethodField()
 
     class Meta:
         model = Group
         fields = [
             "group_id",
             "project_title",
-            "project_type",
             "programs",
             "members",
             "supervisors",
@@ -37,43 +37,39 @@ class SupervisorGroupSerializer(serializers.ModelSerializer):
         return [s.user.name or s.user.username for s in qs]
 
     def get_members_count(self, obj):
-        return GroupMembers.objects.filter(group=obj).count()
+        return obj.groupmembers_set.count()
+
+    def get_programs(self, obj):
+        return GroupProgramSerializer(
+            obj.programs.all(), many=True
+        ).data
 
     def get_group_type(self, obj):
-    # Get all programs associated with this group
-     program_links = obj.programs.all().select_related(
-        'department__college__university',  # Ensure hierarchy is loaded
-        'department__college',
-        'department'
-     )
+        program_links = obj.programs.select_related(
+            'program__department__college__branch__university'
+        )
 
-     universities = set()
-     colleges = set()
-     departments = set()
-     programs = set()
+        universities, colleges, departments, programs = set(), set(), set(), set()
 
-     for link in program_links:
-        program = link.program
-        if not program:
-            continue
-        programs.add(program.id)
-        if program.department_id:
-            departments.add(program.department_id)
-        if program.department and program.department.college_id:
-            colleges.add(program.department.college_id)
-        if program.department and program.department.college and program.department.college.university_id:
-            universities.add(program.department.college.university_id)
+        for link in program_links:
+            p = link.program
+            if not p:
+                continue
 
-    # Classification logic
-     if len(universities) > 1:
-        return 'multi_university'
-     if len(colleges) > 1:
-        return 'multi_college'
-     if len(departments) > 1:
-        return 'multi_department'
-     if len(programs) > 1:
-        return 'multi_program'
-     return 'single_program'
+            programs.add(p.id)
+            departments.add(p.department_id)
+            colleges.add(p.department.college_id)
+            universities.add(p.department.college.branch.university_id)
+
+        if len(universities) > 1:
+            return 'multi_university'
+        if len(colleges) > 1:
+            return 'multi_college'
+        if len(departments) > 1:
+            return 'multi_department'
+        if len(programs) > 1:
+            return 'multi_program'
+        return 'single_program'
 
    
 
@@ -103,15 +99,15 @@ class GroupSerializer(serializers.ModelSerializer):
         fields = ['group_id', 'project', 'members', 'supervisors', 'members_count']
 
     def get_members(self, obj):
-        qs = GroupMembers.objects.filter(group=obj)
+        qs = GroupMembers.objects.filter(group=obj).select_related('user')
         return GroupMembersSerializer(qs, many=True).data
 
     def get_supervisors(self, obj):
-        qs = GroupSupervisors.objects.filter(group=obj)
+        qs = GroupSupervisors.objects.filter(group=obj).select_related('user')
         return GroupSupervisorsSerializer(qs, many=True).data
 
     def get_members_count(self, obj):
-        return GroupMembers.objects.filter(group=obj).count()
+        return obj.groupmembers_set.count()
 
 
 class GroupDetailSerializer(serializers.ModelSerializer):
@@ -183,3 +179,25 @@ class GroupProgramSerializer(serializers.ModelSerializer):
             return obj.program.department.college.branch.city.bname_ar
         except AttributeError:
             return None
+        
+
+
+class GroupProjectDetailSerializer(serializers.ModelSerializer):
+    project_detail = serializers.SerializerMethodField()
+    members_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Group
+        fields = ['group_id', 'project_detail', 'members_count']
+
+    def get_project_detail(self, obj):
+        if obj.project:
+            return {
+                'project_id': obj.project.project_id,
+                'title': obj.project.title,
+                'state': str(obj.project.state),
+            }
+        return None
+
+    def get_members_count(self, obj):
+        return obj.groupmembers_set.count()

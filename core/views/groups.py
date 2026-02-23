@@ -37,7 +37,7 @@ class SupervisorGroupViewSet(viewsets.ReadOnlyModelViewSet):
                 groupsupervisors__user=user,
                 groupsupervisors__type__in=["supervisor", "co_supervisor"]  # أو ["supervisor"] فقط
             )
-            .select_related("project", "department")
+            .select_related("project")
             .distinct()
         )
 

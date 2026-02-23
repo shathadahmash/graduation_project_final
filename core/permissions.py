@@ -248,7 +248,7 @@ class PermissionManager:
           return False
         return UserRoles.objects.filter(
             user=user,
-            role__type__in=['Department Head', 'Dean', 'University President', 'System Manager', 'Ministry']
+            role__type__in=['Department Head', 'Dean', 'University President', 'System Manager', 'Ministry','Admin']
         ).exists()
     
     @staticmethod
