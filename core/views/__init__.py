@@ -6,3 +6,4 @@ from .users import *
 from .roles import *
 from .stats import *
 from .invitations import *
+from .staffs import *

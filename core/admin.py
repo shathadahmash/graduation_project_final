@@ -9,6 +9,7 @@ from .models import (
     CollegeProgressPattern, DepartmentProgressPattern, Program, StudentProgress,
     User, ContactUs, ProjectState, Project, programgroup, Group, Notification, AcademicAffiliation,
     GroupMembers, GroupSupervisors, Role, Permission, RolePermission, UserRoles,
+    Staff,
     GroupInvitation, ApprovalRequest, NotificationLog, SystemSettings, ApprovalSequence,
     GroupCreationRequest, GroupMemberApproval
 )
@@ -252,7 +253,9 @@ class ProjectStateAdmin(admin.ModelAdmin):
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ('project_id', 'title', 'state', 'created_by', 'start_date', 'end_date')
+    list_display = (
+        'project_id', 'title', 'state', 'created_by', 'start_date', 'end_date', 'field', 'tools'
+    )
     list_filter = ('state', 'created_by', 'start_date', 'end_date')
     search_fields = ('title', 'description', 'created_by__username', 'state__name')
     autocomplete_fields = ('created_by', 'state')
@@ -263,7 +266,17 @@ class ProjectAdmin(admin.ModelAdmin):
         (_('Project Timeline'), {
             'fields': ('start_date', 'end_date')
         }),
+        (_('Additional Info'), {
+            'fields': ('field', 'tools', 'Logo', 'Documentation_Path'),
+        }),
     )
+
+
+@admin.register(Staff)
+class StaffAdmin(admin.ModelAdmin):
+    list_display = ('staff_id', 'user', 'role', 'Qualification', 'Office_Hours')
+    search_fields = ('user__username', 'user__name', 'role__type')
+    autocomplete_fields = ('user', 'role')
 
 @admin.register(programgroup)
 class ProgramGroupAdmin(admin.ModelAdmin):

@@ -6,6 +6,7 @@ from core.serializers.users import UserSerializer
 
 class ProjectSerializer(serializers.ModelSerializer):
     supervisor_name = serializers.SerializerMethodField()
+    co_supervisor_name = serializers.SerializerMethodField()
     created_by = UserSerializer(read_only=True)
     college_name = serializers.SerializerMethodField()
 
@@ -18,6 +19,11 @@ class ProjectSerializer(serializers.ModelSerializer):
             'state',
             'start_date',
             'end_date',
+            'field',
+            'tools',
+            'Logo',
+            'Documentation_Path',
+            'co_supervisor_name',
             'supervisor_name',
             'created_by',
             'college_name',
@@ -32,10 +38,28 @@ class ProjectSerializer(serializers.ModelSerializer):
         )
         return rel.user.name if rel and rel.user else "لا يوجد مشرف"
 
+    def get_co_supervisor_name(self, obj):
+        rel = (
+            GroupSupervisors.objects
+            .filter(group__project=obj, type__in=['co_supervisor', 'co-supervisor', 'Co-supervisor', 'Co-supervisor'])
+            .select_related('user')
+            .first()
+        )
+        return rel.user.name if rel and rel.user else None
+
     def get_college_name(self, obj):
-        group = obj.groups.select_related(
-            'programs__program__department__college'
+        # groups -> programgroup related_name is `program_groups` (bridge model)
+        group = obj.groups.prefetch_related(
+            'program_groups__program__department__college'
         ).first()
-        if group and group.programs.exists():
-            return group.programs.first().program.department.college.name_ar
+        if not group:
+            return None
+
+        pg = (
+            group.program_groups
+            .select_related('program__department__college')
+            .first()
+        )
+        if pg and pg.program and getattr(pg.program, 'department', None) and getattr(pg.program.department, 'college', None):
+            return pg.program.department.college.name_ar
         return None

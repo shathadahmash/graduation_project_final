@@ -8,8 +8,8 @@ from django.db import transaction
 from django.http import JsonResponse
 
 from core.models import (
-    User, Group, GroupMembers, GroupSupervisors,Project, AcademicAffiliation,
-    GroupMemberApproval, NotificationLog, College, Department, UserRoles,check_and_finalize_group
+    User, Group, GroupMembers, GroupSupervisors, Project, AcademicAffiliation,
+    GroupMemberApproval, NotificationLog, College, Department, UserRoles, Staff, check_and_finalize_group
 )
 from core.serializers.users import (
      UserSerializer
@@ -51,6 +51,7 @@ def bulk_fetch(request):
         'group_members': GroupMembers,
         'group_supervisors': GroupSupervisors,
         'users': User,
+        'staff': Staff,
         'academic_affiliations': AcademicAffiliation,
         'colleges': College,
         'departments': Department,

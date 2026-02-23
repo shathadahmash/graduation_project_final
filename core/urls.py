@@ -10,6 +10,7 @@ from .views .import_views import import_users_validate, import_users_commit
 from core.views import (
     RoleViewSet,
     UserViewSet,
+    StaffViewSet,
     GroupViewSet,
     GroupInvitationViewSet,
     ProjectViewSet,
@@ -30,6 +31,7 @@ from .views import get_csrf_token
 router = DefaultRouter()
 router.register(r'supervisor/groups', SupervisorGroupViewSet, basename='supervisor-groups')  # ✅ route جديد
 router.register(r'users', UserViewSet, basename='user')
+router.register(r'staff', StaffViewSet, basename='staff')
 router.register(r'projects', ProjectViewSet, basename='project')
 router.register(r'groups', GroupViewSet, basename='group')
 router.register(r'invitations', GroupInvitationViewSet, basename='invitation')

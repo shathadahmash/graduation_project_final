@@ -314,6 +314,8 @@ class Project(models.Model):
         on_delete=models.PROTECT,
         related_name='projects',
     )
+    field = models.TextField( blank=True, null=True)
+    tools = models.TextField(blank=True, null=True)
     project_id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=500)
     description = models.TextField()
@@ -321,13 +323,23 @@ class Project(models.Model):
     # adding the year and removing start_date and end_date to simplify filtering and sorting by year
     start_date = models.IntegerField(("Start Year"), null=True, blank=True)
     end_date = models.IntegerField(("End Year"), null=True, blank=True)
-    
+    Logo = models.TextField("Logo", blank=True, null=True)
+    Documentation_Path = models.TextField("Documentation Path", blank=True, null=True)
     def __str__(self):
         return self.title
 
     class Meta:
         verbose_name_plural = "Projects"
 
+class Staff(models.Model):
+    staff_id = models.AutoField(primary_key=True)
+    user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='staff_profiles')
+    role = models.ForeignKey('Role', verbose_name=("Role"), on_delete=models.CASCADE)
+    Qualification = models.TextField(blank=True, null=True)
+    Office_Hours = models.TextField(blank=True, null=True)
+    def __str__(self):
+        return f"{self.user.name} - {self.role.type if self.role else 'No Role'}"
+    
 
 class programgroup(models.Model):
     program = models.ForeignKey(Program, on_delete=models.CASCADE, related_name='program_groups')

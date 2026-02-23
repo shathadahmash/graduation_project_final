@@ -40,12 +40,13 @@ class SupervisorGroupSerializer(serializers.ModelSerializer):
         return obj.groupmembers_set.count()
 
     def get_programs(self, obj):
+        # program links are stored in the bridge model with related_name 'program_groups'
         return GroupProgramSerializer(
-            obj.programs.all(), many=True
+            obj.program_groups.all(), many=True
         ).data
 
     def get_group_type(self, obj):
-        program_links = obj.programs.select_related(
+        program_links = obj.program_groups.select_related(
             'program__department__college__branch__university'
         )
 

@@ -24,10 +24,11 @@ class UserSerializer(serializers.ModelSerializer):
     roles = serializers.SerializerMethodField()
     department_id = serializers.SerializerMethodField()
     college_id = serializers.SerializerMethodField()
+    staff_profiles = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'name', 'email', 'phone', 'gender', 'roles', 'department_id', 'college_id']
+        fields = ['id', 'username', 'name', 'email', 'phone', 'gender', 'roles', 'department_id', 'college_id', 'staff_profiles']
 
     def get_roles(self, obj):
         return list(UserRoles.objects.filter(user=obj).values('role__role_ID', 'role__type'))
@@ -39,6 +40,23 @@ class UserSerializer(serializers.ModelSerializer):
     def get_college_id(self, obj):
         affiliation = getattr(obj, 'academicaffiliation', None)
         return affiliation.college.id if affiliation and affiliation.college else None
+
+    def get_staff_profiles(self, obj):
+        staffs = obj.staff_profiles.all() if hasattr(obj, 'staff_profiles') else []
+        # import here to avoid circular import at module import time
+        try:
+            from core.serializers.users import StaffSerializer
+            return StaffSerializer(staffs, many=True, read_only=True).data
+        except Exception:
+            return [
+                {
+                    'staff_id': s.staff_id,
+                    'role': getattr(s.role, 'type', None),
+                    'Qualification': s.Qualification,
+                    'Office_Hours': s.Office_Hours,
+                }
+                for s in staffs
+            ]
 
 
 class UserDetailSerializer(UserSerializer):
@@ -95,3 +113,12 @@ class UserRolesSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserRoles
         fields = ['id', 'user', 'user_detail', 'role', 'role_detail']
+
+
+class StaffSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    role = RoleSerializer(read_only=True)
+
+    class Meta:
+        model = getattr(__import__('core.models', fromlist=['Staff']), 'Staff')
+        fields = ['staff_id', 'user', 'role', 'Qualification', 'Office_Hours']

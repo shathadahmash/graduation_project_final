@@ -29,7 +29,7 @@ class ProjectFilter(django_filters.FilterSet):
         field_name="group__programgroup__program__department__department_id"
     )
     supervisor = django_filters.NumberFilter(
-        field_name="group__groupsupervisors__user__id"
+        field_name="groups__groupsupervisors_set__user__id"
     )
     year = django_filters.NumberFilter(field_name="start_date")
 
@@ -51,6 +51,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
         user = self.request.user
         qs = Project.objects.all().order_by("-start_date")
 
+        # Prefetch related group supervisors to avoid extra queries when serializing
+        qs = qs.prefetch_related('groups__groupsupervisors_set__user')
+
         is_external = UserRoles.objects.filter(
             user=user,
             role__type__icontains="External"
@@ -64,7 +67,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         if PermissionManager.is_supervisor(user):
             return qs.filter(
-                group__groupsupervisors__user=user
+                groups__groupsupervisors_set__user=user
             ).distinct()
 
         return qs.none()
@@ -148,7 +151,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             )
 
         project = Project.objects.filter(
-            group__groupmembers__user=user
+            groups__groupmembers__user=user
         ).first()
 
         if not project:
@@ -271,7 +274,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             if user_affiliation and user_affiliation.college:
                 if Group.objects.filter(
                     project=project,
-                    programgroup__program__department__college=user_affiliation.college
+                    program_groups__program__department__college=user_affiliation.college
                 ).exists():
                     user_can_delete = True
 
