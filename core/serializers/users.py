@@ -18,6 +18,8 @@ from core.models import (
     User, Role, UserRoles, Permission, RolePermission,
       AcademicAffiliation,
 )
+from core.models import Student, StudentEnrollmentPeriod
+
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -95,3 +97,63 @@ class UserRolesSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserRoles
         fields = ['id', 'user', 'user_detail', 'role', 'role_detail']
+
+
+class StudentEnrollmentPeriodSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentEnrollmentPeriod
+        fields = ['id', 'start_date', 'end_date']
+class StudentSerializer(serializers.ModelSerializer):
+    user = UserDetailSerializer(read_only=True)
+    enrollment_periods = StudentEnrollmentPeriodSerializer(many=True, read_only=True)
+
+    current_academic_year = serializers.SerializerMethodField()
+    groups = serializers.SerializerMethodField()
+    progress = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Student
+        fields = [
+            'id',
+            'user',
+            'student_id',
+            'phone',
+            'gender',
+            'status',
+            'enrolled_at',
+            'current_academic_year',
+            'enrollment_periods',
+            'groups',
+            'progress'
+        ]
+
+    # ===========================
+    # السنة الدراسية
+    # ===========================
+    def get_current_academic_year(self, obj):
+        return obj.current_academic_year()
+
+    # ===========================
+    # المجموعات
+    # ===========================
+    def get_groups(self, obj):
+        return [
+            {
+                "group_id": gm.group.id,
+                "group_name": getattr(gm.group, 'name', None)
+            }
+            for gm in obj.user.group_members.all()
+        ]
+
+    # ===========================
+    # التقدم
+    # ===========================
+    def get_progress(self, obj):
+        return [
+            {
+                "id": pr.id,
+                "title": getattr(pr, 'title', None),
+                "status": getattr(pr, 'status', None)
+            }
+            for pr in obj.user.progress_records.all()
+        ]

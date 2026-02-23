@@ -4,6 +4,8 @@ from django.contrib.auth.decorators import login_required
 from rest_framework.routers import DefaultRouter
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+
+
 #this is added for the import
 from .views .import_views import import_users_validate, import_users_commit
 #till here
@@ -16,6 +18,7 @@ from core.views import (
     ApprovalRequestViewSet,
     NotificationViewSet,
     UserRolesViewSet,
+    StudentViewSet,
     bulk_fetch,
     respond_to_group_request,
     dean_stats,
@@ -31,6 +34,7 @@ router = DefaultRouter()
 router.register(r'supervisor/groups', SupervisorGroupViewSet, basename='supervisor-groups')  # ✅ route جديد
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'projects', ProjectViewSet, basename='project')
+router.register(r'students', StudentViewSet, basename='student')
 router.register(r'groups', GroupViewSet, basename='group')
 router.register(r'invitations', GroupInvitationViewSet, basename='invitation')
 router.register(r'notifications', NotificationViewSet, basename='notification')
