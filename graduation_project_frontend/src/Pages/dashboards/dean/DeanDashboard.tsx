@@ -79,6 +79,15 @@ const DeanDashboard: React.FC = () => {
     };
 
     fetchData();
+
+    const onProjectsChanged = () => {
+      // refresh data when a project changed elsewhere
+      fetchData();
+    };
+    window.addEventListener('projects:changed', onProjectsChanged as EventListener);
+    return () => {
+      window.removeEventListener('projects:changed', onProjectsChanged as EventListener);
+    };
   }, []);
 
   const tabs = [
@@ -158,7 +167,22 @@ const DeanDashboard: React.FC = () => {
 
       const matchesDirect = projectCollegeId != null && Number(projectCollegeId) === Number(deanCollegeId);
       const matchesResolved = !!(project.project_id && resolvedProjectIds && resolvedProjectIds.has(Number(project.project_id)));
-      return matchesDirect || matchesResolved;
+
+      // Additional check: if project is linked to a group, check group's department -> college
+      let matchesGroupDept = false;
+      try {
+        const linkedGroup = groups.find((g: any) => g.project === project.project_id || g.project === project.id || g.group_id === project.group || g.id === project.group);
+        if (linkedGroup && linkedGroup.department) {
+          const dept = departments.find((d: any) => d.department_id === linkedGroup.department || d.id === linkedGroup.department);
+          if (dept && (dept.college === deanCollegeId || Number(dept.college) === Number(deanCollegeId))) {
+            matchesGroupDept = true;
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      return matchesDirect || matchesResolved || matchesGroupDept;
     });
     console.log('Dean Dashboard - filteredProjects count:', result.length);
     return result;

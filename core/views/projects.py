@@ -23,13 +23,13 @@ class ProjectFilter(django_filters.FilterSet):
         lookup_expr="iexact" # case insensitive exact match exact  => sensitive 
     )
     university = django_filters.NumberFilter(
-        field_name= "group__programgroup_program_department_college_university__uid"
+        field_name= "groups__program_groups__program__department__college__branch__university__uid"
     )
     college = django_filters.NumberFilter(
-        field_name="group__programgroup__program__department__college__cid"
+        field_name="groups__program_groups__program__department__college__cid"
     )
     department = django_filters.NumberFilter(
-        field_name="group__programgroup__program__department__department_id"
+        field_name="groups__program_groups__program__department__department_id"
     )
     supervisor = django_filters.NumberFilter(
         field_name="groups__groupsupervisors_set__user__id"
@@ -281,7 +281,28 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def update_project(self, request, pk=None):
         project = self.get_object()
 
-        if project.created_by != request.user:
+        user = request.user
+        # allow update if user is the creator
+        user_can_edit = False
+        if project.created_by == user:
+            user_can_edit = True
+
+        # allow admins or users with explicit permission
+        if not user_can_edit and PermissionManager.has_permission(user, 'change_project'):
+            user_can_edit = True
+
+        if not user_can_edit and PermissionManager.is_admin(user):
+            user_can_edit = True
+
+        # allow dean to edit projects that belong to their affiliated colleges
+        if not user_can_edit and PermissionManager.is_dean(user):
+            college_ids = AcademicAffiliation.objects.filter(user=user).values_list('college_id', flat=True)
+            college_ids = [c for c in college_ids if c]
+            if college_ids:
+                if Group.objects.filter(project=project, program_groups__program__department__college__in=college_ids).exists():
+                    user_can_edit = True
+
+        if not user_can_edit:
             return Response(
                 {"error": "Unauthorized"},
                 status=status.HTTP_403_FORBIDDEN

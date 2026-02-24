@@ -40,6 +40,7 @@ router.register(r'approvals', ApprovalRequestViewSet, basename='approval')
 router.register(r'roles', RoleViewSet, basename='role')
 router.register(r'user-roles', UserRolesViewSet, basename='userrole')
 router.register(r'groupprogram', GroupProgramViewSet, basename='groupprogram')
+router.register(r'program-groups', GroupProgramViewSet, basename='program-groups')
 
 urlpatterns = [
     path('approvals/<int:approval_id>/approve/', respond_to_group_request, name='approval-approve'),

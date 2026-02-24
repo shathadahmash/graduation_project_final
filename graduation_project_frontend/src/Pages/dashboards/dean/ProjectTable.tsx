@@ -177,6 +177,9 @@ const ProjectsTable: React.FC = () => {
           supervisor: supervisorUser ? { ...supervisorUser, name: supervisorUser.name || `${supervisorUser.first_name || ''} ${supervisorUser.last_name || ''}`.trim() } : null,
           co_supervisor: coSupervisorUser ? { ...coSupervisorUser, name: coSupervisorUser.name || `${coSupervisorUser.first_name || ''} ${coSupervisorUser.last_name || ''}`.trim() } : null,
           program: p.program,
+          // expose resolved names for table rendering
+          college_name: collegeName,
+          department_name: departmentName,
         };
       });
 
@@ -209,6 +212,23 @@ const ProjectsTable: React.FC = () => {
               }
             }
           }
+
+            // Additional check: if the project is linked to a group, use that group's department -> college
+            if (!projectCollegeId) {
+              try {
+                const linkedGroup = groups.find((g: any) => g.project === p.project_id);
+                if (linkedGroup && linkedGroup.department) {
+                  const deptObj = departmentsById.get(linkedGroup.department);
+                  if (deptObj) {
+                    if (typeof deptObj.college === 'number') projectCollegeId = deptObj.college;
+                    else if (deptObj.college && typeof deptObj.college === 'object' && deptObj.college.cid) projectCollegeId = deptObj.college.cid;
+                    console.log('[ProjectsTable] resolved project via linked group:', p.project_id, 'group:', linkedGroup.group_id, 'dept:', linkedGroup.department, 'collegeId:', projectCollegeId);
+                  }
+                }
+              } catch (e) {
+                /* ignore resolution errors */
+              }
+            }
 
           const matches = projectCollegeId && Number(projectCollegeId) === Number(deanCollegeId);
           console.log(`[ProjectsTable] Project ${p.project_id} (${p.title}): college_id=${projectCollegeId}, dean college=${deanCollegeId}, matches=${matches}`);
@@ -511,70 +531,112 @@ const ProjectsTable: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="dean-table-container">
-        <table className="dean-table min-w-full">
-          <thead>
-          <tr>
-            <th className="px-4 py-2 text-right">عنوان المشروع</th>
-            <th className="px-4 py-2 text-right">نوع المشروع</th>
-            <th className="px-4 py-2 text-right">الحالة</th>
-            <th className="px-4 py-2 text-right">الملخص</th>
-            <th className="px-4 py-2 text-right">المشرف</th>
-            <th className="px-4 py-2 text-right">اسم المجموعة</th>
-            <th className="px-4 py-2 text-right">المشرف المشارك</th>
-            <th className="px-4 py-2 text-right">الكلية</th>
-            <th className="px-4 py-2 text-right">القسم</th>
-            <th className="px-4 py-2 text-right">السنة</th>
-            <th className="px-4 py-2 text-right">المستخدمون</th>
-            <th className="px-4 py-2 text-center">ملف المشروع</th>
-            <th className="px-4 py-2 text-center">الإجراءات</th>
-          </tr>
-        </thead>
-        <tbody>
-          {projects.map((proj) => (
-            <tr key={proj.project_id} className="border-b last:border-b-0">
-              <td className="px-4 py-2 text-right">{proj.title}{proj.group_name ? ` — ${proj.group_name}` : ''}</td>
-              <td className="px-4 py-2 text-right">{proj.type}</td>
-              <td className="px-4 py-2 text-right">{proj.state}</td>
-              <td className="px-4 py-2 text-right">{proj.description}</td>
-              <td className="px-4 py-2 text-right">{proj.supervisor?.name || '-'}</td>
-              <td className="px-4 py-2 text-right">{(proj as any).group_name || '-'}</td>
-              <td className="px-4 py-2 text-right">{proj.co_supervisor?.name || '-'}</td>
-              <td className="px-4 py-2 text-right">{(proj as any).college_name || '-'}</td>
-              <td className="px-4 py-2 text-right">{(proj as any).department_name || '-'}</td>
-              <td className="px-4 py-2 text-right">{proj.start_date ? new Date(proj.start_date).getFullYear() : '-'}</td>
-              <td className="px-4 py-2 text-right">
-                {proj.users?.length ? proj.users.map((u: any) => u.displayName || u.name).join(', ') : '-'}
-              </td>
-              <td className="px-4 py-2 text-center">
-                <button
-                  className="text-primary-700 hover:opacity-80 flex items-center justify-center gap-1"
-                  onClick={() => projectService.downloadProjectFile(proj.project_id)}
-                >
-                  <FiDownload /> تنزيل
-                </button>
-              </td>
-              <td className="px-4 py-2 text-center">
-                <button
-                  onClick={() => { setEditingProject(proj); setShowProjectForm(true); }}
-                  className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all mr-2"
-                  title="تعديل"
-                >
-                  <FiEdit3 size={18} />
-                </button>
-                  <button
-                    onClick={() => handleDeleteProject(proj.project_id)}
-                    className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                    title="حذف"
-                  >
-                    <FiTrash2 size={20} />
-                  </button>
-              </td>
+
+      <div className="dean-table-container overflow-x-auto rounded-lg border bg-white shadow-sm">
+        <table className="dean-table min-w-full border-collapse">
+          <thead className="bg-slate-100 border-b sticky top-0 z-10">
+            <tr>
+              <th className="px-4 py-3 text-right text-sm font-semibold">عنوان المشروع</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold">نوع المشروع</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold">الحالة</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold">الملخص</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold">المشرف</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold">المشرف المشارك</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold">الكلية</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold">القسم</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold">تاريخ الانتهاء</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold">التخصص/المجال</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold">الأدوات</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold">إنشأ بواسطة</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold">السنة</th>
+              <th className="px-4 py-3 text-right text-sm font-semibold">المستخدمون</th>
+              <th className="px-4 py-3 text-center text-sm font-semibold">ملف المشروع</th>
+              <th className="px-4 py-3 text-center text-sm font-semibold">الإجراءات</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {projects.map((proj) => (
+              <tr key={proj.project_id} className="border-b last:border-b-0 odd:bg-white even:bg-slate-50 hover:bg-slate-100">
+                <td className="px-4 py-3 text-right align-top max-w-[240px] break-words">{proj.title}</td>
+                <td className="px-4 py-3 text-right align-top">{proj.type || '-'}</td>
+                <td className="px-4 py-3 text-right align-top">{proj.state}</td>
+                <td className="px-4 py-3 text-right align-top max-w-[320px] break-words">{proj.description || '-'}</td>
+                <td className="px-4 py-3 text-right align-top">{proj.supervisor?.name || '-'}</td>
+                <td className="px-4 py-3 text-right align-top">{proj.co_supervisor?.name || '-'}</td>
+                <td className="px-4 py-3 text-right align-top">{(proj as any).college_name || '-'}</td>
+                <td className="px-4 py-3 text-right align-top">{(proj as any).department_name || '-'}</td>
+                <td className="px-4 py-3 text-right align-top">{
+                  (() => {
+                    const val = (proj as any).end_date ?? (proj as any).end;
+                    if (val === null || val === undefined || val === '') return '-';
+                    const n = Number(val);
+                    // If it's a plain 4-digit year
+                    if (!Number.isNaN(n) && n >= 1900 && n <= 3000) return String(n);
+                    // Try parsing as a date string
+                    const dt = new Date(val);
+                    if (!isNaN(dt.getTime())) return dt.toLocaleDateString();
+                    // If numeric but not 4-digit (maybe seconds), try converting to ms
+                    if (!Number.isNaN(n)) {
+                      const asMs = n > 1e12 ? n : (n > 1e9 ? n * 1000 : n);
+                      const dt2 = new Date(asMs);
+                      if (!isNaN(dt2.getTime())) return dt2.toLocaleDateString();
+                    }
+                    return '-';
+                  })()
+                }</td>
+                <td className="px-4 py-3 text-right align-top">{(proj as any).field?.name || (proj as any).field || '-'}</td>
+                <td className="px-4 py-3 text-right align-top">{Array.isArray((proj as any).tools) ? (proj as any).tools.join(', ') : ((proj as any).tools || '-')}</td>
+                <td className="px-4 py-3 text-right align-top">{(proj as any).created_by?.name || (proj as any).created_by_name || (proj as any).created_by || '-'}</td>
+                <td className="px-4 py-3 text-right align-top">{
+                  (() => {
+                    const val = (proj as any).start_year ?? (proj as any).start_date ?? (proj as any).start;
+                    if (!val && val !== 0) return '-';
+                    const n = Number(val);
+                    if (!Number.isNaN(n) && n >= 1900 && n <= 3000) return n;
+                    const dt = new Date(val);
+                    if (!isNaN(dt.getTime())) return dt.getFullYear();
+                    if (!Number.isNaN(n)) {
+                      const asMs = n > 1e12 ? n : (n > 1e9 ? n * 1000 : n);
+                      const dt2 = new Date(asMs);
+                      if (!isNaN(dt2.getTime())) return dt2.getFullYear();
+                    }
+                    return '-';
+                  })()
+                }</td>
+                <td className="px-4 py-3 text-right align-top">
+                  {proj.users?.length ? proj.users.map((u: any) => u.displayName || u.name).join(', ') : '-'}
+                </td>
+                <td className="px-4 py-3 text-center align-top">
+                  <button
+                    className="text-primary-700 hover:opacity-80 flex items-center justify-center gap-1"
+                    onClick={() => projectService.downloadProjectFile(proj.project_id)}
+                  >
+                    <FiDownload /> تنزيل
+                  </button>
+                </td>
+                <td className="px-4 py-3 text-center align-top">
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => { setEditingProject(proj); setShowProjectForm(true); }}
+                      className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                      title="تعديل"
+                    >
+                      <FiEdit3 size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteProject(proj.project_id)}
+                      className="p-2.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                      title="حذف"
+                    >
+                      <FiTrash2 size={20} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     {showProjectForm && (
       <ProjectForm
         isOpen={showProjectForm}

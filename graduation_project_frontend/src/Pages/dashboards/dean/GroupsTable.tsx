@@ -19,7 +19,7 @@ import {
   FiMoreVertical,
 } from 'react-icons/fi';
 import GroupForm from '../GroupForm';
-import { containerClass, tableWrapperClass, tableClass } from '../../../components/tableStyles';
+
 
 interface GroupMember { user: number; user_detail?: any }
 interface GroupSupervisor { user: number; user_detail?: any }
@@ -97,7 +97,8 @@ const GroupsTable: React.FC = () => {
       const deanCollegeId = user?.id ? await getDeanCollegeId(user.id) : null;
 
       const [data, fetchedDepartments, fetchedColleges] = await Promise.all([
-        groupService.getGroups(),
+        // fetch full group rows (bulk-aware) so we have complete columns
+        (groupService.getGroupsFields ? groupService.getGroupsFields() : groupService.getGroups()),
         fetchTableFields('departments'),
         fetchTableFields('colleges')
       ]);
@@ -166,7 +167,7 @@ const GroupsTable: React.FC = () => {
   const handleDeleteGroup = (g: Group) => { setEditingGroup(g); setShowGroupForm(true); };
 
   return (
-    <div className={containerClass} dir="rtl">
+    <div  dir="rtl">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-800">إدارة المجموعات</h1>
@@ -216,19 +217,19 @@ const GroupsTable: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="dean-table-container">
-          <table className="dean-table text-right">
+        <div >
+          <table>
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
-                <th className="px-6 py-5 text-sm font-black text-slate-400 uppercase tracking-wider">المجموعة</th>
-                <th className="px-6 py-5 text-sm font-black text-slate-400 uppercase tracking-wider">الأعضاء</th>
-                <th className="px-6 py-5 text-sm font-black text-slate-400 uppercase tracking-wider">المشرفون</th>
-                <th className="px-6 py-5 text-sm font-black text-slate-400 uppercase tracking-wider">القسم</th>
-                <th className="px-6 py-5 text-sm font-black text-slate-400 uppercase tracking-wider">الكلية</th>
-                <th className="px-6 py-5 text-sm font-black text-slate-400 uppercase tracking-wider">البرنامج</th>
-                <th className="px-6 py-5 text-sm font-black text-slate-400 uppercase tracking-wider">المشروع المرتبط</th>
-                <th className="px-6 py-5 text-sm font-black text-slate-400 uppercase tracking-wider">السنة الأكاديمية</th>
-                <th className="px-6 py-5 text-sm font-black text-slate-400 uppercase tracking-wider">الإجراءات</th>
+                <th className="px-6 py-5 text-sm font-black !text-slate-400 uppercase tracking-wider">المجموعة</th>
+                <th className="px-6 py-5 text-sm font-black !text-slate-400 uppercase tracking-wider">الأعضاء</th>
+                <th className="px-6 py-5 text-sm font-black !text-slate-400 uppercase tracking-wider">المشرفون</th>
+                <th className="px-6 py-5 text-sm font-black !text-slate-400 uppercase tracking-wider">القسم</th>
+                <th className="px-6 py-5 text-sm font-black !text-slate-400 uppercase tracking-wider">الكلية</th>
+                <th className="px-6 py-5 text-sm font-black !text-slate-400 uppercase tracking-wider">البرنامج</th>
+                <th className="px-6 py-5 text-sm font-black !text-slate-400 uppercase tracking-wider">المشروع المرتبط</th>
+                <th className="px-6 py-5 text-sm font-black !text-slate-400 uppercase tracking-wider">السنة الأكاديمية</th>
+                <th className="px-6 py-5 text-sm font-black !text-slate-400 uppercase tracking-wider">الإجراءات</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">

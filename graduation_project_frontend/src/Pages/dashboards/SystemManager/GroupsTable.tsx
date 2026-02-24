@@ -52,41 +52,7 @@ const GroupsTable: React.FC<GroupsTableProps> = ({ filteredGroups }) => {
   const [filterYear, setFilterYear] = useState("");
   const [visibleRows, setVisibleRows] = useState(10);
 
-  // Helper function to get system manager's college from AcademicAffiliation
-  const getSystemManagerCollegeId = async (userId: number): Promise<number | null> => {
-    try {
-      const affiliations = await userService.getAffiliations();
-      
-      // Find active affiliation for the logged-in system manager user
-      const activeAffiliations = affiliations.filter((aff: any) => {
-        if (aff.user_id !== userId) return false;
-        if (!aff.end_date) return true;
-        const endDate = new Date(aff.end_date);
-        return endDate >= new Date();
-      });
-      
-      // Get the most recent active affiliation with a college
-      const affiliationWithCollege = activeAffiliations
-        .filter((aff: any) => aff.college_id)
-        .sort((a: any, b: any) => {
-          const dateA = new Date(a.start_date);
-          const dateB = new Date(b.start_date);
-          return dateB.getTime() - dateA.getTime();
-        })[0];
-      
-      let collegeId = affiliationWithCollege?.college_id || null;
-      
-      // Fallback to user.college_id from auth store if no affiliation found
-      if (!collegeId && user?.college_id) {
-        collegeId = user.college_id;
-      }
-      
-      return collegeId;
-    } catch (err) {
-      console.error('[GroupsTable] Failed to fetch system manager college:', err);
-      return user?.college_id || null;
-    }
-  };
+  
 
   useEffect(() => {
     if (filteredGroups !== undefined) {
@@ -103,22 +69,10 @@ const GroupsTable: React.FC<GroupsTableProps> = ({ filteredGroups }) => {
       // Get system manager's college from AcademicAffiliation
       const systemManagerCollegeId = user?.id ? await getSystemManagerCollegeId(user.id) : null;
 
-      const data = await groupService.getGroups();
-      // Filter groups by system manager's college - groups belong to departments, which belong to colleges
-      const filteredGroups = systemManagerCollegeId ? (data || []).filter((g: any) => {
-        // Get college ID from department (could be number or object with college field)
-        let departmentCollegeId: number | null = null;
-        if (g.department) {
-          if (typeof g.department === 'object') {
-            if (typeof g.department.college === 'number') {
-              departmentCollegeId = g.department.college;
-            } else if (g.department.college && typeof g.department.college === 'object' && g.department.college.cid) {
-              departmentCollegeId = g.department.college.cid;
-            }
-          }
-        }
-        return departmentCollegeId && Number(departmentCollegeId) === Number(systemManagerCollegeId);
-      }) : (data || []);
+      // Fetch full group rows (bulk-aware) to include related columns
+      const data = await (groupService.getGroupsFields ? groupService.getGroupsFields() : groupService.getGroups());
+      // System manager should see ALL groups (not limited to a college)
+      const filteredGroups = data || [];
       setGroups(filteredGroups);
 
       const projectIds = Array.from(new Set(

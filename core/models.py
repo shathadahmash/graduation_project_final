@@ -385,13 +385,13 @@ class Group(models.Model):
         """
         from django.core.exceptions import ValidationError
 
-        if self.pattern and self.program:
-            department = self.program.department
-            # الحصول على قائمة معرفات الأنماط المسموح بها لهذا القسم
-            allowed_patterns = department.department_patterns.values_list('pattern_id', flat=True)
+        # if self.pattern and self.program:
+        #     department = self.program.department
+        #     # الحصول على قائمة معرفات الأنماط المسموح بها لهذا القسم
+        #     allowed_patterns = department.department_patterns.values_list('pattern_id', flat=True)
             
-            if self.pattern.id not in allowed_patterns:
-                raise ValidationError("The selected pattern must belong to the program's department.")
+        #     if self.pattern.id not in allowed_patterns:
+        #         raise ValidationError("The selected pattern must belong to the program's department.")
 
 
 class Notification(models.Model):

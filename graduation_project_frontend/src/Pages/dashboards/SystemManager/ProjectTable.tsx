@@ -3,7 +3,6 @@ import { projectService, Project } from '../../../services/projectService';
 import { userService, User } from '../../../services/userService';
 import { FiDownload, FiPlus, FiEdit3, FiTrash2 } from 'react-icons/fi';
 import { exportToCSV } from '../../../components/tableUtils';
-import { containerClass, tableWrapperClass, tableClass, theadClass } from '../../../components/tableStyles';
 import ProjectForm from '../ProjectForm';
 import { useAuthStore } from '../../../store/useStore';
 
@@ -90,12 +89,20 @@ const ProjectsTable: React.FC = () => {
       const departmentsById = departmentsMap;
 
       const projectsWithUsers: ProjectWithUsers[] = projectsRaw.map((p: any) => {
-        const relatedGroups = groups.filter((g: any) => g.project === p.project_id);
+        // normalize project id for matching against groups which may reference project by id or object
+        const projectId = p.project_id || p.id || (p.project && (p.project.project_id || p.project.id)) || null;
+
+        const relatedGroups = groups.filter((g: any) => {
+          if (!g) return false;
+          // group.project may be number or object
+          const gp = (typeof g.project === 'number' || typeof g.project === 'string') ? g.project : (g.project && (g.project.project_id || g.project.id));
+          return gp != null && projectId != null && Number(gp) === Number(projectId);
+        });
         const mainGroup = relatedGroups.length ? relatedGroups[0] : null;
-        const groupId = mainGroup ? mainGroup.group_id : null;
+        const groupId = mainGroup ? (mainGroup.group_id || mainGroup.id) : null;
 
         // students
-        const memberRows = groupMembers.filter((m: any) => m.group === groupId);
+        const memberRows = groupMembers.filter((m: any) => String(m.group) === String(groupId));
         const students = memberRows
           .map((m: any) => {
             const u = usersById.get(m.user);
@@ -105,32 +112,30 @@ const ProjectsTable: React.FC = () => {
           .filter(Boolean);
 
         // supervisors
-        const supRows = groupSupervisors.filter((s: any) => s.group === groupId && s.type === 'supervisor');
-        const coSupRows = groupSupervisors.filter((s: any) => s.group === groupId && (s.type === 'co_supervisor' || s.type === 'co-supervisor' || s.type === 'co supervisor'));
+        const supRows = groupSupervisors.filter((s: any) => String(s.group) === String(groupId) && String(s.type).toLowerCase().includes('supervisor') && !String(s.type).toLowerCase().includes('co'));
+        const coSupRows = groupSupervisors.filter((s: any) => String(s.group) === String(groupId) && String(s.type).toLowerCase().includes('co'));
         const supervisorUser = supRows.length ? usersById.get(supRows[0].user) : null;
         const coSupervisorUser = coSupRows.length ? usersById.get(coSupRows[0].user) : null;
 
-        // Get department directly from project (preferred) or fallback to group's department
-        let department = null;
+        // Resolve department and college robustly (project may include department object or id; group may include department)
+        let department: any = null;
         let departmentName = '-';
-        let collegeId = null;
-        
+        let collegeId: any = null;
+
         if (p.department) {
-          // Use project's department field directly
           const deptId = typeof p.department === 'number' ? p.department : (p.department.department_id || p.department.id);
-          department = departmentsById.get(deptId);
+          department = departmentsById.get(deptId) || p.department || null;
         } else if (mainGroup && mainGroup.department) {
-          // Fallback to group's department if project doesn't have one
-          department = departmentsById.get(mainGroup.department);
+          const gidDept = typeof mainGroup.department === 'number' ? mainGroup.department : (mainGroup.department && (mainGroup.department.department_id || mainGroup.department.id));
+          department = departmentsById.get(gidDept) || mainGroup.department || null;
         }
-        
+
         if (department) {
-          departmentName = department.name || '-';
-          // Get college from department's college relationship
+          departmentName = department.name || department.department_name || '-';
           if (typeof department.college === 'number') {
             collegeId = department.college;
-          } else if (department.college && typeof department.college === 'object' && department.college.cid) {
-            collegeId = department.college.cid;
+          } else if (department.college && typeof department.college === 'object') {
+            collegeId = department.college.cid || department.college.id || null;
           }
         }
         
@@ -267,7 +272,7 @@ const ProjectsTable: React.FC = () => {
   if (projects.length === 0) return <div className="p-6 text-center">لا توجد مشاريع</div>;
 
   return (
-    <div className={containerClass}>
+    <div>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-800">إدارة المشاريع</h1>
@@ -435,19 +440,22 @@ const ProjectsTable: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className={tableWrapperClass}>
-        <table className={tableClass + ' min-w-full'}>
-          <thead className={theadClass}>
+      <div className="opacity-100 bg-white text-slate-900">
+        <table className="table-auto min-w-full border-collapse border border-gray-200">
+          <thead className="bg-gray-100">
           <tr>
             <th className="px-4 py-2 text-right">عنوان المشروع</th>
             <th className="px-4 py-2 text-right">نوع المشروع</th>
             <th className="px-4 py-2 text-right">الحالة</th>
             <th className="px-4 py-2 text-right">الملخص</th>
             <th className="px-4 py-2 text-right">المشرف</th>
-            <th className="px-4 py-2 text-right">اسم المجموعة</th>
             <th className="px-4 py-2 text-right">المشرف المشارك</th>
             <th className="px-4 py-2 text-right">الكلية</th>
             <th className="px-4 py-2 text-right">القسم</th>
+            <th className="px-4 py-2 text-right">تاريخ الانتهاء</th>
+            <th className="px-4 py-2 text-right">التخصص/المجال</th>
+            <th className="px-4 py-2 text-right">الأدوات</th>
+            <th className="px-4 py-2 text-right">إنشأ بواسطة</th>
             <th className="px-4 py-2 text-right">السنة</th>
             <th className="px-4 py-2 text-right">المستخدمون</th>
             <th className="px-4 py-2 text-center">ملف المشروع</th>
@@ -457,20 +465,53 @@ const ProjectsTable: React.FC = () => {
         <tbody>
           {projects.map((proj) => (
             <tr key={proj.project_id} className="border-b last:border-b-0">
-              <td className="px-4 py-2 text-right">{proj.title}{proj.group_name ? ` — ${proj.group_name}` : ''}</td>
-              <td className="px-4 py-2 text-right">{proj.type}</td>
-              <td className="px-4 py-2 text-right">{proj.state}</td>
-              <td className="px-4 py-2 text-right">{proj.description}</td>
-              <td className="px-4 py-2 text-right">{proj.supervisor?.name || '-'}</td>
-              <td className="px-4 py-2 text-right">{(proj as any).group_name || '-'}</td>
-              <td className="px-4 py-2 text-right">{proj.co_supervisor?.name || '-'}</td>
-              <td className="px-4 py-2 text-right">{(proj as any).college_name || '-'}</td>
-              <td className="px-4 py-2 text-right">{(proj as any).department_name || '-'}</td>
-              <td className="px-4 py-2 text-right">{proj.start_date ? new Date(proj.start_date).getFullYear() : '-'}</td>
+              <td className="px-4 py-2 text-right align-top max-w-[240px] break-words">{proj.title}</td>
+              <td className="px-4 py-2 text-right align-top">{proj.type || '-'}</td>
+              <td className="px-4 py-2 text-right align-top">{proj.state}</td>
+              <td className="px-4 py-2 text-right align-top max-w-[320px] break-words">{proj.description || '-'}</td>
+              <td className="px-4 py-2 text-right align-top">{proj.supervisor?.name || '-'}</td>
+              <td className="px-4 py-2 text-right align-top">{proj.co_supervisor?.name || '-'}</td>
+              <td className="px-4 py-2 text-right align-top">{(proj as any).college_name || '-'}</td>
+              <td className="px-4 py-2 text-right align-top">{(proj as any).department_name || '-'}</td>
+              <td className="px-4 py-2 text-right align-top">{
+                (() => {
+                  const val = (proj as any).end_date ?? (proj as any).end;
+                  if (val === null || val === undefined || val === '') return '-';
+                  const n = Number(val);
+                  if (!Number.isNaN(n) && n >= 1900 && n <= 3000) return String(n);
+                  const dt = new Date(val);
+                  if (!isNaN(dt.getTime())) return dt.toLocaleDateString();
+                  if (!Number.isNaN(n)) {
+                    const asMs = n > 1e12 ? n : (n > 1e9 ? n * 1000 : n);
+                    const dt2 = new Date(asMs);
+                    if (!isNaN(dt2.getTime())) return dt2.toLocaleDateString();
+                  }
+                  return '-';
+                })()
+              }</td>
+              <td className="px-4 py-2 text-right align-top">{(proj as any).field?.name || (proj as any).field || '-'}</td>
+              <td className="px-4 py-2 text-right align-top">{Array.isArray((proj as any).tools) ? (proj as any).tools.join(', ') : ((proj as any).tools || '-')}</td>
+              <td className="px-4 py-2 text-right align-top">{(proj as any).created_by?.name || (proj as any).created_by_name || (proj as any).created_by || '-'}</td>
+              <td className="px-4 py-2 text-right align-top">{
+                (() => {
+                  const val = (proj as any).start_year ?? (proj as any).start_date ?? (proj as any).start;
+                  if (!val && val !== 0) return '-';
+                  const n = Number(val);
+                  if (!Number.isNaN(n) && n >= 1900 && n <= 3000) return n;
+                  const dt = new Date(val);
+                  if (!isNaN(dt.getTime())) return dt.getFullYear();
+                  if (!Number.isNaN(n)) {
+                    const asMs = n > 1e12 ? n : (n > 1e9 ? n * 1000 : n);
+                    const dt2 = new Date(asMs);
+                    if (!isNaN(dt2.getTime())) return dt2.getFullYear();
+                  }
+                  return '-';
+                })()
+              }</td>
               <td className="px-4 py-2 text-right">
                 {proj.users?.length ? proj.users.map((u: any) => u.displayName || u.name).join(', ') : '-'}
               </td>
-              <td className="px-4 py-2 text-center">
+              <td className="px-4 py-2 text-center align-top">
                 <button
                   className="text-primary-700 hover:opacity-80 flex items-center justify-center gap-1"
                   onClick={() => projectService.downloadProjectFile(proj.project_id)}
@@ -503,6 +544,8 @@ const ProjectsTable: React.FC = () => {
       <ProjectForm
         isOpen={showProjectForm}
         initialData={editingProject || undefined}
+        // system manager can assign from all groups
+        showAllGroups={true}
         mode={editingProject ? 'edit' : 'create'}
         onClose={() => { setShowProjectForm(false); setEditingProject(null); }}
         onSuccess={() => { setShowProjectForm(false); setEditingProject(null); fetchProjects(); }}

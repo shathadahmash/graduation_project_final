@@ -9,6 +9,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     co_supervisor_name = serializers.SerializerMethodField()
     created_by = UserSerializer(read_only=True)
     college_name = serializers.SerializerMethodField()
+    state_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -17,6 +18,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             'title',
             'description',
             'state',
+            'state_name',
             'start_date',
             'end_date',
             'field',
@@ -63,3 +65,9 @@ class ProjectSerializer(serializers.ModelSerializer):
         if pg and pg.program and getattr(pg.program, 'department', None) and getattr(pg.program.department, 'college', None):
             return pg.program.department.college.name_ar
         return None
+
+    def get_state_name(self, obj):
+        try:
+            return obj.state.name if obj.state else None
+        except Exception:
+            return str(obj.state) if obj.state is not None else None
