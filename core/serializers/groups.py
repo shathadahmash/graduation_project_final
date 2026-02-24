@@ -126,7 +126,7 @@ class GroupDetailSerializer(serializers.ModelSerializer):
             return {
                 'project_id': project.project_id,
                 'title': project.title,
-                'state': getattr(project, 'state', 'N/A'),
+                'state': str(getattr(project, 'state', 'N/A')),
             }
         return None
 
@@ -153,12 +153,11 @@ class GroupMemberStatusSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'name', 'role', 'status']
 
 
-class GroupDetailSerializer(serializers.ModelSerializer):
+class GroupCreationRequestSerializer(serializers.ModelSerializer):
     # 'approvals' هو الحقل الذي يبحث عنه الـ React الآن
     approvals = GroupMemberStatusSerializer(many=True, read_only=True)
 
     class Meta:
-     
         model = GroupCreationRequest
         fields = ['id', 'creator', 'approvals', 'is_fully_confirmed']
 

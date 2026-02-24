@@ -1,5 +1,14 @@
+// Service	           Purpose
+// projectService	     Fetch, filter, enrich, delete, and download projects
+// userService	       Fetch users, affiliations, colleges, and departments
+// useAuthStore	       Get the currently logged-in user
+
+
+
 import React, { useEffect, useState } from 'react';
 import { projectService, Project } from '../../../services/projectService';
+import api from '../../../services/api';
+import { groupService } from '../../../services/groupService';
 import { userService, User } from '../../../services/userService';
 import { FiDownload, FiPlus, FiEdit3, FiTrash2 } from 'react-icons/fi';
 import { exportToCSV } from '../../../components/tableUtils';
@@ -57,7 +66,7 @@ const ProjectsTable: React.FC = () => {
       // Fetch bulk data for enrichment (like SystemManager version)
       const bulk = await projectService.getProjectsWithGroups();
       console.log('[ProjectsTable] bulk fetched:', bulk);
-      const groups = Array.isArray(bulk.groups) ? bulk.groups : [];
+      let groups = Array.isArray(bulk.groups) ? bulk.groups : [];
       const groupMembers = Array.isArray(bulk.group_members) ? bulk.group_members : [];
       const groupSupervisors = Array.isArray(bulk.group_supervisors) ? bulk.group_supervisors : [];
       const users = Array.isArray(bulk.users) ? bulk.users : [];
@@ -77,6 +86,19 @@ const ProjectsTable: React.FC = () => {
         colleges: colleges.length,
         departments: departments.length,
       });
+
+      // Fallback: if bulk didn't return groups, try fetching groups per project
+      if ((!groups || groups.length === 0) && projectsRaw.length > 0) {
+        console.warn('[ProjectsTable] bulk.groups empty — fetching groups per project as fallback');
+        try {
+          const groupPromises = projectsRaw.map((p: any) => api.get(`/groups/?project_id=${p.project_id}`).then(r => Array.isArray(r.data) ? r.data : (r.data.results || [])).catch(() => []));
+          const groupsPerProject = await Promise.all(groupPromises);
+          groups = groupsPerProject.flat();
+          console.log('[ProjectsTable] fetched groups per project fallback, total groups:', groups.length);
+        } catch (e) {
+          console.error('[ProjectsTable] groups per-project fallback failed', e);
+        }
+      }
 
       const usersById = new Map<number, any>(users.map((u: any) => [u.id, u]));
       const collegesById = new Map<any, any>(colleges.map((c: any) => [c.cid, c.name_ar]));
@@ -152,12 +174,9 @@ const ProjectsTable: React.FC = () => {
           ...p,
           users: students,
           group_id: groupId,
-          group_name: mainGroup ? mainGroup.group_name : null,
           supervisor: supervisorUser ? { ...supervisorUser, name: supervisorUser.name || `${supervisorUser.first_name || ''} ${supervisorUser.last_name || ''}`.trim() } : null,
           co_supervisor: coSupervisorUser ? { ...coSupervisorUser, name: coSupervisorUser.name || `${coSupervisorUser.first_name || ''} ${coSupervisorUser.last_name || ''}`.trim() } : null,
-          college_name: collegeName,
-          department_name: departmentName,
-          college_id: collegeId,
+          program: p.program,
         };
       });
 
@@ -198,6 +217,30 @@ const ProjectsTable: React.FC = () => {
         });
 
         console.log('[ProjectsTable] Filtered projects by college, kept:', filteredProjects.length, 'from', projectsWithUsers.length);
+        // If nothing matched, try resolving project college via program-group links as a fallback
+        if (filteredProjects.length === 0 && projectsWithUsers.length > 0) {
+          console.warn('[ProjectsTable] No projects matched direct college field — resolving via program-group links');
+          try {
+            const resolved = await Promise.all(projectsWithUsers.map(async (p: any) => {
+              if (p.college) return { project: p, collegeId: typeof p.college === 'number' ? p.college : (p.college?.cid || null) };
+              try {
+                const h = await groupService.fetchProgramHierarchyByProject(p.project_id);
+                const cid = h.college ? (h.college.cid || h.college.id || null) : null;
+                return { project: p, collegeId: cid };
+              } catch (e) {
+                return { project: p, collegeId: null };
+              }
+            }));
+
+            const afterResolve = resolved.filter(r => r.collegeId && Number(r.collegeId) === Number(deanCollegeId)).map(r => r.project);
+            if (afterResolve.length > 0) {
+              filteredProjects = afterResolve;
+              console.log('[ProjectsTable] Projects matched after program-group resolution:', filteredProjects.length);
+            }
+          } catch (e) {
+            console.error('[ProjectsTable] program-group resolution fallback failed', e);
+          }
+        }
       } else {
         console.warn('[ProjectsTable] No dean college_id found, showing all projects');
         // If no dean college found, show all projects (temporary fallback)
@@ -266,6 +309,7 @@ const ProjectsTable: React.FC = () => {
 
   const applyFilters = () => {
     const p: any = {};
+    console.log("--------------------------------------------"+ p)
     if (filters.college) p.college = Number(filters.college);
     if (filters.supervisor) p.supervisor = Number(filters.supervisor);
     if (filters.year) p.year = Number(filters.year);

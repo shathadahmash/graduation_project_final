@@ -12,6 +12,9 @@ from core.models import (
 )
 from core.serializers import ProjectSerializer
 from core.permissions import PermissionManager
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ProjectFilter(django_filters.FilterSet):
@@ -54,21 +57,56 @@ class ProjectViewSet(viewsets.ModelViewSet):
         # Prefetch related group supervisors to avoid extra queries when serializing
         qs = qs.prefetch_related('groups__groupsupervisors_set__user')
 
+        try:
+            total = qs.count()
+            logger.debug('ProjectViewSet: total projects before role filtering: %s', total)
+        except Exception:
+            logger.debug('ProjectViewSet: unable to count total projects')
+
         is_external = UserRoles.objects.filter(
             user=user,
             role__type__icontains="External"
         ).exists()
 
         if is_external:
+            logger.debug('ProjectViewSet: user %s is external - returning own projects', user)
             return qs.filter(created_by=user)
 
-        if PermissionManager.is_student(user) or PermissionManager.is_admin(user):
+        if PermissionManager.is_student(user):
+            logger.debug('ProjectViewSet: user %s is student - returning all projects for student', user)
+            return qs
+
+        if PermissionManager.is_admin(user) and not PermissionManager.is_dean(user):
+            logger.debug('ProjectViewSet: user %s is admin (not dean) - returning all projects', user)
             return qs
 
         if PermissionManager.is_supervisor(user):
             return qs.filter(
                 groups__groupsupervisors_set__user=user
             ).distinct()
+
+        # Allow dean to view projects belonging to their college(s)
+        if PermissionManager.is_dean(user):
+            # find colleges the dean is affiliated with
+            college_ids = AcademicAffiliation.objects.filter(user=user).values_list('college_id', flat=True)
+            college_ids = [c for c in college_ids if c]
+            try:
+                logger.debug('ProjectViewSet: total projects before dean filter: %s', total)
+            except Exception:
+                pass
+            logger.debug('ProjectViewSet: user %s is dean - affiliated colleges: %s', user, college_ids)
+            if college_ids:
+                filtered_qs = qs.filter(
+                    groups__program_groups__program__department__college__in=college_ids
+                ).distinct()
+                try:
+                    cnt = filtered_qs.count()
+                    sample_ids = list(filtered_qs.values_list('project_id', flat=True)[:20])
+                    logger.debug('ProjectViewSet: dean filtered projects count=%s sample_ids=%s', cnt, sample_ids)
+                except Exception:
+                    logger.debug('ProjectViewSet: dean filtered queryset created')
+                return filtered_qs
+            return qs.none()
 
         return qs.none()
 
