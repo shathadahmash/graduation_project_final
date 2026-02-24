@@ -21,14 +21,14 @@ import { roleService } from '../../../services/roleService';
 import { projectService } from '../../../services/projectService';
 import { groupService } from '../../../services/groupService';
 import { useAuthStore } from '../../../store/useStore';
-import NotificationsPanel from '../../../components/NotificationsPanel';
-import UsersTable from '../../../components/UsersTable';
-import RolesTable from '../../../components/RolesTable';
-import GroupsTable from '../../../components/GroupsTable';
-import UsersReport from '../../../components/UsersReport';
-import ProjectReport from '../../../components/ProjectReport';
-import GroupsReport from '../../../components/GroupsReport';
-import ProjectsTable from '../../../components/ProjectTable';
+import NotificationsPanel from '../../../components/notifications/NotificationsPanel';
+import UsersTable from '../../../components/user/UsersTable';
+import RolesTable from '../../../components/roles/RolesTable';
+import GroupsTable from '../../../components/group/GroupsTable';
+import UsersReport from '../../../components/user/UsersReport';
+import ProjectReport from '../../../components/project/ProjectReport';
+import GroupsReport from '../../../components/group/GroupsReport';
+import ProjectsTable from '../../../components/project/ProjectTable';
 
 const MinistryDashboard: React.FC = () => {
    const { user } = useAuthStore();

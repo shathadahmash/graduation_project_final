@@ -2,12 +2,12 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
-import AboutSystem from "../components/AboutSystem";
-import OurFeatures from "../components/OurFeatures";
-import Users from "../components/Users";
-import Universities from "../components/Universities";
-import ConnectUs from "../components/ConnectUs";
-import Footer from "../components/Footer";
+import AboutSystem from "../components/HomePage/AboutSystem";
+import OurFeatures from "../components/HomePage/OurFeatures";
+import Users from "../components/user/Users";
+import Universities from "../components/uni_college_department_branch/Universities";
+import ConnectUs from "../components/HomePage/ConnectUs";
+import Footer from "../components/HomePage/Footer";
 
 export default function HomePage() {
   const navigate = useNavigate(); // <-- ADD THIS

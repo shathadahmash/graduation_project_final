@@ -151,7 +151,8 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSuccess, i
 
   return (
     <>
-      <div className="fixed inset-0 bg-slate-900/60 z-[70] backdrop-blur-md" onClick={onClose} />
+      {/* remove heavy backdrop to avoid hazy overlay over tables; keep transparent click-catcher */}
+      <div className="fixed inset-0 bg-transparent z-[70]" onClick={onClose} />
 
       <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
         <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col" dir="rtl">

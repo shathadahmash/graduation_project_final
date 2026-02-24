@@ -11,7 +11,7 @@ import ProjectSearch from './ProjectSearch';
 import ProjectSelectionPage from './ProjectSelectionPage';
 
 // --- المكونات المستوردة بالكامل ---
-import NotificationsPanel from '../../components/NotificationsPanel'; 
+import NotificationsPanel from '../../components/notifications/NotificationsPanel'; 
 import { useNotifications } from '../../hooks/useNotifications';
 import AddMemberModal from '../../components/AddMemberModal'; 
 import TeamStatusPage from '../../components/TeamStatusPage';

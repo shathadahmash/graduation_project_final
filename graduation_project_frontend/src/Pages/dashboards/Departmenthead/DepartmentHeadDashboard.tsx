@@ -8,7 +8,7 @@ import { userService } from '../../../services/userService';
 import { projectService } from '../../../services/projectService';
 import { groupService } from '../../../services/groupService';
 import { fetchTableFields } from '../../../services/bulkService';
-import NotificationsPanel from '../../../components/NotificationsPanel';
+import NotificationsPanel from '../../../components/notifications/NotificationsPanel';
 import { useNotifications } from '../../../hooks/useNotifications';
 import UsersTable from './StudentTable';
 import RolesTable from '../ministry/RolesTable';

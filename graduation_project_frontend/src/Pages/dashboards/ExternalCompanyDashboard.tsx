@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../../store/useStore';
-import SystemManagerSidebar from '../../components/SystemManagerSidebar';
-import Header from '../../components/Header';
-import NotificationsPanel from '../../components/NotificationsPanel';
+import SystemManagerSidebar from '../../components/sidebars/SystemManagerSidebar';
+import Header from '../../components/HomePage/Header';
+import NotificationsPanel from '../../components/notifications/NotificationsPanel';
 import { useNotificationsStore } from '../../store/useStore';
 import { projectService, Project } from '../../services/projectService';
 import { FiPlus, FiEdit2, FiTrash2, FiClock, FiCheckCircle, FiActivity, FiInfo, FiCalendar } from 'react-icons/fi';

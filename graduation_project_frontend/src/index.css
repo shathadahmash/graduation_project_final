@@ -171,4 +171,13 @@ table tbody tr:hover {
   box-shadow: 0 8px 18px rgba(30,104,216,0.12);
 }
 
+/* Temporary fix: remove Bootstrap modal backdrop haze so tables aren't covered */
+.modal-backdrop {
+  display: none !important;
+  pointer-events: none !important;
+}
+.modal-backdrop.in {
+  opacity: 0 !important;
+}
+
 

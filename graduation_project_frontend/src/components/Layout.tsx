@@ -1,13 +1,13 @@
 // src/components/Layout.tsx
 import React, { useState } from "react";
 import { FiMenu } from "react-icons/fi";
-import Sidebar from "./Sidebar";
-import SystemManagerSidebar from "./SystemManagerSidebar";
-import DeanSidebar from "./DeanSidebar";
-import DepartmentHeadSidebar from "./DepartmentHeadSidebar";
-import PresidentSidebar from "./PresidentSidebar"; // import the new sidebar
-import NotificationsPanel from "./NotificationsPanel";
-import Header from "./Header";
+import Sidebar from "./sidebars/Sidebar";
+import SystemManagerSidebar from "./sidebars/SystemManagerSidebar";
+import DeanSidebar from "./sidebars/DeanSidebar";
+import DepartmentHeadSidebar from "./sidebars/DepartmentHeadSidebar";
+import PresidentSidebar from "./sidebars/PresidentSidebar"; // import the new sidebar
+import NotificationsPanel from "./notifications/NotificationsPanel";
+import Header from "./HomePage/Header";
 import { useNotificationsStore, useAuthStore } from "../store/useStore";
 
 interface LayoutProps {

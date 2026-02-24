@@ -22,7 +22,7 @@ import { projectService } from '../../../services/projectService';
 import { groupService } from '../../../services/groupService';
 import { fetchTableFields } from '../../../services/bulkService';
 import { useAuthStore } from '../../../store/useStore';
-import NotificationsPanel from '../../../components/NotificationsPanel';
+import NotificationsPanel from '../../../components/notifications/NotificationsPanel';
 import UsersTable from './UsersTable';
 import RolesTable from './RolesTable';
 import GroupsTable from './GroupsTable';
