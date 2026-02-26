@@ -21,7 +21,7 @@ interface DropdownUser {
 const GroupForm: React.FC<GroupFormProps> = ({ isOpen, onClose, onSuccess }) => {
   const { user } = useAuthStore();
 
-  const [groupName, setGroupName] = useState('');
+ // const [groupName, setGroupName] = useState('');
   const [note, setNote] = useState('');
 
   const [dropdownStudents, setDropdownStudents] = useState<DropdownUser[]>([]);
@@ -88,21 +88,28 @@ const GroupForm: React.FC<GroupFormProps> = ({ isOpen, onClose, onSuccess }) => 
     setError('');
 
     // التحقق الأولي
-    if (!groupName.trim()) return setError('يرجى تحديد اسم للمجموعة');
+    //if (!groupName.trim()) return setError('يرجى تحديد اسم للمجموعة');
     if (selectedStudents.length < 2) return setError('يجب اختيار زميل واحد على الأقل للمجموعة');
 
     // الـ Payload الجديد مطابق تماماً للـ GroupCreateSerializer المحدث
-    const payload = {
-      group_name: groupName.trim(),
-      department_id: Number(userDepartmentId),
-      college_id: Number(userCollegeId),
-      // إرسال المصفوفات كمعرفات فقط
-      student_ids: selectedStudents.map(s => s.id),
-      supervisor_ids: selectedSupervisors.map(s => s.id),
-      co_supervisor_ids: selectedCoSupervisors.map(s => s.id),
-      // ملاحظة: تم استبعاد بيانات المشروع بناءً على التعديل الجديد
-    };
-
+    // const payload = {
+    //   group_name: groupName.trim(),
+    //   department_id: Number(userDepartmentId),
+    //   college_id: Number(userCollegeId),
+    //   // إرسال المصفوفات كمعرفات فقط
+    //   student_ids: selectedStudents.map(s => s.id),
+    //   supervisor_ids: selectedSupervisors.map(s => s.id),
+    //   co_supervisor_ids: selectedCoSupervisors.map(s => s.id),
+    //   // ملاحظة: تم استبعاد بيانات المشروع بناءً على التعديل الجديد
+    // };
+        const payload = {
+          department_id: Number(userDepartmentId),
+          college_id: Number(userCollegeId),
+          student_ids: selectedStudents.map(s => s.id),
+          supervisor_ids: selectedSupervisors.map(s => s.id),
+          co_supervisor_ids: selectedCoSupervisors.map(s => s.id),
+          note: note.trim(),
+        };
     try {
       setLoading(true);
       // إرسال الطلب للـ Backend
@@ -203,7 +210,7 @@ const GroupForm: React.FC<GroupFormProps> = ({ isOpen, onClose, onSuccess }) => 
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               {/* القسم الأيمن: المعلومات الأساسية */}
-              <div className="lg:col-span-4 space-y-6">
+              {/* <div className="lg:col-span-4 space-y-6">
                 <div className="bg-blue-600 p-8 rounded-[2rem] text-white shadow-xl shadow-blue-100">
                    <h3 className="font-black text-lg mb-4 flex items-center gap-2">اسم المجموعة <FiSave className="opacity-50"/></h3>
                    <input
@@ -215,7 +222,7 @@ const GroupForm: React.FC<GroupFormProps> = ({ isOpen, onClose, onSuccess }) => 
                   <p className="text-[10px] mt-4 leading-relaxed opacity-80 font-medium italic">
                     * بمجرد إرسال الطلب، سيتم توجيهه للأعضاء للموافقة ثم للقسم للاعتماد النهائي.
                   </p>
-                </div>
+                </div> */}
 
                 <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
                   <label className="block text-slate-700 font-black text-sm mb-3">ملاحظات للمدعوين</label>
@@ -226,7 +233,7 @@ const GroupForm: React.FC<GroupFormProps> = ({ isOpen, onClose, onSuccess }) => 
                     placeholder="اكتب رسالة قصيرة لزملائك توضح فيها سبب دعوتهم لهذا الفريق..."
                   />
                 </div>
-              </div>
+              
 
               {/* القسم الأيسر: اختيار الأعضاء */}
               <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">

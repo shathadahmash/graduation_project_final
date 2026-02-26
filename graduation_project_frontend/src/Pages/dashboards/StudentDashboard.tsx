@@ -214,7 +214,8 @@ const StudentDashboard: React.FC = () => {
                 {myGroup && (myGroup.is_official_group || myGroup.user_role_in_pending_request === 'creator') ? (
                   <div className="bg-slate-800/50 backdrop-blur-md p-6 rounded-[2rem] flex items-center justify-end gap-5">
                     <div className="text-right">
-                      <h4 className="text-xl font-black">{myGroup.group_name}</h4>
+                     {/* <h4 className="text-xl font-black">{myGroup.group_name}</h4>*/}
+                     <h4 className="text-xl font-black">فريق التخرج</h4>
                       <p className="text-blue-400 font-bold text-xs mt-1">
                         {myGroup.is_official_group ? 
                           (myGroup.project_detail?.title || 'مشروع معتمد') : 
@@ -267,7 +268,7 @@ const StudentDashboard: React.FC = () => {
                 <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-50 max-w-5xl mx-auto text-right overflow-hidden">
                   <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 border-b border-slate-50 pb-8">
                     <div>
-                      <h2 className="text-4xl font-black text-slate-900 mb-2">{myGroup.group_name}</h2>
+                      <h2 className="text-4xl font-black text-slate-900 mb-2">بيانات المجموعة</h2>
                       <p className="text-slate-400 font-bold uppercase text-xs">بيانات الفريق الرسمية</p>
                     </div>
                     <div className="bg-emerald-50 px-6 py-2 rounded-full border border-emerald-100">
