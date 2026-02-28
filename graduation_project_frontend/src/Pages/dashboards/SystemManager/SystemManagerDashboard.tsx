@@ -13,7 +13,9 @@ import {
   FiDatabase,
   FiChevronLeft,
   FiPieChart,
-  FiActivity
+  FiActivity,
+  FiCompass,
+  FiShield,
 } from 'react-icons/fi';
 
 import { userService } from '../../../services/userService';
@@ -21,6 +23,8 @@ import { roleService } from '../../../services/roleService';
 import { projectService } from '../../../services/projectService';
 import { groupService } from '../../../services/groupService';
 import { fetchTableFields } from '../../../services/bulkService';
+import { programService } from '../../../services/programService';
+import { branchService } from '../../../services/branchService';
 import { useAuthStore } from '../../../store/useStore';
 import NotificationsPanel from '../../../components/notifications/NotificationsPanel';
 import UsersTable from './UsersTable';
@@ -30,6 +34,12 @@ import UsersReport from './UsersReport';
 import ProjectReport from './ProjectReport';
 import GroupsReport from './GroupsReport';
 import ProjectsTable from './ProjectTable';
+import UniversitiesTable from './UniversitiesTable.tsx';
+import CollegesTable from './CollegeTable.tsx';
+import DepartmentsTable from './DepartmentsTable.tsx';
+import ProgramsTable from './ProgramTable.tsx';
+import Branches from './BranchTable';
+import collegeServices from  '../../../services/collegeServices.ts';
 
 const SystemManagerDashboard: React.FC = () => {
    const { user } = useAuthStore();
@@ -46,6 +56,10 @@ const SystemManagerDashboard: React.FC = () => {
   const [groups, setGroups] = useState<any[]>([]);
   const [affiliations, setAffiliations] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
+  const [colleges, setColleges] = useState<any[]>([]);
+  const [universities, setUniversities] = useState<any[]>([]);
+  const [programs, setPrograms] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotifPanelOpen, setIsNotifPanelOpen] = useState(false);
@@ -60,23 +74,127 @@ const SystemManagerDashboard: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [fetchedUsers, fetchedRoles, fetchedProjectsRaw, fetchedGroups, fetchedAffiliations, fetchedDepartments] =
-          await Promise.all([
-            userService.getAllUsers(),
-            roleService.getAllRoles(),
-            projectService.getProjects(), // use plural to guarantee an array
-            groupService.getGroups(),
-            userService.getAffiliations(),
-            fetchTableFields('departments')
-          ]);
+        const settled = await Promise.allSettled([
+          userService.getAllUsers(),
+          roleService.getAllRoles(),
+          projectService.getProjects(), // use plural to guarantee an array
+          groupService.getGroups(),
+          userService.getAffiliations(),
+          fetchTableFields('departments'),
+          collegeServices.getColleges(),
+          fetchTableFields('universities'),
+          fetchTableFields('programs'),
+          fetchTableFields('branches')
+        ]);
 
-        setUsers(fetchedUsers);
-        setRoles(fetchedRoles);
-        // projectService.getProjects may return paginated object; normalize to array
-        setProjects(Array.isArray(fetchedProjectsRaw) ? fetchedProjectsRaw : (fetchedProjectsRaw.results || []));
-        setGroups(fetchedGroups);
-        setAffiliations(fetchedAffiliations);
-        setDepartments(fetchedDepartments);
+        const results = settled.map(s => s.status === 'fulfilled' ? (s as any).value : null);
+        const [fetchedUsers, fetchedRoles, fetchedProjectsRaw, fetchedGroups, fetchedAffiliations, fetchedDepartments, fetchedColleges, fetchedUniversities, fetchedPrograms, fetchedBranches] = results;
+
+        // Log rejections for visibility
+        settled.forEach((s, idx) => { if (s.status === 'rejected') console.warn('fetch failed idx', idx, (s as any).reason); });
+
+        console.log('SystemManagerDashboard raw fetched (settled):', { fetchedUsers, fetchedRoles, fetchedProjectsRaw, fetchedGroups, fetchedAffiliations, fetchedDepartments, fetchedColleges, fetchedUniversities, fetchedPrograms, fetchedBranches });
+
+        // Extra diagnostics for problematic tables
+        const diag = (name: string, val: any) => {
+          try {
+            console.log(`DIAG ${name}:`, {
+              typeof: typeof val,
+              isArray: Array.isArray(val),
+              keys: val && typeof val === 'object' ? Object.keys(val).slice(0,10) : undefined,
+              sample: (() => { try { return JSON.stringify(val).slice(0,1000); } catch(e){ return String(val); } })(),
+            });
+          } catch (e) { console.warn('diag error', e); }
+        };
+        diag('fetchedUniversities', fetchedUniversities);
+        diag('fetchedPrograms', fetchedPrograms);
+        diag('fetchedBranches', fetchedBranches);
+        setUsers(Array.isArray(fetchedUsers) ? fetchedUsers : []);
+        setRoles(Array.isArray(fetchedRoles) ? fetchedRoles : []);
+        setProjects(Array.isArray(fetchedProjectsRaw) ? fetchedProjectsRaw : (fetchedProjectsRaw?.results || []));
+        setGroups(Array.isArray(fetchedGroups) ? fetchedGroups : (fetchedGroups?.results || []));
+        setAffiliations(Array.isArray(fetchedAffiliations) ? fetchedAffiliations : (fetchedAffiliations?.results || []));
+        setDepartments(Array.isArray(fetchedDepartments) ? fetchedDepartments : (fetchedDepartments?.results || []));
+
+        const normalizeBulk = (v: any, preferredKey?: string) => {
+          if (!v) return [];
+          if (Array.isArray(v)) return v;
+          if (typeof v !== 'object') return [];
+
+          // 1) preferred key (e.g., 'universities', 'programs', 'branches')
+          if (preferredKey && v[preferredKey]) {
+            if (Array.isArray(v[preferredKey])) return v[preferredKey];
+            if (v[preferredKey].results && Array.isArray(v[preferredKey].results)) return v[preferredKey].results;
+          }
+
+          // 2) common results key
+          if (Array.isArray(v.results)) return v.results;
+
+          // 3) search recursively for arrays and pick the longest
+          const arraysFound: any[] = [];
+          const visit = (obj: any) => {
+            if (!obj || typeof obj !== 'object') return;
+            if (Array.isArray(obj)) {
+              arraysFound.push(obj);
+              return;
+            }
+            for (const k of Object.keys(obj)) visit(obj[k]);
+          };
+          visit(v);
+          if (arraysFound.length === 0) {
+            // maybe the response is an object-of-records (id->obj), return its values
+            const objVals = Object.values(v).filter((x: any) => x && typeof x === 'object' && !Array.isArray(x));
+            if (objVals.length > 0) return objVals;
+            return [];
+          }
+          arraysFound.sort((a, b) => b.length - a.length);
+          return arraysFound[0];
+        };
+
+        let normColleges = normalizeBulk(fetchedColleges, 'colleges');
+        let normUniversities = normalizeBulk(fetchedUniversities, 'universities');
+        let normPrograms = normalizeBulk(fetchedPrograms, 'programs');
+        let normBranches = normalizeBulk(fetchedBranches, 'branches');
+
+        // Fallback: if bulk fetch didn't return arrays for programs/branches, call their services directly.
+        try {
+          if (!Array.isArray(normPrograms) || normPrograms.length === 0) {
+            const ps = await programService.getPrograms();
+            if (Array.isArray(ps) && ps.length) normPrograms = ps;
+          }
+        } catch (e) { console.warn('programService fallback failed', e); }
+
+        try {
+          if (!Array.isArray(normBranches) || normBranches.length === 0) {
+            const bs = await branchService.getBranches();
+            if (Array.isArray(bs) && bs.length) normBranches = bs;
+          }
+        } catch (e) { console.warn('branchService fallback failed', e); }
+
+        setColleges(Array.isArray(normColleges) ? normColleges : []);
+        setUniversities(Array.isArray(normUniversities) ? normUniversities : []);
+        setPrograms(Array.isArray(normPrograms) ? normPrograms : []);
+        setBranches(Array.isArray(normBranches) ? normBranches : []);
+
+        console.log('SystemManagerDashboard normalized samples:', {
+          colleges: Array.isArray(normColleges) ? normColleges.slice(0,5) : normColleges,
+          universities: Array.isArray(normUniversities) ? normUniversities.slice(0,5) : normUniversities,
+          programs: Array.isArray(normPrograms) ? normPrograms.slice(0,5) : normPrograms,
+          branches: Array.isArray(normBranches) ? normBranches.slice(0,5) : normBranches,
+        });
+
+        console.log('SystemManagerDashboard fetched counts:', {
+          users: Array.isArray(fetchedUsers) ? fetchedUsers.length : (fetchedUsers?.results?.length ?? null),
+          roles: Array.isArray(fetchedRoles) ? fetchedRoles.length : null,
+          projects: Array.isArray(fetchedProjectsRaw) ? fetchedProjectsRaw.length : (fetchedProjectsRaw?.results?.length ?? null),
+          groups: Array.isArray(fetchedGroups) ? fetchedGroups.length : (fetchedGroups?.results?.length ?? null),
+          affiliations: Array.isArray(fetchedAffiliations) ? fetchedAffiliations.length : null,
+          departments: Array.isArray(normColleges) ? normColleges.length : null,
+          colleges: Array.isArray(normColleges) ? normColleges.length : null,
+          universities: Array.isArray(normUniversities) ? normUniversities.length : null,
+          programs: Array.isArray(normPrograms) ? normPrograms.length : null,
+          branches: Array.isArray(normBranches) ? normBranches.length : null,
+        });
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       }
@@ -321,6 +439,12 @@ const SystemManagerDashboard: React.FC = () => {
     return enriched;
   }, [projects, groups, departments, users, systemManagerCollegeId]);
 
+  const filteredUniversities = useMemo(() => universities, [universities]);
+  const filteredColleges = useMemo(() => colleges, [colleges]);
+  const filteredDepartments = useMemo(() => departments, [departments]);
+  const filteredPrograms = useMemo(() => programs, [programs]);
+  const filteredBranches = useMemo(() => branches, [branches]);
+
   const filteredGroups = useMemo(() => {
     if (!systemManagerCollegeId) {
       console.log('System Manager Dashboard - no college ID found, showing all groups');
@@ -413,9 +537,50 @@ const SystemManagerDashboard: React.FC = () => {
         icon: <FiUsers />,
         gradient: 'from-blue-500 to-blue-700',
         description: 'إدارة مجموعات الطلاب والفرق'
-      }
+      },
+       {
+        id: 'universities',
+        title: 'الجامعات',
+        value: filteredUniversities.length,
+        icon: <FiCompass />,
+        gradient: 'from-blue-500 to-blue-700',
+        description: 'إدارة الجامعات '
+      },
+       {
+        id: 'colleges',
+        title: 'الكليات ',
+        value: filteredColleges.length,
+        icon: <FiHome />,
+        gradient: 'from-blue-500 to-blue-700',
+        description: 'إدارة الكليات '
+      },
+       {
+        id: 'departments',
+        title: 'الأقسام',
+        value: filteredDepartments.length,
+        icon: <FiShield />,
+        gradient: 'from-blue-500 to-blue-700',
+        description: 'إدارة الأقسام '
+      },
+      {
+        id: 'programs',
+        title: 'التخصصات',
+        value: filteredPrograms.length,
+        icon: <FiShield />,
+        gradient: 'from-blue-500 to-blue-700',
+        description: 'إدارة الأقسام '
+      },
+       {
+        id: 'branches',
+        title: 'الفروع',
+        value: filteredBranches.length,
+        icon: <FiCompass />,
+        gradient: 'from-blue-500 to-blue-700',
+        description: 'إدارة الفروع '
+
+      },
     ];
-  }, [filteredUsers, roles, filteredProjects, filteredGroups]);
+  }, [filteredUsers, roles, filteredProjects, filteredGroups, filteredColleges, filteredDepartments, filteredUniversities, filteredPrograms, filteredBranches]);
 
   /* ==========================
      Render Management Content
@@ -436,6 +601,16 @@ const SystemManagerDashboard: React.FC = () => {
             <ProjectsTable filteredProjects={filteredProjects} />
           </div>
         );
+        case 'الجامعات':
+          return <UniversitiesTable />;
+        case 'الكليات':
+          return <CollegesTable />;
+        case 'الأقسام':
+          return <DepartmentsTable />;
+        case 'التخصصات':
+          return <ProgramsTable />;
+        case 'الفروع':
+          return <Branches />;
       default:
         return null;
     }
@@ -486,7 +661,7 @@ const SystemManagerDashboard: React.FC = () => {
         </div>
 
         <nav className="mt-4 space-y-2">
-          {[
+              {[
             { id: 'home', label: 'الرئيسية', icon: <FiHome /> },
             { id: 'users', label: 'المستخدمون', icon: <FiUsers />, cardPanel: 'المستخدمون' },
             { id: 'projects', label: 'المشاريع', icon: <FiLayers />, cardPanel: 'المشاريع' },
@@ -499,10 +674,10 @@ const SystemManagerDashboard: React.FC = () => {
               onClick={() => {
                 if (tab.id === 'home') {
                   setActiveTab('home');
-                  setActiveCardPanel(null);
+                      setActiveCardPanel(null);
                 } else if (tab.cardPanel) {
                   setActiveTab('home');
-                  setActiveCardPanel(tab.cardPanel);
+                      setActiveCardPanel((tab.cardPanel as string).trim());
                 } else {
                   setActiveTab(tab.id as any);
                   setActiveCardPanel(null);
@@ -571,7 +746,7 @@ const SystemManagerDashboard: React.FC = () => {
               setActiveCardPanel(null);
             } else if ((item as any).cardPanel) {
               setActiveTab('home');
-              setActiveCardPanel((item as any).cardPanel);
+              setActiveCardPanel(((item as any).cardPanel as string).trim());
             } else {
               setActiveTab(item.id as any);
               setActiveCardPanel(null);
@@ -649,8 +824,8 @@ const SystemManagerDashboard: React.FC = () => {
                   <div
                     key={card.id}
                     onClick={() => {
-                      setActiveCardPanel(card.title);
-                      setShowManagementContent(false);
+                      setActiveCardPanel(card.title.trim());
+                      setShowManagementContent(true);
                       setActiveReport(null);
                     }}
                     className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all cursor-pointer group"

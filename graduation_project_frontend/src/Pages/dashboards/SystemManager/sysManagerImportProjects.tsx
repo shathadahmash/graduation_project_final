@@ -171,12 +171,16 @@ const SysManagerImportProjects: React.FC = () => {
     rows.push(
       'عنوان المشروع,نوع المشروع,الحالة,الملخص,المشرف,المشرف المشارك,الجامعة,الكلية,القسم,سنة البداية,سنه النهاية,المجال,الادوات,أنشىء بواسطة'
     );
-    const csv = rows.join('\n');
+    // prepend BOM for Excel/Arabic support
+    const csv = '\uFEFF' + rows.join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.href = url;
-    link.setAttribute('download', `projects_import_template.xlsx`);
+    // Blob contains CSV data, so give it a .csv file name. Using .xlsx caused
+    // Excel to refuse opening the file because the contents didn't match the
+    // extension.
+    link.setAttribute('download', `projects_import_template.csv`);
     document.body.appendChild(link);
     link.click();
     link.parentNode?.removeChild(link);

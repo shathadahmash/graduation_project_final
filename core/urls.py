@@ -26,9 +26,13 @@ from core.views import (
     dean_stats,
     SupervisorGroupViewSet,
     dropdown_data,
+    CollegeViewSet,
+    DepartmentViewSet,
+    BranchViewSet,
+
 )
 from core.views.groups import GroupProgramViewSet
-from core.views.location_views import UniversityViewSet
+from core.views.location_views import BranchViewSet, DepartmentViewSet, UniversityViewSet
 from core.views.location_views import ProgramViewSet
 
 from .views import get_csrf_token
@@ -50,6 +54,9 @@ router.register(r'roles', RoleViewSet, basename='role')
 router.register(r'user-roles', UserRolesViewSet, basename='userrole')
 router.register(r'groupprogram', GroupProgramViewSet, basename='groupprogram')
 router.register(r'program-groups', GroupProgramViewSet, basename='program-groups')
+router.register(r'colleges', CollegeViewSet, basename='colleges')
+router.register(r'departments', DepartmentViewSet, basename='departments')
+router.register(r'branches', BranchViewSet, basename='branches')
 
 urlpatterns = [
     path('approvals/<int:approval_id>/approve/', respond_to_group_request, name='approval-approve'),

@@ -135,6 +135,10 @@ export const API_ENDPOINTS = {
   STATISTICS: "statistics/",
   PROGRAMS: "programs/",
   PROJECTS: "projects/", // <- add this
+  Departments : "departments/",
+  Colleges : "colleges/",
+  Universities : "universities/",
+  Branches : "branches/",
 };
 
 /* =======================
