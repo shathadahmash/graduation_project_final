@@ -33,3 +33,12 @@ class UniversityLookupTests(TestCase):
     def test_serializer_includes_university(self):
         serialized = ProjectSerializer(self.proj)
         self.assertEqual(serialized.data.get('university_name'), 'TestUni')
+
+    def test_serializer_includes_field_and_tools(self):
+        # attach field and tools to project and verify serializer output (use ascii text)
+        self.proj.field = 'Test Field'
+        self.proj.tools = 'tool1, tool2'
+        self.proj.save()
+        serialized = ProjectSerializer(self.proj)
+        self.assertEqual(serialized.data.get('field'), 'Test Field')
+        self.assertEqual(serialized.data.get('tools'), 'tool1, tool2')
