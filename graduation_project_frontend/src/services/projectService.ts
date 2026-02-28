@@ -1,5 +1,7 @@
 import api from './api';
 import { bulkFetch } from './bulkService';
+import { groupService } from './groupService';
+
 
 export interface Project {
   project_id?: number; // optional when creating
@@ -169,17 +171,22 @@ async proposeAndLinkProject(payload: Project) {
   },
 
 
-
-
   async getProjectsWithGroups(fields?: string[]) {
     const req = [
-      { table: 'projects', fields: fields || ['project_id', 'title', 'type', 'state', 'start_date', 'description', 'college', 'department'] },
-      { table: 'groups', fields: ['group_id', 'group_name', 'project', 'department'] },
+      { table: 'projects', fields: fields || ['project_id', 'title', 'type', 'state', 'start_date', 'start_year', 'end_date', 'description', 'field', 'tools', 'created_by', 'Logo', 'Documentation_Path', 'college', 'department'] },
+      { table: 'groups', fields: ['group_id', 'group_name', 'project', 'department', 'program', 'academic_year'] },
       { table: 'group_members', fields: ['id', 'user', 'group'] },
       { table: 'group_supervisors', fields: ['id', 'user', 'group', 'type'] },
       { table: 'users', fields: ['id', 'first_name', 'last_name', 'name'] },
-      { table: 'colleges', fields: ['cid', 'name_ar'] },
+      { table: 'colleges', fields: ['cid', 'name_ar', 'branch'] },
       { table: 'departments', fields: ['department_id', 'name', 'college'] },
+      // university model uses uid / uname_ar on the backend
+      { table: 'universities', fields: ['uid', 'uname_ar', 'uname_en', 'type'] },
+      // include program-group links and programs to resolve group.program -> program name
+      // also include `groupprogram` which uses GroupProgramSerializer to return flattened names
+      { table: 'groupprogram', fields: ['id', 'group', 'program', 'program_name', 'department_name', 'college_name', 'university_name', 'program_id'] },
+      { table: 'program_groups', fields: ['id', 'program', 'group', 'program_id', 'program_name'] },
+      { table: 'programs', fields: ['id', 'p_name', 'name', 'department_id'] },
     ];
 
     console.log('[projectService] getProjectsWithGroups request:', JSON.stringify(req));
@@ -188,3 +195,5 @@ async proposeAndLinkProject(payload: Project) {
     return data;
   },
 };
+
+
