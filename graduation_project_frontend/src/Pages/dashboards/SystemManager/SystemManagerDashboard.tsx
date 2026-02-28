@@ -60,11 +60,11 @@ const SystemManagerDashboard: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [fetchedUsers, fetchedRoles, fetchedProjects, fetchedGroups, fetchedAffiliations, fetchedDepartments] =
+        const [fetchedUsers, fetchedRoles, fetchedProjectsRaw, fetchedGroups, fetchedAffiliations, fetchedDepartments] =
           await Promise.all([
             userService.getAllUsers(),
             roleService.getAllRoles(),
-            projectService.getProject(),
+            projectService.getProjects(), // use plural to guarantee an array
             groupService.getGroups(),
             userService.getAffiliations(),
             fetchTableFields('departments')
@@ -72,7 +72,8 @@ const SystemManagerDashboard: React.FC = () => {
 
         setUsers(fetchedUsers);
         setRoles(fetchedRoles);
-        setProjects(fetchedProjects);
+        // projectService.getProjects may return paginated object; normalize to array
+        setProjects(Array.isArray(fetchedProjectsRaw) ? fetchedProjectsRaw : (fetchedProjectsRaw.results || []));
         setGroups(fetchedGroups);
         setAffiliations(fetchedAffiliations);
         setDepartments(fetchedDepartments);
@@ -205,34 +206,120 @@ const SystemManagerDashboard: React.FC = () => {
   }, [users, affiliations, departments, systemManagerCollegeId]);
 
   const filteredProjects = useMemo(() => {
-    if (!systemManagerCollegeId) {
-      console.log('System Manager Dashboard - no college ID found, showing all projects');
-      return projects;
-    }
+    // Enrich projects using the group assigned to each project. This ensures
+    // supervisor/co_supervisor and department/college are resolved from the group
+    // when the project object itself lacks those fields.
+    const usersById = new Map<any, any>(users.map((u: any) => [u.id, u]));
 
-    console.log('System Manager Dashboard - filtering projects for college:', systemManagerCollegeId);
+    const enriched = projects.map((project: any) => {
+      const pid = project.project_id || project.id || null;
+      // find group assigned to this project (group.project may be id or object)
+      const linkedGroup = groups.find((g: any) => {
+        if (!g) return false;
+        const gp = (typeof g.project === 'number' || typeof g.project === 'string') ? g.project : (g.project && (g.project.project_id || g.project.id));
+        return gp != null && pid != null && String(gp) === String(pid);
+      });
 
-    const result = projects.filter((project: any) => {
-      let projectCollegeId = null;
+      const enrichedProj: any = { ...project };
 
-      if (typeof project.college === 'number') {
-        projectCollegeId = project.college;
-      } else if (typeof project.college === 'object' && project.college) {
-        projectCollegeId = project.college.id || project.college.cid;
-      } else if (project.college_id) {
-        projectCollegeId = project.college_id;
+      if (linkedGroup) {
+        enrichedProj.group_id = linkedGroup.group_id || linkedGroup.id || null;
+        enrichedProj.group_name = linkedGroup.group_name || linkedGroup.name || null;
+
+        // resolve supervisors from group if available (group may have supervisors array)
+        if (Array.isArray(linkedGroup.supervisors) && linkedGroup.supervisors.length > 0) {
+          const supRow = linkedGroup.supervisors.find((s: any) => String(s.type || '').toLowerCase().includes('supervisor') && !String(s.type || '').toLowerCase().includes('co'));
+          const coRow = linkedGroup.supervisors.find((s: any) => String(s.type || '').toLowerCase().includes('co'));
+          const resolveUser = (row: any) => {
+            if (!row) return null;
+            if (row.user_detail) return row.user_detail;
+            if (row.user && usersById.has(row.user)) return usersById.get(row.user);
+            return null;
+          };
+          enrichedProj.supervisor = resolveUser(supRow) || project.supervisor || null;
+          enrichedProj.co_supervisor = resolveUser(coRow) || project.co_supervisor || null;
+        }
+
+        // resolve department/college from group.department if the project lacks them
+        if (linkedGroup.department) {
+          const deptId = typeof linkedGroup.department === 'number' ? linkedGroup.department : (linkedGroup.department.department_id || linkedGroup.department.id);
+          const deptObj = departments.find((d: any) => String(d.department_id || d.id) === String(deptId));
+          if (deptObj) {
+            enrichedProj.department = deptObj;
+            enrichedProj.department_name = deptObj.name || deptObj.department_name || enrichedProj.department_name || '-';
+            // resolve college id/name if available on department
+            let cid: any = null;
+            if (typeof deptObj.college === 'number') cid = deptObj.college;
+            else if (deptObj.college && typeof deptObj.college === 'object') cid = deptObj.college.cid || deptObj.college.id;
+            else if (deptObj.college_id) cid = deptObj.college_id;
+            if (cid) enrichedProj.college = enrichedProj.college || cid;
+              // attempt to resolve university name from department -> college -> branch -> university
+              try {
+                if (!enrichedProj.university_name) {
+                  let uniName: any = null;
+                  // if department has college object with nested university
+                  const col = (typeof deptObj.college === 'object' && deptObj.college) ? deptObj.college : null;
+                  if (col) {
+                    if (col.uname_ar || col.name_ar) uniName = col.uname_ar || col.name_ar;
+                    if (!uniName && col.branch_detail && col.branch_detail.university_detail) {
+                      const ud = col.branch_detail.university_detail;
+                      uniName = ud.uname_ar || ud.name_ar || ud.uname_en || ud.name || null;
+                    }
+                    if (!uniName && col.university && typeof col.university === 'object') {
+                      uniName = col.university.uname_ar || col.university.name_ar || col.university.uname_en || col.university.name || null;
+                    }
+                  }
+                  if (uniName) enrichedProj.university_name = uniName;
+                }
+              } catch (e) { /* ignore */ }
+          }
+        }
+
+        // also try to resolve university from linkedGroup direct fields if not already set
+        try {
+          if (linkedGroup && !enrichedProj.university_name) {
+            if (linkedGroup.university_name) enrichedProj.university_name = linkedGroup.university_name;
+            else if (linkedGroup.university && typeof linkedGroup.university === 'object') {
+              enrichedProj.university_name = linkedGroup.university.uname_ar || linkedGroup.university.name_ar || linkedGroup.university.uname_en || linkedGroup.university.name || enrichedProj.university_name;
+            } else if (linkedGroup.branch_detail && linkedGroup.branch_detail.university_detail) {
+              const ud = linkedGroup.branch_detail.university_detail;
+              enrichedProj.university_name = ud.uname_ar || ud.name_ar || ud.uname_en || ud.name || enrichedProj.university_name;
+            } else if (linkedGroup.program && typeof linkedGroup.program === 'object') {
+              // try program -> department -> college -> university
+              const pg = linkedGroup.program as any;
+              const mgDept = (pg.department && (typeof pg.department === 'object' ? pg.department : null)) || null;
+              const mgCol = mgDept && mgDept.college && typeof mgDept.college === 'object' ? mgDept.college : null;
+              if (mgCol) {
+                enrichedProj.university_name = mgCol.uname_ar || mgCol.name_ar || (mgCol.branch_detail && mgCol.branch_detail.university_detail && (mgCol.branch_detail.university_detail.uname_ar || mgCol.branch_detail.university_detail.name_ar)) || enrichedProj.university_name;
+              }
+            }
+          }
+        } catch (e) { /* ignore */ }
+
+        // final fallback: try project.college nested university if still missing
+        try {
+          if (!enrichedProj.university_name && project.college && typeof project.college === 'object') {
+            const col = project.college as any;
+            if (col.uname_ar || col.name_ar) enrichedProj.university_name = col.uname_ar || col.name_ar;
+            else if (col.branch_detail && col.branch_detail.university_detail) {
+              const ud = col.branch_detail.university_detail;
+              enrichedProj.university_name = ud.uname_ar || ud.name_ar || ud.uname_en || ud.name || enrichedProj.university_name;
+            } else if (col.university && typeof col.university === 'object') {
+              enrichedProj.university_name = col.university.uname_ar || col.university.name_ar || col.university.uname_en || col.university.name || enrichedProj.university_name;
+            }
+          }
+        } catch (e) { /* ignore */ }
       }
 
-      const matches = projectCollegeId && Number(projectCollegeId) === Number(systemManagerCollegeId);
-      if (matches) {
-        console.log('Project matched:', project.project_id || project.id, projectCollegeId);
-      }
-      return matches;
+      return enrichedProj;
     });
 
-    console.log('System Manager Dashboard - filteredProjects result:', result.length, 'from total:', projects.length);
-    return result;
-  }, [projects, systemManagerCollegeId]);
+    // System managers see all projects; skip college filtering entirely.
+    // the original code attempted to narrow results by systemManagerCollegeId,
+    // which makes no sense for this role. keep enriched list as-is.
+    console.log('System Manager Dashboard - returning all enriched projects (no college filter)');
+    return enriched;
+  }, [projects, groups, departments, users, systemManagerCollegeId]);
 
   const filteredGroups = useMemo(() => {
     if (!systemManagerCollegeId) {
@@ -372,7 +459,7 @@ const SystemManagerDashboard: React.FC = () => {
       {/* Sidebar Overlay */}
       <div
         className={`fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 ${
-          isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setIsSidebarOpen(false)}
       />
@@ -450,7 +537,7 @@ const SystemManagerDashboard: React.FC = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
  {/* Header (DESIGN ONLY - like DepartmentHead) */}
-<header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 lg:px-8 flex items-center justify-between sticky top-0 z-40">
+<header className="h-20 bg-white  border-b border-slate-100 px-6 lg:px-8 flex items-center justify-between sticky top-0 z-40">
   {/* Left: menu + title */}
   <div className="flex items-center gap-4">
     <button
@@ -552,8 +639,8 @@ const SystemManagerDashboard: React.FC = () => {
                     <span>مدير النظام العام</span>
                   </div>
                 </div>
-                <div className="absolute top-[-20px] left-[-20px] w-40 h-40 bg-white/10 rounded-full blur-2xl" />
-                <div className="absolute bottom-[-20px] right-[-20px] w-32 h-32 bg-white/5 rounded-full blur-xl" />
+                <div className="absolute top-[-20px] left-[-20px] w-40 h-40 bg-white/10 rounded-full " />
+                <div className="absolute bottom-[-20px] right-[-20px] w-32 h-32 bg-white/5 rounded-full " />
               </div>
 
               {/* Stats Cards Grid */}
@@ -595,13 +682,14 @@ const SystemManagerDashboard: React.FC = () => {
             <div className="relative mt-8">
               {/* Animated background waves */}
               <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-50/30 to-indigo-50/30 rounded-3xl"></div>
-                <div className="absolute top-[-50px] left-[-50px] w-32 h-32 bg-blue-200/20 rounded-full blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-[-30px] right-[-30px] w-24 h-24 bg-indigo-200/20 rounded-full blur-2xl animate-pulse delay-1000"></div>
-                <div className="absolute top-[20px] right-[20px] w-16 h-16 bg-cyan-200/20 rounded-full blur-xl animate-pulse delay-500"></div>
+                {/* Reduced opacity decorative background to avoid hazy/blurry appearance */}
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-50/10 to-indigo-50/10 rounded-3xl"></div>
+                <div className="absolute top-[-50px] left-[-50px] w-32 h-32 bg-blue-200/10 rounded-full"></div>
+                <div className="absolute bottom-[-30px] right-[-30px] w-24 h-24 bg-indigo-200/10 rounded-full"></div>
+                <div className="absolute top-[20px] right-[20px] w-16 h-16 bg-cyan-200/10 rounded-full"></div>
               </div>
 
-              <div className="relative bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 overflow-hidden">
+              <div className="relative  rounded-3xl shadow-xl border border-white/50 overflow-hidden">
                 {/* Header with back button */}
                 <div className="relative p-8 border-b border-slate-100/50 bg-gradient-to-r from-white to-blue-50/30">
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5"></div>
@@ -638,8 +726,8 @@ const SystemManagerDashboard: React.FC = () => {
                       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-indigo-500/0 group-hover:from-blue-500/5 group-hover:to-indigo-500/5 transition-all duration-500 rounded-2xl"></div>
 
                       {/* Animated wave effect */}
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-blue-100/30 rounded-full blur-xl group-hover:bg-blue-200/40 transition-all duration-700 transform group-hover:scale-150"></div>
-                      <div className="absolute bottom-0 left-0 w-16 h-16 bg-indigo-100/30 rounded-full blur-lg group-hover:bg-indigo-200/40 transition-all duration-700 delay-200 transform group-hover:scale-125"></div>
+                      <div className="absolute top-0 right-0 w-20 h-20 bg-blue-100/30 rounded-full group-hover:bg-blue-200/40 transition-all duration-700 transform group-hover:scale-150"></div>
+                      <div className="absolute bottom-0 left-0 w-16 h-16 bg-indigo-100/30 rounded-full  group-hover:bg-indigo-200/40 transition-all duration-700 delay-200 transform group-hover:scale-125"></div>
 
                       <div className="relative z-10">
                         {/* Icon */}
@@ -683,8 +771,8 @@ const SystemManagerDashboard: React.FC = () => {
                       <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/0 to-blue-500/0 group-hover:from-indigo-500/5 group-hover:to-blue-500/5 transition-all duration-500 rounded-2xl"></div>
 
                       {/* Animated wave effect */}
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-100/30 rounded-full blur-xl group-hover:bg-indigo-200/40 transition-all duration-700 transform group-hover:scale-150"></div>
-                      <div className="absolute bottom-0 left-0 w-16 h-16 bg-blue-100/30 rounded-full blur-lg group-hover:bg-blue-200/40 transition-all duration-700 delay-200 transform group-hover:scale-125"></div>
+                      <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-100/30 rounded-full  group-hover:bg-indigo-200/40 transition-all duration-700 transform group-hover:scale-150"></div>
+                      <div className="absolute bottom-0 left-0 w-16 h-16 bg-blue-100/30 rounded-full  group-hover:bg-blue-200/40 transition-all duration-700 delay-200 transform group-hover:scale-125"></div>
 
                       <div className="relative z-10">
                         {/* Icon */}

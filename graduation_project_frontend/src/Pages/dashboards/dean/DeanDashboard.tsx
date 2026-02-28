@@ -52,7 +52,7 @@ const DeanDashboard: React.FC = () => {
         const [fetchedUsers, fetchedProjectsRaw, fetchedGroupsRaw, fetchedAffiliationsRaw, fetchedDepartmentsRaw] =
           await Promise.all([
             userService.getAllUsers(),
-            projectService.getProject(),
+            projectService.getProjects(),
             groupService.getGroups(),
             userService.getAffiliations(),
             fetchTableFields('departments')

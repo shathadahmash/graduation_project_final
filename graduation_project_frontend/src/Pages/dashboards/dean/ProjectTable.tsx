@@ -36,6 +36,18 @@ const ProjectsTable: React.FC = () => {
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectWithUsers | null>(null);
 
+  // safe renderer to avoid passing objects directly into JSX
+  const renderVal = (v: any) => {
+    if (v === null || v === undefined || v === '') return '-';
+    if (typeof v === 'object') {
+      if ('name' in v && v.name !== undefined) return v.name;
+      if ('username' in v && v.username !== undefined) return v.username;
+      if ('title' in v && v.title !== undefined) return v.title;
+      try { return JSON.stringify(v); } catch { return String(v); }
+    }
+    return String(v);
+  };
+
   // fetchProjects moved to component scope so filters can call it
   const fetchProjects = async (params?: any) => {
     setLoading(true);
@@ -556,15 +568,15 @@ const ProjectsTable: React.FC = () => {
           </thead>
           <tbody>
             {projects.map((proj) => (
-              <tr key={proj.project_id} className="border-b last:border-b-0 odd:bg-white even:bg-slate-50 hover:bg-slate-100">
-                <td className="px-4 py-3 text-right align-top max-w-[240px] break-words">{proj.title}</td>
-                <td className="px-4 py-3 text-right align-top">{proj.type || '-'}</td>
-                <td className="px-4 py-3 text-right align-top">{proj.state}</td>
-                <td className="px-4 py-3 text-right align-top max-w-[320px] break-words">{proj.description || '-'}</td>
-                <td className="px-4 py-3 text-right align-top">{proj.supervisor?.name || '-'}</td>
-                <td className="px-4 py-3 text-right align-top">{proj.co_supervisor?.name || '-'}</td>
-                <td className="px-4 py-3 text-right align-top">{(proj as any).college_name || '-'}</td>
-                <td className="px-4 py-3 text-right align-top">{(proj as any).department_name || '-'}</td>
+              <tr key={proj.project_id} className="border-b last:border-b-0 bg-white ">
+                <td className="px-4 py-3 text-right align-top max-w-[240px] break-words">{renderVal(proj.title)}</td>
+                <td className="px-4 py-3 text-right align-top">{renderVal(proj.type)}</td>
+                <td className="px-4 py-3 text-right align-top">{renderVal(proj.state)}</td>
+                <td className="px-4 py-3 text-right align-top max-w-[320px] break-words">{renderVal(proj.description)}</td>
+                <td className="px-4 py-3 text-right align-top">{renderVal(proj.supervisor?.name)}</td>
+                <td className="px-4 py-3 text-right align-top">{renderVal(proj.co_supervisor?.name)}</td>
+                <td className="px-4 py-3 text-right align-top">{renderVal((proj as any).college_name)}</td>
+                <td className="px-4 py-3 text-right align-top">{renderVal((proj as any).department_name)}</td>
                 <td className="px-4 py-3 text-right align-top">{
                   (() => {
                     const val = (proj as any).end_date ?? (proj as any).end;
@@ -584,9 +596,9 @@ const ProjectsTable: React.FC = () => {
                     return '-';
                   })()
                 }</td>
-                <td className="px-4 py-3 text-right align-top">{(proj as any).field?.name || (proj as any).field || '-'}</td>
-                <td className="px-4 py-3 text-right align-top">{Array.isArray((proj as any).tools) ? (proj as any).tools.join(', ') : ((proj as any).tools || '-')}</td>
-                <td className="px-4 py-3 text-right align-top">{(proj as any).created_by?.name || (proj as any).created_by_name || (proj as any).created_by || '-'}</td>
+                <td className="px-4 py-3 text-right align-top">{renderVal((proj as any).field?.name || (proj as any).field)}</td>
+                <td className="px-4 py-3 text-right align-top">{renderVal(Array.isArray((proj as any).tools) ? (proj as any).tools.join(', ') : (proj as any).tools)}</td>
+                <td className="px-4 py-3 text-right align-top">{renderVal((proj as any).created_by?.name || (proj as any).created_by_name || (proj as any).created_by)}</td>
                 <td className="px-4 py-3 text-right align-top">{
                   (() => {
                     const val = (proj as any).start_year ?? (proj as any).start_date ?? (proj as any).start;
@@ -604,7 +616,7 @@ const ProjectsTable: React.FC = () => {
                   })()
                 }</td>
                 <td className="px-4 py-3 text-right align-top">
-                  {proj.users?.length ? proj.users.map((u: any) => u.displayName || u.name).join(', ') : '-'}
+                  {renderVal(proj.users?.length ? proj.users.map((u: any) => u.displayName || u.name).join(', ') : '-')}
                 </td>
                 <td className="px-4 py-3 text-center align-top">
                   <button

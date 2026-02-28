@@ -6,7 +6,8 @@ export const TABLES = {
   },
   groups: {
     name: 'groups',
-    defaultFields: ['group_id', 'group_name', 'project']
+    // include department so UI can filter groups by department -> college
+    defaultFields: ['group_id', 'group_name', 'project', 'department', 'program', 'academic_year']
   },
   users: {
     name: 'users',
@@ -24,6 +25,12 @@ export const TABLES = {
   departments: {
     name: 'departments',
     defaultFields: ['department_id', 'name', 'college']
+  }
+  ,
+  universities: {
+    name: 'universities',
+    // backend uses `uid` / `uname_ar` for University
+    defaultFields: ['uid', 'uname_ar']
   }
 }
 

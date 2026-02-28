@@ -5,7 +5,8 @@ from rest_framework.routers import DefaultRouter
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 #this is added for the import
-from .views .import_views import import_users_validate, import_users_commit
+# import views for import functionality
+from .views.import_views import import_users_validate, import_users_commit
 #till here
 from core.views import (
     RoleViewSet,
@@ -24,15 +25,20 @@ from core.views import (
     dropdown_data,
 )
 from core.views.groups import GroupProgramViewSet
+from core.views.location_views import UniversityViewSet
+from core.views.location_views import ProgramViewSet
 
 from .views import get_csrf_token
 
 # إنشاء router واحد فقط
 router = DefaultRouter()
-router.register(r'supervisor/groups', SupervisorGroupViewSet, basename='supervisor-groups')  # ✅ route جديد
+router.register(r'supervisor/groups', SupervisorGroupViewSet, basename='supervisor-groups')
+#router.register(r"universities", , basename="universities")
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'staff', StaffViewSet, basename='staff')
 router.register(r'projects', ProjectViewSet, basename='project')
+router.register(r'universities', UniversityViewSet, basename='universities')
+router.register(r'programs', ProgramViewSet, basename='programs')
 router.register(r'groups', GroupViewSet, basename='group')
 router.register(r'invitations', GroupInvitationViewSet, basename='invitation')
 router.register(r'notifications', NotificationViewSet, basename='notification')

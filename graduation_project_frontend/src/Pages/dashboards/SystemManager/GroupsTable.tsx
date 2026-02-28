@@ -230,7 +230,7 @@ const GroupsTable: React.FC<GroupsTableProps> = ({ filteredGroups }) => {
                     </td>
                     <td className="px-6 py-5"><div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-lg w-fit"><FiCalendar className="text-slate-400" />{group.academic_year || "N/A"}</div></td>
                     <td className="px-6 py-5">
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-60 transition-opacity">
                         <button onClick={() => handleEditGroup(group)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><FiEdit3 size={18} /></button>
                         <button onClick={() => handleDeleteGroup(group)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"><FiTrash2 size={18} /></button>
                         <button className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all"><FiMoreVertical size={18} /></button>
