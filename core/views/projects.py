@@ -12,6 +12,9 @@ from core.models import (
 )
 from core.serializers import ProjectSerializer
 from core.permissions import PermissionManager
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ProjectFilter(django_filters.FilterSet):
@@ -20,13 +23,13 @@ class ProjectFilter(django_filters.FilterSet):
         lookup_expr="iexact" # case insensitive exact match exact  => sensitive 
     )
     university = django_filters.NumberFilter(
-        field_name= "group__programgroup_program_department_college_university__uid"
+        field_name= "groups__program_groups__program__department__college__branch__university__uid"
     )
     college = django_filters.NumberFilter(
-        field_name="group__programgroup__program__department__college__cid"
+        field_name="groups__program_groups__program__department__college__cid"
     )
     department = django_filters.NumberFilter(
-        field_name="group__programgroup__program__department__department_id"
+        field_name="groups__program_groups__program__department__department_id"
     )
     supervisor = django_filters.NumberFilter(
         field_name="groups__groupsupervisors_set__user__id"
@@ -50,9 +53,20 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = Project.objects.all().order_by("-start_date")
+        # bring in related state and creator in single join
+        qs = qs.select_related('state', 'created_by')
 
-        # Prefetch related group supervisors to avoid extra queries when serializing
-        qs = qs.prefetch_related('groups__groupsupervisors_set__user')
+        # Prefetch related objects used heavily in serializer to avoid N+1 queries
+        qs = qs.prefetch_related(
+            'groups__groupsupervisors_set__user',
+            'groups__program_groups__program__department__college__branch__university'
+        )
+
+        try:
+            total = qs.count()
+            logger.debug('ProjectViewSet: total projects before role filtering: %s', total)
+        except Exception:
+            logger.debug('ProjectViewSet: unable to count total projects')
 
         is_external = UserRoles.objects.filter(
             user=user,
@@ -60,15 +74,44 @@ class ProjectViewSet(viewsets.ModelViewSet):
         ).exists()
 
         if is_external:
+            logger.debug('ProjectViewSet: user %s is external - returning own projects', user)
             return qs.filter(created_by=user)
 
-        if PermissionManager.is_student(user) or PermissionManager.is_admin(user):
+        if PermissionManager.is_student(user):
+            logger.debug('ProjectViewSet: user %s is student - returning all projects for student', user)
+            return qs
+
+        if PermissionManager.is_admin(user) and not PermissionManager.is_dean(user):
+            logger.debug('ProjectViewSet: user %s is admin (not dean) - returning all projects', user)
             return qs
 
         if PermissionManager.is_supervisor(user):
             return qs.filter(
                 groups__groupsupervisors_set__user=user
             ).distinct()
+
+        # Allow dean to view projects belonging to their college(s)
+        if PermissionManager.is_dean(user):
+            # find colleges the dean is affiliated with
+            college_ids = AcademicAffiliation.objects.filter(user=user).values_list('college_id', flat=True)
+            college_ids = [c for c in college_ids if c]
+            try:
+                logger.debug('ProjectViewSet: total projects before dean filter: %s', total)
+            except Exception:
+                pass
+            logger.debug('ProjectViewSet: user %s is dean - affiliated colleges: %s', user, college_ids)
+            if college_ids:
+                filtered_qs = qs.filter(
+                    groups__program_groups__program__department__college__in=college_ids
+                ).distinct()
+                try:
+                    cnt = filtered_qs.count()
+                    sample_ids = list(filtered_qs.values_list('project_id', flat=True)[:20])
+                    logger.debug('ProjectViewSet: dean filtered projects count=%s sample_ids=%s', cnt, sample_ids)
+                except Exception:
+                    logger.debug('ProjectViewSet: dean filtered queryset created')
+                return filtered_qs
+            return qs.none()
 
         return qs.none()
 
@@ -243,7 +286,28 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def update_project(self, request, pk=None):
         project = self.get_object()
 
-        if project.created_by != request.user:
+        user = request.user
+        # allow update if user is the creator
+        user_can_edit = False
+        if project.created_by == user:
+            user_can_edit = True
+
+        # allow admins or users with explicit permission
+        if not user_can_edit and PermissionManager.has_permission(user, 'change_project'):
+            user_can_edit = True
+
+        if not user_can_edit and PermissionManager.is_admin(user):
+            user_can_edit = True
+
+        # allow dean to edit projects that belong to their affiliated colleges
+        if not user_can_edit and PermissionManager.is_dean(user):
+            college_ids = AcademicAffiliation.objects.filter(user=user).values_list('college_id', flat=True)
+            college_ids = [c for c in college_ids if c]
+            if college_ids:
+                if Group.objects.filter(project=project, program_groups__program__department__college__in=college_ids).exists():
+                    user_can_edit = True
+
+        if not user_can_edit:
             return Response(
                 {"error": "Unauthorized"},
                 status=status.HTTP_403_FORBIDDEN

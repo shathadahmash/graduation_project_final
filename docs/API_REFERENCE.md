@@ -42,7 +42,7 @@ curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer $TOKE
 - `ws://<host>/ws/approvals/` — approval-related real-time messages.
 
 ## Important Serializer shapes (high-level)
-- `ProjectSerializer` returns: `project_id, title, state, created_by (user object), start_date, end_date, description, college/department names`.
+- `ProjectSerializer` returns: `project_id, title, state, created_by (user object), start_date, end_date, description, college/department names` as well as `university_name` (derived via related group/program/college/branch).
 - `GroupSerializer` returns: `group_id, group_name, project, department, members[], supervisors[], members_count`.
 
 ## Errors and status codes

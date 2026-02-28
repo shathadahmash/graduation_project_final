@@ -227,14 +227,14 @@ class StudentProgressAdmin(admin.ModelAdmin):
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'name', 'is_staff', 'phone', 'company_name', 'gender')
+    list_display = ('username', 'email', 'name', 'is_staff', 'phone', 'gender')
     fieldsets = UserAdmin.fieldsets + (
-        (_('Additional Info'), {'fields': ('phone', 'company_name', 'name', 'gender')}),
+        (_('Additional Info'), {'fields': ('phone', 'name', 'gender')}),
     )
     add_fieldsets = UserAdmin.add_fieldsets + (
-        (_('Additional Info'), {'fields': ('phone', 'company_name', 'name', 'gender')}),
+        (_('Additional Info'), {'fields': ('phone', 'name', 'gender')}),
     )
-    search_fields = ('username', 'email', 'name', 'phone', 'company_name')
+    search_fields = ('username', 'email', 'name', 'phone')
     list_filter = ('is_staff', 'is_superuser', 'is_active', 'gender')
     inlines = [UserRolesInline]
 
@@ -254,10 +254,10 @@ class ProjectStateAdmin(admin.ModelAdmin):
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
     list_display = (
-        'project_id', 'title', 'state', 'created_by', 'start_date', 'end_date', 'field', 'tools'
+        'project_id', 'title', 'university_name', 'state', 'created_by', 'start_date', 'end_date', 'field', 'tools'
     )
-    list_filter = ('state', 'created_by', 'start_date', 'end_date')
-    search_fields = ('title', 'description', 'created_by__username', 'state__name')
+    list_filter = ('state', 'created_by', 'start_date', 'end_date', 'groups__program_groups__program__department__college__branch__university')
+    search_fields = ('title', 'description', 'created_by__username', 'state__name', 'groups__program_groups__program__department__college__branch__university__uname_ar')
     autocomplete_fields = ('created_by', 'state')
     fieldsets = (
         (None, {
@@ -270,6 +270,11 @@ class ProjectAdmin(admin.ModelAdmin):
             'fields': ('field', 'tools', 'Logo', 'Documentation_Path'),
         }),
     )
+
+    @admin.display(description='University')
+    def university_name(self, obj):
+        # delegate to model property which already aggregates names
+        return obj.university_name or 'N/A'
 
 
 @admin.register(Staff)

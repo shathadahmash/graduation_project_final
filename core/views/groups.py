@@ -16,7 +16,7 @@ from core.models import (
     Project,GroupCreationRequest, GroupMemberApproval, NotificationLog,programgroup 
 )
 from core.serializers.groups import (
-    GroupProgramSerializer, GroupSerializer, GroupDetailSerializer
+    GroupProgramSerializer, GroupSerializer, GroupDetailSerializer, GroupCreationRequestSerializer
 )
 from core.serializers.approvals import GroupCreateSerializer
 from core.permissions import PermissionManager
@@ -141,8 +141,10 @@ class GroupViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return GroupCreateSerializer
-        if self.action in ['retrieve', 'my_group']:
+        if self.action == 'retrieve':
             return GroupDetailSerializer
+        if self.action == 'my_group':
+            return GroupCreationRequestSerializer
         return GroupSerializer
 
     def create(self, request, *args, **kwargs):
@@ -367,8 +369,8 @@ class GroupViewSet(viewsets.ModelViewSet):
             ).filter(is_fully_confirmed=False).distinct().order_by('-created_at')
 
             if creation_requests.exists():
-                # نستخدم السيريالايزر هنا لأنه يعمل بشكل مثالي مع الجداول المؤقتة
-                serializer = GroupDetailSerializer(creation_requests, many=True)
+                # نستخدم السيريالايزر هنا لأنه يعمل بشكل مثالي مع جداول طلبات الإنشاء
+                serializer = GroupCreationRequestSerializer(creation_requests, many=True)
                 data_list = serializer.data
                 
                 for data, request_obj in zip(data_list, creation_requests):
