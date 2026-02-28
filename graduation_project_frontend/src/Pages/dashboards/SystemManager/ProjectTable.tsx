@@ -6,13 +6,15 @@ import { exportToCSV } from '../../../components/tableUtils';
 import { containerClass, tableWrapperClass, tableClass, theadClass } from '../../../components/tableStyles';
 import ProjectForm from '../ProjectForm';
 import { useAuthStore } from '../../../store/useStore';
-
+//f
+import { useNavigate } from "react-router-dom";
 interface ProjectWithUsers extends Project {
   users?: User[]; // optional: users associated with this project
 }
 
 const ProjectsTable: React.FC = () => {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<ProjectWithUsers[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -287,6 +289,13 @@ const ProjectsTable: React.FC = () => {
             <FiPlus />
             <span>إنشاء مشروع جديد</span>
           </button>
+          <button
+  onClick={() => navigate("/dashboard/system-manager/import-projects")}
+  className="bg-indigo-600 text-white px-6 py-3 rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all font-bold flex items-center gap-2"
+>
+  📂
+  <span>استيراد مشاريع</span>
+</button>
         </div>
       </div>
       <div className="mb-4">
@@ -467,6 +476,9 @@ const ProjectsTable: React.FC = () => {
               <td className="px-4 py-2 text-right">{(proj as any).college_name || '-'}</td>
               <td className="px-4 py-2 text-right">{(proj as any).department_name || '-'}</td>
               <td className="px-4 py-2 text-right">{proj.start_date ? new Date(proj.start_date).getFullYear() : '-'}</td>
+              {/* <td className="px-4 py-2 text-right">
+  {proj.start_date ? `${proj.start_date}${proj.end_date ? ` - ${proj.end_date}` : ""}` : "-"}
+</td> */}
               <td className="px-4 py-2 text-right">
                 {proj.users?.length ? proj.users.map((u: any) => u.displayName || u.name).join(', ') : '-'}
               </td>

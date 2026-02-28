@@ -7,6 +7,9 @@ from django.views.decorators.csrf import csrf_exempt
 #this is added for the import
 from .views .import_views import import_users_validate, import_users_commit
 #till here
+from .views.import_projects import import_projects_validate, import_projects_commit
+
+
 from core.views import (
     RoleViewSet,
     UserViewSet,
@@ -68,4 +71,8 @@ urlpatterns = [
     path('groups/', login_required(TemplateView.as_view(template_name='core/groups.html')), name='groups'),
     path('invitations/', login_required(TemplateView.as_view(template_name='core/invitations.html')), name='invitations'),
     path('approvals/', login_required(TemplateView.as_view(template_name='core/approvals.html')), name='approvals'),
+
+    # project imports
+    path('system/import/projects/validate/', import_projects_validate, name='import-projects-validate'),
+    path('system/import/projects/commit/', import_projects_commit, name='import-projects-commit'),
 ]
