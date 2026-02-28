@@ -11,7 +11,7 @@ from .models import (
     GroupMembers, GroupSupervisors, Role, Permission, RolePermission, UserRoles,
     Staff,
     GroupInvitation, ApprovalRequest, NotificationLog, SystemSettings, ApprovalSequence,
-    GroupCreationRequest, GroupMemberApproval
+    GroupCreationRequest, GroupMemberApproval,Student, StudentEnrollmentPeriod,CompanyType, Sector, ExternalCompany
 )
 
 # ============================================================================== 
@@ -479,3 +479,43 @@ class GroupMemberApprovalAdmin(admin.ModelAdmin):
     search_fields = ( 'user__username', 'role', 'status')
     autocomplete_fields = ('request', 'user')
     readonly_fields = ('responded_at',)
+@admin.register(Student)
+class StudentAdmin(admin.ModelAdmin):
+    list_display = ('student_id', 'user', 'university', 'college', 'department', 'program', 'status', 'phone','current_academic_year_display')
+    search_fields = ('student_id', 'user__username', 'user__name')
+    list_filter = ('status', 'university', 'college', 'department', 'program')
+
+    # دالة لتظهر السنة الدراسية الحالية
+    @admin.display(description='Current Academic Year')
+    def current_academic_year_display(self, obj):
+        return obj.current_academic_year()
+    
+@admin.register(StudentEnrollmentPeriod)
+class StudentEnrollmentPeriodAdmin(admin.ModelAdmin):
+    list_display = ('student', 'start_date', 'end_date')
+    list_filter = ('start_date', 'end_date')
+    search_fields = ('student__user__name',)
+
+# ===============================
+# CompanyType
+# ===============================
+@admin.register(CompanyType)
+class CompanyTypeAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name')
+    search_fields = ('name',)
+
+# ===============================
+# Sector
+# ===============================
+@admin.register(Sector)
+class SectorAdmin(admin.ModelAdmin):
+    list_display = ('sector_id', 'name')
+    search_fields = ('name',)
+# ===============================
+# ExternalCompany
+# ===============================
+@admin.register(ExternalCompany)
+class ExternalCompanyAdmin(admin.ModelAdmin):
+    list_display = ('name', 'company_type', 'sector', 'contact_email', 'contact_phone', 'created_by', 'created_at')
+    list_filter = ('company_type', 'sector', 'created_at')
+    search_fields = ('name', 'description', 'contact_email', 'contact_phone', 'created_by__name')
