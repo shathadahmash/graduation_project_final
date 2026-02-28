@@ -251,7 +251,6 @@ class StudentProgress(models.Model):
 # ==============================================================================
 class User(AbstractUser):
     phone = models.CharField(max_length=20, blank=True, null=True)
-    company_name = models.CharField(max_length=255, blank=True, null=True)
     name = models.CharField(max_length=255, blank=True, null=True)
     gender = models.CharField(
         max_length=10,
@@ -330,6 +329,52 @@ class Project(models.Model):
 
     class Meta:
         verbose_name_plural = "Projects"
+
+    def get_university_names(self):
+        """Return a comma-separated list of universities associated through groups/programs.
+
+        The relationship path is:
+            Project -> Group (via related_name 'groups')
+                    -> ProgramGroup -> Program -> Department -> College -> Branch -> University
+        """
+        universities = set()
+        # iterate through all groups related to this project
+        for grp in self.groups.all():
+            # each group may be linked to multiple programs via programgroup
+            for pg in grp.program_groups.all():
+                dept = getattr(pg.program, 'department', None)
+                if not dept:
+                    continue
+                college = getattr(dept, 'college', None)
+                if not college:
+                    continue
+                branch = getattr(college, 'branch', None)
+                if not branch or not branch.university:
+                    continue
+                universities.add(branch.university.uname_ar)
+        return ", ".join(universities)
+
+    @property
+    def university_name(self):
+        """Convenience property used in admin display.
+        """
+        return self.get_university_names()
+
+    def get_university(self):
+        """Return the first University instance linked through groups/programs, or None."""
+        # similar traversal as get_university_names but returning model
+        for grp in self.groups.all():
+            for pg in grp.program_groups.all():
+                dept = getattr(pg.program, 'department', None)
+                if not dept:
+                    continue
+                college = getattr(dept, 'college', None)
+                if not college:
+                    continue
+                branch = getattr(college, 'branch', None)
+                if branch and branch.university:
+                    return branch.university
+        return None
 
 class Staff(models.Model):
     staff_id = models.AutoField(primary_key=True)

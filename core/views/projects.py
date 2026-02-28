@@ -53,9 +53,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = Project.objects.all().order_by("-start_date")
+        # bring in related state and creator in single join
+        qs = qs.select_related('state', 'created_by')
 
-        # Prefetch related group supervisors to avoid extra queries when serializing
-        qs = qs.prefetch_related('groups__groupsupervisors_set__user')
+        # Prefetch related objects used heavily in serializer to avoid N+1 queries
+        qs = qs.prefetch_related(
+            'groups__groupsupervisors_set__user',
+            'groups__program_groups__program__department__college__branch__university'
+        )
 
         try:
             total = qs.count()
