@@ -12,8 +12,10 @@ export interface Branch {
 export const branchService = {
   async getBranches(params?: any) {
     try {
-      const resp = await axios.get('/branches/', { params });
+      const resp = await axios.get('/api/branches/', { params });
+      console.log('[branchService] getBranches response:', resp.status, resp.data);
       return resp.data;
+      
     } catch (error) {
       console.error('[branchService] getBranches error', error);
       return [];
@@ -21,7 +23,7 @@ export const branchService = {
   },
   async getBranchById(id: number) {
     try {
-      const resp = await axios.get(`/branches/${id}/`);
+      const resp = await axios.get(`/api/branches/${id}/`);
       return resp.data;
     } catch (error) {
       console.error('[branchService] getBranchById error', error);
@@ -30,7 +32,7 @@ export const branchService = {
   },
   async addBranch(data: Omit<Branch, 'id'>) {
     try {
-      const resp = await axios.post('/branches/', data);
+      const resp = await axios.post('/api/branches/', data);
       return resp.data;
     } catch (error) {
       console.error('[branchService] addBranch error', error);
@@ -39,7 +41,7 @@ export const branchService = {
   },
   async updateBranch(id: number, data: Partial<Omit<Branch, 'id'>>) {
     try {
-      const resp = await axios.put(`/branches/${id}/`, data);
+      const resp = await axios.put(`/api/branches/${id}/`, data);
       return resp.data;
     } catch (error) {
       console.error('[branchService] updateBranch error', error);
@@ -48,7 +50,7 @@ export const branchService = {
   },
   async deleteBranch(id: number) {
     try {
-      await axios.delete(`/branches/${id}/`);
+      await axios.delete(`/api/branches/${id}/`);
       return true;
     } catch (error) {
       console.error('[branchService] deleteBranch error', error);

@@ -18,7 +18,7 @@ const Branches: React.FC = () => {
     if (!confirm('هل أنت متأكد من الحذف؟')) return;
     try {
       await branchService.deleteBranch(id);
-      setBranches(prev => prev.filter(b => b.id !== id));
+      setBranches(prev => prev.filter(b => b.ubid !== id));
     } catch (e) {
       console.error(e);
       alert('فشل الحذف');
@@ -26,37 +26,39 @@ const Branches: React.FC = () => {
   };
 
   return (
-    <div className="bg-white p-4 rounded">
-      <h2 className="text-xl font-bold mb-4">الفروع</h2>
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold mb-6">الفروع</h2>
       {loading ? (
-        <div>جاري التحميل...</div>
+        <div className="text-center py-10 text-gray-500">جاري التحميل...</div>
       ) : (
-        <table className="w-full table-auto">
+        <table className="w-full table-auto border-collapse border-2 border-black">
           <thead>
-            <tr>
-              <th className="text-left">ID</th>
-              <th className="text-left">اسم الفرع</th>
-              <th className="text-left">الكلية/القسم</th>
-              <th className="text-left">إجراءات</th>
+            <tr className="bg-gray-100 border-2 border-black">
+              <th className="py-3 px-6 border-r-2 border-black text-left !text-black font-semibold">ID</th>
+              <th className="py-3 px-6 border-r-2 border-black text-left !text-black font-semibold">المدينه</th>
+              <th className="py-3 px-6 border-r-2 border-black text-left !text-black font-semibold">الجامعه</th>
+              <th className="py-3 px-6 border-r-2 border-black text-left !text-black font-semibold">إجراءات</th>
             </tr>
           </thead>
           <tbody>
             {branches.map(b => (
-              <tr key={b.id} className="border-t">
-                <td className="py-2">{b.id}</td>
-                <td className="py-2">{b.branch_name}</td>
-                <td className="py-2">{b.college ?? b.department ?? '-'}</td>
-                <td className="py-2">
-                  <button className="text-yellow-600 mr-2">تعديل</button>
-                  <button className="text-rose-600" onClick={() => handleDelete(b.id)}>حذف</button>
+              <tr key={b.ubid} className="border-b-2 border-black">
+                <td className="py-3 px-6 border-r-2 border-black">{b.ubid}</td>
+                <td className="py-3 px-6 border-r-2 border-black">{b.city_detail?.bname_ar || '-'}</td>
+                <td className="py-3 px-6 border-r-2 border-black">{b.university_detail?.uname_ar || '-'}</td>
+                <td className="py-3 px-6 border-r-2 border-black flex gap-2">
+                  <button className="bg-yellow-500 text-white px-4 py-1 rounded-lg hover:bg-yellow-600 transition">
+                    تعديل
+                  </button>
+                  <button
+                    className="bg-rose-600 text-white px-4 py-1 rounded-lg hover:bg-rose-700 transition"
+                    onClick={() => handleDelete(b.ubid)}
+                  >
+                    حذف
+                  </button>
                 </td>
               </tr>
             ))}
-            {branches.length === 0 && (
-              <tr>
-                <td colSpan={4} className="py-6 text-center text-slate-500">لا توجد فروع</td>
-              </tr>
-            )}
           </tbody>
         </table>
       )}
