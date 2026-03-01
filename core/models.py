@@ -1,8 +1,10 @@
 from django.db import models, transaction
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
-from datetime import timedelta
+from datetime import datetime, timedelta
 from django.conf import settings
+from django.utils import timezone
+import datetime
 
 # ============================================================================== 
 # 1. نموذج المدينة (City)
@@ -210,6 +212,8 @@ class Program(models.Model):
     pid = models.AutoField(primary_key=True)
     p_name = models.CharField(max_length=255)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
+    duration = models.PositiveIntegerField(default=4, help_text="عدد سنوات البرنامج")
+
 
     def __str__(self):
         return f"{self.p_name} ({self.department.name})"
@@ -304,6 +308,54 @@ class ProjectState(models.Model):
     def __str__(self):
         return self.name
 
+class CompanyType(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Sector(models.Model):
+    sector_id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=150)
+
+    def __str__(self):
+        return self.name  
+    
+
+class ExternalCompany(models.Model):
+    company_id = models.AutoField(primary_key=True)
+
+    name = models.CharField(max_length=255, unique=True)
+    description = models.TextField(blank=True, null=True)
+
+    company_type = models.ForeignKey(
+        CompanyType,
+        on_delete=models.PROTECT,
+        related_name='companies'
+    )
+
+    sector = models.ForeignKey(
+        Sector,
+        on_delete=models.PROTECT,
+        related_name='companies'
+    )
+
+    contact_email = models.EmailField(blank=True, null=True)
+    contact_phone = models.CharField(max_length=20, blank=True, null=True)
+
+    created_by = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='external_companies'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
 
 
 class Project(models.Model):
@@ -322,6 +374,12 @@ class Project(models.Model):
     # adding the year and removing start_date and end_date to simplify filtering and sorting by year
     start_date = models.IntegerField(("Start Year"), null=True, blank=True)
     end_date = models.IntegerField(("End Year"), null=True, blank=True)
+    external_company = models.ForeignKey(
+        'ExternalCompany',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='projects')
     Logo = models.TextField("Logo", blank=True, null=True)
     Documentation_Path = models.TextField("Documentation Path", blank=True, null=True)
     def __str__(self):
@@ -329,6 +387,82 @@ class Project(models.Model):
 
     class Meta:
         verbose_name_plural = "Projects"
+
+# ===========================
+# موديل الطالب
+# ===========================
+class Student(models.Model):
+    STATUS_CHOICES = [
+        ('active', 'نشط'),
+        ('suspended', 'موقوف'),
+        ('graduated', 'متخرج'),
+        ('dropped', 'منسحب'),
+    ]
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='student_profile')
+    university = models.ForeignKey('University', on_delete=models.SET_NULL, null=True, blank=True)
+    college = models.ForeignKey('College', on_delete=models.SET_NULL, null=True, blank=True)
+    department = models.ForeignKey('Department', on_delete=models.SET_NULL, null=True, blank=True)
+    program = models.ForeignKey('Program', on_delete=models.SET_NULL, null=True, blank=True)
+
+    student_id = models.CharField(max_length=50, unique=True, blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    enrolled_at = models.DateField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.name} - {self.student_id or 'No ID'}"
+
+    class Meta:
+        verbose_name_plural = "Students"
+
+    # ===========================
+    # دالة لحساب السنة الدراسية الحالية
+    # ===========================
+    def current_academic_year(self):
+        if not self.program:
+            return None
+
+        today = datetime.date.today()
+        total_years_active = 0
+
+        for period in self.enrollment_periods.all():
+            end = period.end_date or today
+            total_years_active += end.year - period.start_date.year
+
+        return min(total_years_active + 1, self.program.duration)
+
+# ===========================
+# جدول لتتبع فترات النشاط الفعلي للطالب
+# ===========================
+class StudentEnrollmentPeriod(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='enrollment_periods')
+    start_date = models.DateField()   # بداية الفترة النشطة
+    end_date = models.DateField(blank=True, null=True)  # نهاية الفترة، null إذا مستمرة
+
+    def __str__(self):
+        end_display = self.end_date if self.end_date else 'الحالي'
+        return f"{self.student.user.name}: {self.start_date} - {end_display}"
+
+    class Meta:
+        verbose_name_plural = "Student Enrollment Periods"
+        ordering = ['student', 'start_date']
+ # ===========================
+    # دالة لحساب السنة الدراسية الحالية
+    # ===========================
+    def current_academic_year(self):
+        if not self.program:
+            return None
+
+        today = datetime.date.today()
+        total_years_active = 0
+
+        for period in self.enrollment_periods.all():
+            end = period.end_date or today
+            total_years_active += end.year - period.start_date.year
+
+        return min(total_years_active + 1, self.program.duration)
 
     def get_university_names(self):
         """Return a comma-separated list of universities associated through groups/programs.
@@ -374,8 +508,7 @@ class Project(models.Model):
                 branch = getattr(college, 'branch', None)
                 if branch and branch.university:
                     return branch.university
-        return None
-
+        return None 
 class Staff(models.Model):
     staff_id = models.AutoField(primary_key=True)
     user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='staff_profiles')
