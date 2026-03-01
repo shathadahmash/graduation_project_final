@@ -110,9 +110,6 @@ class BranchViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
-
-
 
 class CollegeDepartmentsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -132,5 +129,22 @@ class CollegeProgramsView(APIView):
         qs = Program.objects.filter(department__college_id=college_id).order_by('p_name')
         serializer = ProgramSerializer(qs, many=True)
         return Response(serializer.data)
+
+class universitycollegeviewset(viewsets.ModelViewSet):
+    """Simple CRUD for University used by frontend list/create."""
+    queryset = University.objects.all()
+    serializer_class = UniversitySerializer
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        qs = self.get_queryset().order_by('uname_ar')
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     

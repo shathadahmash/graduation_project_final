@@ -15,10 +15,6 @@ export interface College {
 }
 
 
-
-
-
-
 export const collegeService = {
     async getColleges(params?: any) {
         try {
@@ -112,16 +108,13 @@ export const collegeService = {
     },
 
     async getCollegePrograms(collegeId: number) {
-        try {
-            const response = await api.get(`/programs/`, { params: { college: collegeId } });
-            console.log(`[collegeService] Programs for collegeId ${collegeId}:`, response.data);
-            return response.data; // array of programs
-        } catch (err) {
-            console.error('Failed to fetch programs:', err);
-            return [];
-        }
+    try {
+        const response = await axios.get(`/api/colleges/${collegeId}/programs/`);
+        return response.data; // array of programs
+    } catch (err) {
+        return [];
     }
-
+}
    
 
 

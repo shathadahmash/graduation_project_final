@@ -9,8 +9,6 @@ const UniversitiesTable: React.FC = () => {
         (async () => {
             setLoading(true);
             const data = await universityService.getUniversities();
-            // debug logging from component side as well
-            try { console.debug('[UniversitiesTable] fetched rows count:', (data || []).length, 'sample:', (data || []).slice(0,3)); } catch (e) {}
             setUniversities(data as any[]);
             setLoading(false);
         })();
@@ -28,39 +26,56 @@ const UniversitiesTable: React.FC = () => {
     };
 
     return (
-        <div className="bg-white p-4 rounded">
-            <h2 className="text-xl font-bold mb-4">الجامعات</h2>
+        <div className="bg-white p-6 rounded shadow-lg">
+            <h2 className="text-2xl font-bold mb-6 text-center">الجامعات</h2>
             {loading ? (
-                <div>جاري التحميل...</div>
+                <div className="text-center py-6 text-lg">جاري التحميل...</div>
             ) : (
-                <table className="w-full table-auto">
-                    <thead>
-                        <tr>
-                            <th className="text-left">ID</th>
-                            <th className="text-left">اسم الجامعة</th>
-                            <th className="text-left">عرض الكليات</th>
-                            <th className="text-left">إجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {universities.map(u => (
-                            <tr key={u.id} className="border-t">
-                                <td className="py-2">{u.id}</td>
-                                <td className="py-2">{u.university_name}</td>
-                                <td className="py-2">{(u.colleges?.length ?? 0)}</td>
-                                <td className="py-2">
-                                    <button className="text-yellow-600 mr-2">تعديل</button>
-                                    <button className="text-rose-600" onClick={() => handleDelete(u.id)}>حذف</button>
-                                </td>
-                            </tr>
-                        ))}
-                        {universities.length === 0 && (
+                <div className="overflow-x-auto">
+                    <table className="min-w-full border border-gray-300 text-center">
+                        <thead className="bg-gray-100">
                             <tr>
-                                <td colSpan={4} className="py-6 text-center text-slate-500">لا توجد جامعات</td>
+                                <th className="px-6 py-3 border border-gray-300 font-semibold">ID</th>
+                                <th className="px-6 py-3 border border-gray-300 font-semibold">اسم الجامعة</th>
+                                <th className="px-6 py-3 border border-gray-300 font-semibold">نوع الجامعة</th>
+                                <th className="px-6 py-3 border border-gray-300 font-semibold">عدد الكليات</th>
+                                <th className="px-6 py-3 border border-gray-300 font-semibold">المدينة</th>
+                                <th className="px-6 py-3 border border-gray-300 font-semibold">إجراءات</th>
                             </tr>
-                        )}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {universities.map(u => (
+                                <tr key={u.uid} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 border border-gray-300">{u.uid}</td>
+                                    <td className="px-6 py-4 border border-gray-300">{u.uname_ar}</td>
+                                    <td className="px-6 py-4 border border-gray-300">{u.type}</td>
+                                    <td className="px-6 py-4 border border-gray-300">{u.colleges?.length ?? 0}</td>
+                                    <td className="px-6 py-4 border border-gray-300">{u.city}</td>
+                                    <td className="px-6 py-4 border border-gray-300">
+                                        <div className="flex justify-center gap-3">
+                                            <button className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded transition">
+                                                تعديل
+                                            </button>
+                                            <button
+                                                className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded transition"
+                                                onClick={() => handleDelete(u.id)}
+                                            >
+                                                حذف
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                            {universities.length === 0 && (
+                                <tr>
+                                    <td colSpan={5} className="py-8 text-center text-slate-500 border border-gray-300">
+                                        لا توجد جامعات
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             )}
         </div>
     );
