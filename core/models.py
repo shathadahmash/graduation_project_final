@@ -679,7 +679,9 @@ class GroupInvitation(models.Model):
     responded_at = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
-        return f"Invitation to {self.invited_student.username} for {self.group.group_name}"
+        proj = self.group.project.title if self.group.project else "No Project"
+        return f"Invitation to {self.invited_student.username} for {proj}"
+        # return f"Invitation to {self.invited_student.username} for {self.group.group_name}"
 
     class Meta:
         verbose_name_plural = "Group Invitations"
@@ -816,7 +818,7 @@ class ApprovalSequence(models.Model):
 # ==============================================================================
 class GroupCreationRequest(models.Model):
     # المعلومات الأساسية للمجموعة
-    group_name = models.CharField(max_length=255)
+    # group_name = models.CharField(max_length=255)
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='created_requests')
     department_id = models.IntegerField()
     college_id = models.IntegerField()
@@ -827,7 +829,7 @@ class GroupCreationRequest(models.Model):
     is_fully_confirmed = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"طلب مجموعة: {self.group_name} بواسطة {self.creator.name}"
+        return f"طلب مجموعة: بواسطة {self.creator.name}"
     
 
 class GroupMemberApproval(models.Model):
@@ -868,7 +870,7 @@ def check_and_finalize_group(request_id):
 
         if total_members > 0 and total_members == accepted_members:
             with transaction.atomic():
-                final_group = Group.objects.create(group_name=group_request.group_name)
+                final_group = Group.objects.create()
                 for approval in group_request.approvals.all():
                     if approval.role == 'student':
                         GroupMembers.objects.create(group=final_group, user=approval.user)
