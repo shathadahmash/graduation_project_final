@@ -36,7 +36,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'django_extensions',
-    "debug_toolbar",
+    # "debug_toolbar",
 ]
 
 SITE_ID = 1
@@ -74,9 +74,19 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
+    # "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
+import os
+
+# Use existing DEBUG flag in settings.py
+if DEBUG:
+    try:
+        import debug_toolbar  # noqa
+        INSTALLED_APPS += ["debug_toolbar"]
+        MIDDLEWARE = ["debug_toolbar.middleware.DebugToolbarMiddleware"] + MIDDLEWARE
+    except ImportError:
+        pass
 ROOT_URLCONF = 'GraduationProjects.urls'
 
 # -------------------------

@@ -1,13 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from '../../../services/api';
+import api from "../../../services/api";
+import * as XLSX from "xlsx";
 import {
   FiUploadCloud,
   FiDownload,
   FiArrowRight,
-  FiAlertTriangle,
-  FiCheckCircle,
-  FiFileText,
 } from "react-icons/fi";
 
 type ImportError = {
@@ -30,7 +28,6 @@ const SysManagerImportProjects: React.FC = () => {
   const navigate = useNavigate();
 
   const [file, setFile] = useState<File | null>(null);
-
   const [result, setResult] = useState<ImportResult | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
@@ -38,21 +35,32 @@ const SysManagerImportProjects: React.FC = () => {
 
   // template download form state
   const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [importOpts, setImportOpts] = useState<any>({ universities: [], colleges: [], departments: [], programs: [] });
-  const [importSelection, setImportSelection] = useState<any>({ university: '', college: '', department: '', program: '' });
+  const [importOpts, setImportOpts] = useState<any>({
+    universities: [],
+    colleges: [],
+    departments: [],
+    programs: [],
+  });
+  const [importSelection, setImportSelection] = useState<any>({
+    university: "",
+    college: "",
+    department: "",
+    program: "",
+  });
+
   const [showAddUni, setShowAddUni] = useState(false);
   const [showAddCollege, setShowAddCollege] = useState(false);
   const [showAddDept, setShowAddDept] = useState(false);
   const [showAddProg, setShowAddProg] = useState(false);
-  const [newUniName, setNewUniName] = useState('');
-  const [newCollegeName, setNewCollegeName] = useState('');
-  const [newDeptName, setNewDeptName] = useState('');
-  const [newProgName, setNewProgName] = useState('');
 
-  const API_VALIDATE =
-    "http://127.0.0.1:8000/api/system/import/projects/validate/";
-  const API_COMMIT =
-    "http://127.0.0.1:8000/api/system/import/projects/commit/";
+  const [newUniName, setNewUniName] = useState("");
+  const [newCollegeName, setNewCollegeName] = useState("");
+  const [newDeptName, setNewDeptName] = useState("");
+  const [newProgName, setNewProgName] = useState("");
+
+  // keep as you wrote (works)
+  const API_VALIDATE = "http://127.0.0.1:8000/api/system/import/projects/validate/";
+  const API_COMMIT = "http://127.0.0.1:8000/api/system/import/projects/commit/";
 
   const canCommit = useMemo(() => {
     if (!result) return false;
@@ -86,7 +94,8 @@ const SysManagerImportProjects: React.FC = () => {
     const f = e.target.files?.[0] || null;
     if (!f) return;
 
-    if (!f.name.endsWith(".xlsx")) {
+    // ✅ Excel only
+    if (!f.name.toLowerCase().endsWith(".xlsx")) {
       setMessage("الرجاء اختيار ملف بصيغة .xlsx فقط");
       return;
     }
@@ -95,15 +104,16 @@ const SysManagerImportProjects: React.FC = () => {
   };
 
   // fetch option lists once
-  React.useEffect(() => {
+  useEffect(() => {
     const load = async () => {
       try {
         const [unis, cols, depts, progs] = await Promise.all([
-          api.get('/universities/'),
-          api.get('/colleges/'),
-          api.get('/departments/'),
-          api.get('/programs/'),
+          api.get("/universities/"),
+          api.get("/colleges/"),
+          api.get("/departments/"),
+          api.get("/programs/"),
         ]);
+
         setImportOpts({
           universities: unis.data || [],
           colleges: cols.data || [],
@@ -111,7 +121,7 @@ const SysManagerImportProjects: React.FC = () => {
           programs: progs.data || [],
         });
       } catch (err) {
-        console.error('load import options', err);
+        console.error("load import options", err);
       }
     };
     load();
@@ -162,27 +172,41 @@ const SysManagerImportProjects: React.FC = () => {
     setIsCommitting(false);
   };
 
-  const downloadTemplate = () => {
-    // create a simple excel-friendly CSV with blank first column and the
-    // requested Arabic headers. ignore query params since the user asked only
-    // for static header layout; we still close the modal afterwards.
-    const rows: string[] = [];
-    rows.push('');
-    rows.push(
-      'عنوان المشروع,نوع المشروع,الحالة,الملخص,المشرف,المشرف المشارك,الجامعة,الكلية,القسم,سنة البداية,سنه النهاية,المجال,الادوات,أنشىء بواسطة'
-    );
-    const csv = rows.join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.setAttribute('download', `projects_import_template.xlsx`);
-    document.body.appendChild(link);
-    link.click();
-    link.parentNode?.removeChild(link);
-    URL.revokeObjectURL(url);
-    setShowTemplateModal(false);
-  };
+  // ✅ FIXED: download REAL XLSX (not CSV renamed to xlsx)
+
+// inside component:
+const downloadTemplate = () => {
+  const headersRow = [
+    "عنوان المشروع",
+    "نوع المشروع",
+    "الحالة",
+    "الملخص",
+    "المشرف",
+    "المشرف المشارك",
+    "الجامعة",
+    "الكلية",
+    "القسم",
+    "سنة البداية",
+    "سنة النهاية",
+    "المجال",
+    "الأدوات",
+    "أنشئ بواسطة",
+  ];
+
+  const aoa: any[][] = [];
+  aoa.push([]);         // Row 1 empty
+  aoa.push(headersRow); // Row 2 headers
+  aoa.push([]);         // Row 3 empty
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = headersRow.map(() => ({ wch: 22 }));
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Projects");
+
+  XLSX.writeFile(wb, "projects_import_template.xlsx");
+  setShowTemplateModal(false);
+};
 
   return (
     <div className="min-h-screen bg-slate-50" dir="rtl">
@@ -196,9 +220,7 @@ const SysManagerImportProjects: React.FC = () => {
             >
               <FiArrowRight />
             </button>
-            <h1 className="text-2xl font-black">
-              استيراد المشاريع من Excel
-            </h1>
+            <h1 className="text-2xl font-black">استيراد المشاريع من Excel</h1>
           </div>
 
           <button
@@ -209,194 +231,350 @@ const SysManagerImportProjects: React.FC = () => {
             تحميل القالب
           </button>
         </div>
+
         {showTemplateModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-lg w-full max-w-2xl p-6">
               <h2 className="text-lg font-bold mb-4">تحميل قالب المشاريع</h2>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                 <div>
                   <label className="block text-xs text-slate-500 mb-1">الجامعة</label>
                   <div className="flex gap-2">
-                    <select className="w-full border rounded px-2 py-2" value={importSelection.university} onChange={e => setImportSelection((s:any)=>({...s, university: e.target.value}))}>
+                    <select
+                      className="w-full border rounded px-2 py-2"
+                      value={importSelection.university}
+                      onChange={(e) =>
+                        setImportSelection((s: any) => ({ ...s, university: e.target.value }))
+                      }
+                    >
                       <option value="">-- اختر جامعة --</option>
                       {importOpts.universities?.map((u: any) => (
-                        <option key={u.uid || u.id} value={u.uid || u.id || u.uname_ar || u.name_ar}>{u.uname_ar || u.name_ar}</option>
+                        <option key={u.uid || u.id} value={u.uid || u.id}>
+                          {u.uname_ar || u.name_ar}
+                        </option>
                       ))}
                     </select>
-                    <button className="px-2 py-1 bg-gray-100 rounded" onClick={() => setShowAddUni(s => !s)}>إضافة</button>
+                    <button
+                      className="px-2 py-1 bg-gray-100 rounded"
+                      onClick={() => setShowAddUni((s) => !s)}
+                      type="button"
+                    >
+                      إضافة
+                    </button>
                   </div>
+
                   {showAddUni && (
                     <div className="mt-2 flex gap-2">
-                      <input value={newUniName} onChange={e=>setNewUniName(e.target.value)} placeholder="اسم الجامعة" className="border px-2 py-1 rounded flex-1" />
-                      <button className="px-3 py-1 bg-green-600 text-white rounded" onClick={async ()=>{
-                        if(!newUniName) return alert('أدخل اسم الجامعة');
-                        try{
-                          const resp = await api.post('/universities/', { uname_ar: newUniName });
-                          const created = resp.data;
-                          setImportOpts((s:any)=>({ ...s, universities: [ ...(s.universities||[]), created ] }));
-                          setImportSelection((s:any)=>({...s, university: created.uid || created.id || created.uname_ar }));
-                          setNewUniName(''); setShowAddUni(false);
-                        }catch(err){ console.error('create university failed', err); alert('فشل إنشاء الجامعة'); }
-                      }}>حفظ</button>
+                      <input
+                        value={newUniName}
+                        onChange={(e) => setNewUniName(e.target.value)}
+                        placeholder="اسم الجامعة"
+                        className="border px-2 py-1 rounded flex-1"
+                      />
+                      <button
+                        className="px-3 py-1 bg-green-600 text-white rounded"
+                        type="button"
+                        onClick={async () => {
+                          if (!newUniName) return alert("أدخل اسم الجامعة");
+                          try {
+                            const resp = await api.post("/universities/", { uname_ar: newUniName });
+                            const created = resp.data;
+                            setImportOpts((s: any) => ({
+                              ...s,
+                              universities: [...(s.universities || []), created],
+                            }));
+                            setImportSelection((s: any) => ({
+                              ...s,
+                              university: created.uid || created.id,
+                            }));
+                            setNewUniName("");
+                            setShowAddUni(false);
+                          } catch (err) {
+                            console.error("create university failed", err);
+                            alert("فشل إنشاء الجامعة");
+                          }
+                        }}
+                      >
+                        حفظ
+                      </button>
                     </div>
                   )}
                 </div>
+
                 <div>
                   <label className="block text-xs text-slate-500 mb-1">الكلية</label>
                   <div className="flex gap-2">
-                    <select className="w-full border rounded px-2 py-2" value={importSelection.college} onChange={e => setImportSelection((s:any)=>({...s, college: e.target.value}))}>
+                    <select
+                      className="w-full border rounded px-2 py-2"
+                      value={importSelection.college}
+                      onChange={(e) =>
+                        setImportSelection((s: any) => ({ ...s, college: e.target.value }))
+                      }
+                    >
                       <option value="">-- اختر كلية --</option>
                       {importOpts.colleges?.map((c: any) => (
-                        <option key={c.cid || c.id} value={c.cid || c.id || c.name_ar || c.name}>{c.name_ar || c.name}</option>
+                        <option key={c.cid || c.id} value={c.cid || c.id}>
+                          {c.name_ar || c.name}
+                        </option>
                       ))}
                     </select>
-                    <button className="px-2 py-1 bg-gray-100 rounded" onClick={() => setShowAddCollege(s => !s)}>إضافة</button>
+                    <button
+                      className="px-2 py-1 bg-gray-100 rounded"
+                      onClick={() => setShowAddCollege((s) => !s)}
+                      type="button"
+                    >
+                      إضافة
+                    </button>
                   </div>
+
                   {showAddCollege && (
                     <div className="mt-2 flex gap-2">
-                      <input value={newCollegeName} onChange={e=>setNewCollegeName(e.target.value)} placeholder="اسم الكلية" className="border px-2 py-1 rounded flex-1" />
-                      <button className="px-3 py-1 bg-green-600 text-white rounded" onClick={async ()=>{
-                        if(!newCollegeName) return alert('أدخل اسم الكلية');
-                        try{
-                          const uniVal = importSelection.university;
-                          let payload: any = { name_ar: newCollegeName };
-                          if(uniVal) payload.branch = uniVal;
-                          const resp = await api.post('/colleges/', payload);
-                          const created = resp.data;
-                          setImportOpts((s:any)=>({ ...s, colleges: [ ...(s.colleges||[]), created ] }));
-                          setImportSelection((s:any)=>({...s, college: created.cid || created.id || created.name_ar }));
-                          setNewCollegeName(''); setShowAddCollege(false);
-                        }catch(err){ console.error('create college failed', err); alert('فشل إنشاء الكلية'); }
-                      }}>حفظ</button>
+                      <input
+                        value={newCollegeName}
+                        onChange={(e) => setNewCollegeName(e.target.value)}
+                        placeholder="اسم الكلية"
+                        className="border px-2 py-1 rounded flex-1"
+                      />
+                      <button
+                        className="px-3 py-1 bg-green-600 text-white rounded"
+                        type="button"
+                        onClick={async () => {
+                          if (!newCollegeName) return alert("أدخل اسم الكلية");
+                          try {
+                            const resp = await api.post("/colleges/", { name_ar: newCollegeName });
+                            const created = resp.data;
+                            setImportOpts((s: any) => ({
+                              ...s,
+                              colleges: [...(s.colleges || []), created],
+                            }));
+                            setImportSelection((s: any) => ({
+                              ...s,
+                              college: created.cid || created.id,
+                            }));
+                            setNewCollegeName("");
+                            setShowAddCollege(false);
+                          } catch (err) {
+                            console.error("create college failed", err);
+                            alert("فشل إنشاء الكلية");
+                          }
+                        }}
+                      >
+                        حفظ
+                      </button>
                     </div>
                   )}
                 </div>
+
                 <div>
                   <label className="block text-xs text-slate-500 mb-1">القسم</label>
                   <div className="flex gap-2">
-                    <select className="w-full border rounded px-2 py-2" value={importSelection.department} onChange={e => setImportSelection((s:any)=>({...s, department: e.target.value}))}>
+                    <select
+                      className="w-full border rounded px-2 py-2"
+                      value={importSelection.department}
+                      onChange={(e) =>
+                        setImportSelection((s: any) => ({ ...s, department: e.target.value }))
+                      }
+                    >
                       <option value="">-- اختر قسم --</option>
                       {importOpts.departments?.map((d: any) => (
-                        <option key={d.department_id || d.id} value={d.department_id || d.id || d.name || d.department_name}>{d.name || d.department_name}</option>
+                        <option key={d.department_id || d.id} value={d.department_id || d.id}>
+                          {d.name || d.department_name}
+                        </option>
                       ))}
                     </select>
-                    <button className="px-2 py-1 bg-gray-100 rounded" onClick={() => setShowAddDept(s => !s)}>إضافة</button>
+                    <button
+                      className="px-2 py-1 bg-gray-100 rounded"
+                      onClick={() => setShowAddDept((s) => !s)}
+                      type="button"
+                    >
+                      إضافة
+                    </button>
                   </div>
+
                   {showAddDept && (
                     <div className="mt-2 flex gap-2">
-                      <input value={newDeptName} onChange={e=>setNewDeptName(e.target.value)} placeholder="اسم القسم" className="border px-2 py-1 rounded flex-1" />
-                      <button className="px-3 py-1 bg-green-600 text-white rounded" onClick={async ()=>{
-                        if(!newDeptName) return alert('أدخل اسم القسم');
-                        try{
-                          const payload: any = { name: newDeptName };
-                          if(importSelection.college) payload.college = importSelection.college;
-                          const resp = await api.post('/departments/', payload);
-                          const created = resp.data;
-                          setImportOpts((s:any)=>({ ...s, departments: [ ...(s.departments||[]), created ] }));
-                          setImportSelection((s:any)=>({...s, department: created.department_id || created.id || created.name }));
-                          setNewDeptName(''); setShowAddDept(false);
-                        }catch(err){ console.error('create department failed', err); alert('فشل إنشاء القسم'); }
-                      }}>حفظ</button>
+                      <input
+                        value={newDeptName}
+                        onChange={(e) => setNewDeptName(e.target.value)}
+                        placeholder="اسم القسم"
+                        className="border px-2 py-1 rounded flex-1"
+                      />
+                      <button
+                        className="px-3 py-1 bg-green-600 text-white rounded"
+                        type="button"
+                        onClick={async () => {
+                          if (!newDeptName) return alert("أدخل اسم القسم");
+                          try {
+                            const payload: any = { name: newDeptName };
+                            if (importSelection.college) payload.college = importSelection.college;
+                            const resp = await api.post("/departments/", payload);
+                            const created = resp.data;
+
+                            setImportOpts((s: any) => ({
+                              ...s,
+                              departments: [...(s.departments || []), created],
+                            }));
+                            setImportSelection((s: any) => ({
+                              ...s,
+                              department: created.department_id || created.id,
+                            }));
+
+                            setNewDeptName("");
+                            setShowAddDept(false);
+                          } catch (err) {
+                            console.error("create department failed", err);
+                            alert("فشل إنشاء القسم");
+                          }
+                        }}
+                      >
+                        حفظ
+                      </button>
                     </div>
                   )}
                 </div>
+
                 <div>
                   <label className="block text-xs text-slate-500 mb-1">التخصص</label>
                   <div className="flex gap-2">
-                    <select className="w-full border rounded px-2 py-2" value={importSelection.program} onChange={e => setImportSelection((s:any)=>({...s, program: e.target.value}))}>
+                    <select
+                      className="w-full border rounded px-2 py-2"
+                      value={importSelection.program}
+                      onChange={(e) =>
+                        setImportSelection((s: any) => ({ ...s, program: e.target.value }))
+                      }
+                    >
                       <option value="">-- اختر تخصص --</option>
                       {importOpts.programs?.map((p: any) => (
-                        <option key={p.id || p.pid} value={p.id || p.pid || p.p_name || p.name}>{p.p_name || p.name}</option>
+                        <option key={p.pid || p.id} value={p.pid || p.id}>
+                          {p.p_name || p.name}
+                        </option>
                       ))}
                     </select>
-                    <button className="px-2 py-1 bg-gray-100 rounded" onClick={() => setShowAddProg(s => !s)}>إضافة</button>
+                    <button
+                      className="px-2 py-1 bg-gray-100 rounded"
+                      onClick={() => setShowAddProg((s) => !s)}
+                      type="button"
+                    >
+                      إضافة
+                    </button>
                   </div>
+
                   {showAddProg && (
                     <div className="mt-2 flex gap-2">
-                      <input value={newProgName} onChange={e=>setNewProgName(e.target.value)} placeholder="اسم التخصص" className="border px-2 py-1 rounded flex-1" />
-                      <button className="px-3 py-1 bg-green-600 text-white rounded" onClick={async ()=>{
-                        if(!newProgName) return alert('أدخل اسم التخصص');
-                        try{
-                          const payload: any = { p_name: newProgName };
-                          if(importSelection.department) payload.department = importSelection.department;
-                          const resp = await api.post('/programs/', payload);
-                          const created = resp.data;
-                          setImportOpts((s:any)=>({ ...s, programs: [ ...(s.programs||[]), created ] }));
-                          setImportSelection((s:any)=>({...s, program: created.id || created.pid || created.p_name }));
-                          setNewProgName(''); setShowAddProg(false);
-                        }catch(err){ console.error('create program failed', err); alert('فشل إنشاء التخصص'); }
-                      }}>حفظ</button>
+                      <input
+                        value={newProgName}
+                        onChange={(e) => setNewProgName(e.target.value)}
+                        placeholder="اسم التخصص"
+                        className="border px-2 py-1 rounded flex-1"
+                      />
+                      <button
+                        className="px-3 py-1 bg-green-600 text-white rounded"
+                        type="button"
+                        onClick={async () => {
+                          if (!newProgName) return alert("أدخل اسم التخصص");
+                          try {
+                            const payload: any = { p_name: newProgName };
+                            if (importSelection.department)
+                              payload.department = importSelection.department;
+
+                            const resp = await api.post("/programs/", payload);
+                            const created = resp.data;
+
+                            setImportOpts((s: any) => ({
+                              ...s,
+                              programs: [...(s.programs || []), created],
+                            }));
+                            setImportSelection((s: any) => ({
+                              ...s,
+                              program: created.pid || created.id,
+                            }));
+
+                            setNewProgName("");
+                            setShowAddProg(false);
+                          } catch (err) {
+                            console.error("create program failed", err);
+                            alert("فشل إنشاء التخصص");
+                          }
+                        }}
+                      >
+                        حفظ
+                      </button>
                     </div>
                   )}
                 </div>
               </div>
+
               <div className="flex justify-end gap-2">
-                <button onClick={() => setShowTemplateModal(false)} className="px-4 py-2 border rounded">إلغاء</button>
-                <button onClick={downloadTemplate} className="px-4 py-2 bg-green-600 text-white rounded">تحميل الملف</button>
+                <button
+                  onClick={() => setShowTemplateModal(false)}
+                  className="px-4 py-2 border rounded"
+                  type="button"
+                >
+                  إلغاء
+                </button>
+                <button
+                  onClick={downloadTemplate}
+                  className="px-4 py-2 bg-green-600 text-white rounded"
+                  type="button"
+                >
+                  تحميل الملف
+                </button>
               </div>
             </div>
           </div>
         )}
 
-{/* Upload Section */}
-<div className="bg-white p-6 rounded-2xl shadow">
-  <div className="flex flex-col sm:flex-row gap-4 items-center">
-    
-    <label className="bg-slate-200 px-4 py-2 rounded-xl cursor-pointer flex items-center gap-2">
-      <FiUploadCloud />
-      اختيار ملف
-      <input
-        type="file"
-        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        onChange={handlePickFile}
-        className="hidden"
-      />
-    </label>
+        {/* Upload Section */}
+        <div className="bg-white p-6 rounded-2xl shadow">
+          <div className="flex flex-col sm:flex-row gap-4 items-center">
+            <label className="bg-slate-200 px-4 py-2 rounded-xl cursor-pointer flex items-center gap-2">
+              <FiUploadCloud />
+              اختيار ملف
+              <input
+                type="file"
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                onChange={handlePickFile}
+                className="hidden"
+              />
+            </label>
 
-    <button
-      onClick={handleValidate}
-      disabled={isValidating}
-      className="bg-blue-600 text-white px-4 py-2 rounded-xl"
-    >
-      {isValidating ? "جارٍ التحقق..." : "رفع والتحقق"}
-    </button>
+            <button
+              onClick={handleValidate}
+              disabled={isValidating}
+              className="bg-blue-600 text-white px-4 py-2 rounded-xl disabled:opacity-60"
+              type="button"
+            >
+              {isValidating ? "جارٍ التحقق..." : "رفع والتحقق"}
+            </button>
 
-    <button
-      onClick={handleCommit}
-      disabled={!canCommit || isCommitting}
-      className="bg-green-600 text-white px-4 py-2 rounded-xl"
-    >
-      {isCommitting ? "جارٍ الاستيراد..." : "تأكيد الاستيراد"}
-    </button>
-  </div>
+            <button
+              onClick={handleCommit}
+              disabled={!canCommit || isCommitting}
+              className="bg-green-600 text-white px-4 py-2 rounded-xl disabled:opacity-60"
+              type="button"
+            >
+              {isCommitting ? "جارٍ الاستيراد..." : "تأكيد الاستيراد"}
+            </button>
+          </div>
 
-  {/* ✅ Selected file name */}
-  <div className="mt-3 text-sm text-slate-700 font-bold">
-    {file ? `📄 ${file.name}` : "لم يتم اختيار ملف"}
-  </div>
+          {/* Selected file name */}
+          <div className="mt-3 text-sm text-slate-700 font-bold">
+            {file ? `📄 ${file.name}` : "لم يتم اختيار ملف"}
+          </div>
 
-  {/* Message */}
-  {message && (
-    <div className="mt-4 font-bold text-sm">
-      {message}
-    </div>
-  )}
-</div>
+          {/* Message */}
+          {message && <div className="mt-4 font-bold text-sm">{message}</div>}
+        </div>
 
         {/* Summary */}
         {result && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
             <Stat label="إجمالي الصفوف" value={result.total_rows} />
             <Stat label="صالحة" value={result.valid_rows} />
             <Stat label="غير صالحة" value={result.invalid_rows} />
-            <Stat
-              label="تم إنشاؤها"
-              value={result.created_projects || "-"}
-            />
-            <Stat
-              label="تم تحديثها"
-              value={result.updated_projects || "-"}
-            />
+            <Stat label="تم إنشاؤها" value={result.created_projects || "-"} />
+            <Stat label="تم تحديثها" value={result.updated_projects || "-"} />
           </div>
         )}
 
