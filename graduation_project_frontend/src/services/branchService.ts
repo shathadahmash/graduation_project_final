@@ -13,7 +13,6 @@ export const branchService = {
   async getBranches(params?: any) {
     try {
       const resp = await axios.get('/api/branches/', { params });
-      console.log('[branchService] getBranches response:', resp.status, resp.data);
       return resp.data;
       
     } catch (error) {

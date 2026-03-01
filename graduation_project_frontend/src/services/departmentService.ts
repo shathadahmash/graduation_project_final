@@ -10,7 +10,8 @@ export interface Department {
 export const departmentService = {
   async getDepartments(params?: any) {
     try {
-      const resp = await axios.get('/departments/', { params });
+      const resp = await axios.get('/api/departments/', { params });
+      console.log('[departmentService] getDepartments response:', resp.status, resp.data);
       return resp.data;
     } catch (error) {
       console.error('[departmentService] getDepartments error', error);
@@ -19,7 +20,7 @@ export const departmentService = {
   },
   async getDepartmentById(id: number) {
     try {
-      const resp = await axios.get(`/departments/${id}/`);
+      const resp = await axios.get(`/api/departments/${id}/`);
       return resp.data;
     } catch (error) {
       console.error('[departmentService] getDepartmentById error', error);
@@ -28,7 +29,7 @@ export const departmentService = {
   },
   async addDepartment(data: Omit<Department, 'id'>) {
     try {
-      const resp = await axios.post('/departments/', data);
+      const resp = await axios.post('/api/departments/', data);
       return resp.data;
     } catch (error) {
       console.error('[departmentService] addDepartment error', error);
@@ -37,7 +38,7 @@ export const departmentService = {
   },
   async updateDepartment(id: number, data: Partial<Omit<Department, 'id'>>) {
     try {
-      const resp = await axios.put(`/departments/${id}/`, data);
+      const resp = await axios.put(`/api/departments/${id}/`, data);
       return resp.data;
     } catch (error) {
       console.error('[departmentService] updateDepartment error', error);
@@ -46,7 +47,7 @@ export const departmentService = {
   },
   async deleteDepartment(id: number) {
     try {
-      await axios.delete(`/departments/${id}/`);
+      await axios.delete(`/api/departments/${id}/`);
       return true;
     } catch (error) {
       console.error('[departmentService] deleteDepartment error', error);
