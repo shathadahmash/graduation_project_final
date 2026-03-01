@@ -26,9 +26,15 @@ from core.views import (
     dean_stats,
     SupervisorGroupViewSet,
     dropdown_data,
+    CollegeViewSet,
+    DepartmentViewSet,
+    BranchViewSet,
+    # added for college programs endpoint
+    # (defined in location_views.py)
+    
 )
 from core.views.groups import GroupProgramViewSet
-from core.views.location_views import UniversityViewSet
+from core.views.location_views import BranchViewSet, CollegeDepartmentsView, CollegeProgramsView, DepartmentViewSet, UniversityViewSet
 from core.views.location_views import ProgramViewSet
 
 from .views import get_csrf_token
@@ -50,14 +56,20 @@ router.register(r'roles', RoleViewSet, basename='role')
 router.register(r'user-roles', UserRolesViewSet, basename='userrole')
 router.register(r'groupprogram', GroupProgramViewSet, basename='groupprogram')
 router.register(r'program-groups', GroupProgramViewSet, basename='program-groups')
+router.register(r'colleges', CollegeViewSet, basename='colleges')
+router.register(r'departments', DepartmentViewSet, basename='departments')
+router.register(r'branches', BranchViewSet, basename='branches')
+
 
 urlpatterns = [
+    path('colleges/<int:college_id>/departments/', CollegeDepartmentsView.as_view(), name='college-departments'),
     path('approvals/<int:approval_id>/approve/', respond_to_group_request, name='approval-approve'),
     path('approvals/<int:approval_id>/reject/', respond_to_group_request, name='approval-reject'),
-    
+    path('colleges/<int:college_id>/departments/', CollegeDepartmentsView.as_view(), name='college-departments'),
     # API Endpoints
     path('', include(router.urls)),   # ✅ هنا يشمل كل الـ routes بما فيها supervisor/groups
-    
+    path('colleges/<int:college_id>/programs/', CollegeProgramsView.as_view(), name='college-programs'),
+
     #this is for import
     path('system/import/users/validate/', import_users_validate, name='import-users-validate'),
     path('system/import/users/commit/', import_users_commit, name='import-users-commit'),

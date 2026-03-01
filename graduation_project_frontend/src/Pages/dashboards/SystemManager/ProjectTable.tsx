@@ -6,7 +6,6 @@ import { FiDownload, FiPlus, FiEdit3, FiTrash2 } from 'react-icons/fi';
 import { exportToCSV } from '../../../components/tableUtils';
 import ProjectForm from '../ProjectForm';
 import { useAuthStore } from '../../../store/useStore';
-//f
 import { useNavigate } from "react-router-dom";
 interface ProjectWithUsers extends Project {
   users?: User[]; // optional: users associated with this project
@@ -392,32 +391,6 @@ const ProjectsTable: React.FC<Props> = ({ filteredProjects }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch full lists of universities, colleges, departments and programs
-  const loadAllOptions = async () => {
-    try {
-      const [unisRes, colsRes, deptsRes, progsRes] = await Promise.all([
-        api.get('/universities/'),
-        api.get('/colleges/'),
-        api.get('/departments/'),
-        api.get('/programs/'),
-      ]);
-      const universities = unisRes?.data || [];
-      const colleges = colsRes?.data || [];
-      const departments = deptsRes?.data || [];
-      const programs = progsRes?.data || [];
-      // debug: log counts so we can see whether universities loaded
-      // eslint-disable-next-line no-console
-      console.debug('[ProjectsTable] loadAllOptions counts', { universities: (universities || []).length, colleges: (colleges || []).length, departments: (departments || []).length, programs: (programs || []).length });
-      allImportOptsRef.current = { universities, colleges, departments, programs };
-      setImportOpts({ universities, colleges, departments, programs });
-    } catch (e) {
-      console.error('Failed to load all option lists', e);
-    }
-  };
-
-  // ensure full lists are loaded for import dropdowns
-  React.useEffect(() => { loadAllOptions();  console.log("colleges loaded:", importOpts.colleges);}, []);
-
   const loadImportOptions = async () => {
     try {
       const bulkAll = await projectService.getProjectsWithGroups();
@@ -537,26 +510,52 @@ const ProjectsTable: React.FC<Props> = ({ filteredProjects }) => {
   }, [importSelection.program]);
 
   const downloadTemplate = () => {
-    // Create a simple CSV where the first row is blank and the second row holds
-    // the Arabic column headers requested by the user. We name the file with
-    // an .xlsx extension so Excel will happily open it.
+    // Helper function to escape CSV values (handle commas, quotes, newlines)
+    const escapeCSV = (value: string): string => {
+      if (!value) return '';
+      if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    };
+
+    // Create CSV with first column empty and second column with headers
+    const headers = [
+      'عنوان المشروع',
+      'نوع المشروع',
+      'الحالة',
+      'الملخص',
+      'المشرف',
+      'المشرف المشارك',
+      'الجامعة',
+      'الكلية',
+      'القسم',
+      'سنة البداية',
+      'سنه النهاية',
+      'المجال',
+      'الادوات',
+      'أنشىء بواسطة'
+    ];
+
     const rows: string[] = [];
 
-    // blank first row
-    rows.push('');
+    // First row: empty column followed by header row
+    rows.push(',' + headers.map(escapeCSV).join(','));
 
-    // header row (second row)
-    rows.push(
-      'عنوان المشروع,نوع المشروع,الحالة,الملخص,المشرف,المشرف المشارك,الجامعة,الكلية,القسم,سنة البداية,سنه النهاية,المجال,الادوات,أنشىء بواسطة'
-    );
+    // You can add empty data rows here if needed (e.g., for template rows)
+    // For now, just the header row
 
-    const csv = rows.join('\n');
+    // include BOM so Excel on Windows properly detects UTF-8 and displays Arabic
+    // text correctly
+    const csv = '\uFEFF' + rows.join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.href = url;
-    // use .xlsx extension to satisfy the "excel file" requirement
-    link.setAttribute('download', `projects_import_template.xlsx`);
+    // the blob is a CSV, so don't mislabel it as an XLSX file. Excel will open
+    // CSVs automatically, and using the proper extension prevents the corruption
+    // warnings users were seeing.
+    link.setAttribute('download', `projects_import_template.csv`);
     document.body.appendChild(link);
     link.click();
     link.parentNode?.removeChild(link);

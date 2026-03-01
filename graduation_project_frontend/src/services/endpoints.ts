@@ -32,6 +32,16 @@ export const TABLES = {
     // backend uses `uid` / `uname_ar` for University
     defaultFields: ['uid', 'uname_ar']
   }
+  ,
+  programs: {
+    name: 'programs',
+    // common fields used by UI bulk fetches
+    defaultFields: ['program_id', 'program_name', 'department', 'college']
+  },
+  branches: {
+    name: 'branches',
+    defaultFields: ['branch_id', 'branch_name', 'college', 'department', 'university']
+  }
 }
 
 export type TableKey = keyof typeof TABLES;

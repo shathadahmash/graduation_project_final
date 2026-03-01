@@ -172,41 +172,31 @@ const SysManagerImportProjects: React.FC = () => {
     setIsCommitting(false);
   };
 
-  // ✅ FIXED: download REAL XLSX (not CSV renamed to xlsx)
-
-// inside component:
-const downloadTemplate = () => {
-  const headersRow = [
-    "عنوان المشروع",
-    "نوع المشروع",
-    "الحالة",
-    "الملخص",
-    "المشرف",
-    "المشرف المشارك",
-    "الجامعة",
-    "الكلية",
-    "القسم",
-    "سنة البداية",
-    "سنة النهاية",
-    "المجال",
-    "الأدوات",
-    "أنشئ بواسطة",
-  ];
-
-  const aoa: any[][] = [];
-  aoa.push([]);         // Row 1 empty
-  aoa.push(headersRow); // Row 2 headers
-  aoa.push([]);         // Row 3 empty
-
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = headersRow.map(() => ({ wch: 22 }));
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Projects");
-
-  XLSX.writeFile(wb, "projects_import_template.xlsx");
-  setShowTemplateModal(false);
-};
+  const downloadTemplate = () => {
+    // create a simple excel-friendly CSV with blank first column and the
+    // requested Arabic headers. ignore query params since the user asked only
+    // for static header layout; we still close the modal afterwards.
+    const rows: string[] = [];
+    rows.push('');
+    rows.push(
+      'عنوان المشروع,نوع المشروع,الحالة,الملخص,المشرف,المشرف المشارك,الجامعة,الكلية,القسم,سنة البداية,سنه النهاية,المجال,الادوات,أنشىء بواسطة'
+    );
+    // prepend BOM for Excel/Arabic support
+    const csv = '\uFEFF' + rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    // Blob contains CSV data, so give it a .csv file name. Using .xlsx caused
+    // Excel to refuse opening the file because the contents didn't match the
+    // extension.
+    link.setAttribute('download', `projects_import_template.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode?.removeChild(link);
+    URL.revokeObjectURL(url);
+    setShowTemplateModal(false);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50" dir="rtl">

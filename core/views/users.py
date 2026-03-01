@@ -6,10 +6,12 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db import transaction
 from django.http import JsonResponse
+from core.serializers.users import StudentSerializer
+from core.serializers.users import ExternalCompanySerializer
 
 from core.models import (
     User, Group, GroupMembers, GroupSupervisors, Project, AcademicAffiliation,
-    GroupMemberApproval, NotificationLog, College, Department, UserRoles, Staff, check_and_finalize_group
+    GroupMemberApproval, NotificationLog, College, Department, UserRoles, Staff,Student, check_and_finalize_group
 )
 from core.serializers.users import (
      UserSerializer
@@ -127,5 +129,21 @@ def respond_to_group_request(request, approval_id):
     except Exception as e:
         return Response({"error": str(e)}, status=500)
 
-
+class StudentViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    عرض جميع الطلاب أو تفاصيل طالب واحد
+    """
+    queryset = Student.objects.all().select_related(
+        'user', 'program', 'department', 'college', 'university'
+    ).prefetch_related(
+        'enrollment_periods',
+        'user__group_members__group',
+        'user__progress_records'
+    )
+    serializer_class = StudentSerializer
+    permission_classes = [IsAuthenticated]
+class ExternalCompanyViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = User.objects.filter(userroles__role__type__icontains='External')
+    serializer_class = ExternalCompanySerializer
+    permission_classes = [IsAuthenticated]
 

@@ -16,8 +16,9 @@ UniversitySerializer
 )
 from core.models import (
     User, Role, UserRoles, Permission, RolePermission,
-      AcademicAffiliation,
+      AcademicAffiliation,Student, StudentEnrollmentPeriod
 )
+
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -114,6 +115,18 @@ class UserRolesSerializer(serializers.ModelSerializer):
         model = UserRoles
         fields = ['id', 'user', 'user_detail', 'role', 'role_detail']
 
+class ExternalCompanySerializer(serializers.ModelSerializer):
+    is_external = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'name', 'email', 'is_external']
+
+    def get_is_external(self, obj):
+        return UserRoles.objects.filter(
+            user=obj,
+            role__type__icontains='External'
+        ).exists()
 
 class StaffSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
@@ -122,3 +135,30 @@ class StaffSerializer(serializers.ModelSerializer):
     class Meta:
         model = getattr(__import__('core.models', fromlist=['Staff']), 'Staff')
         fields = ['staff_id', 'user', 'role', 'Qualification', 'Office_Hours']
+class StudentEnrollmentPeriodSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentEnrollmentPeriod
+        fields = ['id', 'start_date', 'end_date']
+class StudentSerializer(serializers.ModelSerializer):
+    user = UserDetailSerializer(read_only=True)
+    enrollment_periods = StudentEnrollmentPeriodSerializer(many=True, read_only=True)
+
+    current_academic_year = serializers.SerializerMethodField()
+    groups = serializers.SerializerMethodField()
+    progress = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Student
+        fields = [
+            'id',
+            'user',
+            'student_id',
+            'phone',
+            'gender',
+            'status',
+            'enrolled_at',
+            'current_academic_year',
+            'enrollment_periods',
+            'groups',
+            'progress'
+        ]
