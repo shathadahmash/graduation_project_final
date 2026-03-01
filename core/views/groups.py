@@ -16,7 +16,7 @@ from core.models import (
 )
 
 from core.serializers.groups import (
-    GroupProgramSerializer, GroupSerializer, GroupDetailSerializer
+    GroupProgramSerializer, GroupSerializer, GroupDetailSerializer, GroupCreationRequestSerializer
 )
 from core.serializers.approvals import GroupCreateSerializer
 from core.permissions import PermissionManager
@@ -68,8 +68,10 @@ class GroupViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return GroupCreateSerializer
-        if self.action in ['retrieve', 'my_group']:
+        if self.action == 'retrieve':
             return GroupDetailSerializer
+        if self.action == 'my_group':
+            return GroupCreationRequestSerializer
         return GroupSerializer
 
     # ============================

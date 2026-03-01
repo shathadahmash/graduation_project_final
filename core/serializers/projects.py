@@ -9,6 +9,8 @@ class ProjectSerializer(serializers.ModelSerializer):
     co_supervisor_name = serializers.SerializerMethodField()
     created_by = UserSerializer(read_only=True)
     college_name = serializers.SerializerMethodField()
+    state_name = serializers.SerializerMethodField()
+    university_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -17,6 +19,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             'title',
             'description',
             'state',
+            'state_name',
             'start_date',
             'end_date',
             'field',
@@ -27,39 +30,62 @@ class ProjectSerializer(serializers.ModelSerializer):
             'supervisor_name',
             'created_by',
             'college_name',
+            'university_name',
         ]
 
     def get_supervisor_name(self, obj):
-        rel = (
-            GroupSupervisors.objects
-            .filter(group__project=obj, type='supervisor')
-            .select_related('user')
-            .first()
-        )
-        return rel.user.name if rel and rel.user else "لا يوجد مشرف"
+        # avoid hitting the DB by iterating over prefetched groups and supervisors
+        for grp in getattr(obj, 'groups', []).all():
+            for gs in getattr(grp, 'groupsupervisors_set', []).all():
+                if gs.type == 'supervisor' and gs.user:
+                    return gs.user.name or gs.user.username
+        return "لا يوجد مشرف"
 
     def get_co_supervisor_name(self, obj):
-        rel = (
-            GroupSupervisors.objects
-            .filter(group__project=obj, type__in=['co_supervisor', 'co-supervisor', 'Co-supervisor', 'Co-supervisor'])
-            .select_related('user')
-            .first()
-        )
-        return rel.user.name if rel and rel.user else None
+        for grp in getattr(obj, 'groups', []).all():
+            for gs in getattr(grp, 'groupsupervisors_set', []).all():
+                if gs.type and gs.type.lower().startswith('co_supervisor') and gs.user:
+                    return gs.user.name or gs.user.username
+        return None
 
     def get_college_name(self, obj):
-        # groups -> programgroup related_name is `program_groups` (bridge model)
-        group = obj.groups.prefetch_related(
-            'program_groups__program__department__college'
-        ).first()
-        if not group:
-            return None
-
-        pg = (
-            group.program_groups
-            .select_related('program__department__college')
-            .first()
-        )
-        if pg and pg.program and getattr(pg.program, 'department', None) and getattr(pg.program.department, 'college', None):
-            return pg.program.department.college.name_ar
+        # rely on groups prefetched in viewset
+        for grp in getattr(obj, 'groups', []).all():
+            for pg in getattr(grp, 'program_groups', []).all():
+                prog = getattr(pg, 'program', None)
+                if not prog:
+                    continue
+                dept = getattr(prog, 'department', None)
+                if not dept:
+                    continue
+                college = getattr(dept, 'college', None)
+                if college:
+                    return college.name_ar
         return None
+
+    def get_university_name(self, obj):
+        # iterate over already-prefetched relationships to avoid additional queries
+        for grp in getattr(obj, 'groups', []).all():
+            for pg in getattr(grp, 'program_groups', []).all():
+                prog = getattr(pg, 'program', None)
+                if not prog:
+                    continue
+                dept = getattr(prog, 'department', None)
+                if not dept:
+                    continue
+                college = getattr(dept, 'college', None)
+                if not college:
+                    continue
+                branch = getattr(college, 'branch', None)
+                if not branch:
+                    continue
+                uni = getattr(branch, 'university', None)
+                if uni:
+                    return uni.uname_ar
+        return None
+
+    def get_state_name(self, obj):
+        try:
+            return obj.state.name if obj.state else None
+        except Exception:
+            return str(obj.state) if obj.state is not None else None

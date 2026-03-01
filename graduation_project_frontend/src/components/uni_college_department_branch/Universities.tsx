@@ -1,14 +1,29 @@
 import React, { useEffect, useState } from "react";
+import api from "../../services/api"; // correct relative path
 
 export default function Universities() {
   const [universities, setUniversities] = useState([]);
 
   useEffect(() => {
-    // Replace this with your real backend API
-    fetch("/api/universities")
-      .then(res => res.json())
-      .then(data => setUniversities(data))
-      .catch(() => console.log("Failed to load universities"));
+    // use shared axios instance so cookies/CSRF and auth headers are sent
+    api
+      .get("/universities")
+      .then(resp => {
+        const data = resp.data;
+        if (Array.isArray(data)) {
+          setUniversities(data);
+        } else if (data && Array.isArray(data.results)) {
+          // some paginated endpoints return {results: [...]}
+          setUniversities(data.results);
+        } else {
+          console.warn("unexpected universities response", data);
+          setUniversities([]);
+        }
+      })
+      .catch(err => {
+        console.error("Failed to load universities", err);
+        setUniversities([]);
+      });
   }, []);
 
   return (

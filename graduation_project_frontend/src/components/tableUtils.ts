@@ -40,7 +40,9 @@ export function exportToCSV(filename: string, rows: any[]) {
     csvRows.push(vals.join(','));
   }
 
-  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  // Prefix with BOM so Excel/Windows correctly recognize UTF-8 and Arabic characters
+  const csvContent = '\uFEFF' + csvRows.join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
   link.setAttribute('href', url);

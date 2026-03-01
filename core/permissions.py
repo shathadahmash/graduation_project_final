@@ -240,6 +240,16 @@ class PermissionManager:
             user=user,
             role__type__in=['Supervisor', 'Co-supervisor']
         ).exists()
+
+    @staticmethod
+    def is_dean(user):
+        """التحقق من أن المستخدم عميد"""
+        if not user or not user.is_authenticated:
+            return False
+        return UserRoles.objects.filter(
+            user=user,
+            role__type__iexact='Dean'
+        ).exists()
     
     @staticmethod
     def is_admin(user):

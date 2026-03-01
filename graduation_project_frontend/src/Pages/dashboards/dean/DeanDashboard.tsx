@@ -34,6 +34,7 @@ const DeanDashboard: React.FC = () => {
   const [groups, setGroups] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [affiliations, setAffiliations] = useState<any[]>([]);
+  const [resolvedProjectIds, setResolvedProjectIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeCardPanel, setActiveCardPanel] = useState<string | null>(null);
@@ -48,20 +49,28 @@ const DeanDashboard: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [fetchedUsers, fetchedProjects, fetchedGroups, fetchedAffiliations, fetchedDepartments] =
+        const [fetchedUsers, fetchedProjectsRaw, fetchedGroupsRaw, fetchedAffiliationsRaw, fetchedDepartmentsRaw] =
           await Promise.all([
             userService.getAllUsers(),
-            projectService.getProject(),
+            projectService.getProjects(),
             groupService.getGroups(),
             userService.getAffiliations(),
             fetchTableFields('departments')
           ]);
 
-        setUsers(fetchedUsers);
-        setProjects(fetchedProjects);
-        setGroups(fetchedGroups);
-        setAffiliations(fetchedAffiliations);
-        setDepartments(fetchedDepartments);
+        // Normalize possible paginated responses
+        const fetchedProjects = Array.isArray(fetchedProjectsRaw) ? fetchedProjectsRaw : (fetchedProjectsRaw?.results || []);
+        const fetchedGroups = Array.isArray(fetchedGroupsRaw) ? fetchedGroupsRaw : (fetchedGroupsRaw?.results || []);
+        const fetchedAffiliations = Array.isArray(fetchedAffiliationsRaw) ? fetchedAffiliationsRaw : (fetchedAffiliationsRaw?.results || []);
+        const fetchedDepartments = Array.isArray(fetchedDepartmentsRaw) ? fetchedDepartmentsRaw : (fetchedDepartmentsRaw?.results || fetchedDepartmentsRaw || []);
+
+        console.log('Dean fetchData normalized counts', { users: fetchedUsers.length, projects: fetchedProjects.length, groups: fetchedGroups.length, affiliations: fetchedAffiliations.length, departments: fetchedDepartments.length });
+
+        setUsers(fetchedUsers || []);
+        setProjects(fetchedProjects || []);
+        setGroups(fetchedGroups || []);
+        setAffiliations(fetchedAffiliations || []);
+        setDepartments(fetchedDepartments || []);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
@@ -70,6 +79,15 @@ const DeanDashboard: React.FC = () => {
     };
 
     fetchData();
+
+    const onProjectsChanged = () => {
+      // refresh data when a project changed elsewhere
+      fetchData();
+    };
+    window.addEventListener('projects:changed', onProjectsChanged as EventListener);
+    return () => {
+      window.removeEventListener('projects:changed', onProjectsChanged as EventListener);
+    };
   }, []);
 
   const tabs = [
@@ -147,11 +165,71 @@ const DeanDashboard: React.FC = () => {
         projectCollegeId = project.college_id;
       }
 
-      console.log('Project college check:', project.project_id || project.id, 'college field:', project.college, 'extracted ID:', projectCollegeId, 'dean college:', deanCollegeId);
-      return projectCollegeId === deanCollegeId;
+      const matchesDirect = projectCollegeId != null && Number(projectCollegeId) === Number(deanCollegeId);
+      const matchesResolved = !!(project.project_id && resolvedProjectIds && resolvedProjectIds.has(Number(project.project_id)));
+
+      // Additional check: if project is linked to a group, check group's department -> college
+      let matchesGroupDept = false;
+      try {
+        const linkedGroup = groups.find((g: any) => g.project === project.project_id || g.project === project.id || g.group_id === project.group || g.id === project.group);
+        if (linkedGroup && linkedGroup.department) {
+          const dept = departments.find((d: any) => d.department_id === linkedGroup.department || d.id === linkedGroup.department);
+          if (dept && (dept.college === deanCollegeId || Number(dept.college) === Number(deanCollegeId))) {
+            matchesGroupDept = true;
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      return matchesDirect || matchesResolved || matchesGroupDept;
     });
     console.log('Dean Dashboard - filteredProjects count:', result.length);
     return result;
+  }, [projects, deanCollegeId]);
+
+  // Resolve projects' college via program-group links in background when needed
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (!deanCollegeId || !projects || projects.length === 0) {
+        if (mounted) setResolvedProjectIds(new Set());
+        return;
+      }
+
+      const toResolve = projects.filter((p: any) => {
+        // skip if project already has direct college
+        if (p.college) return false;
+        if (p.college_id) return false;
+        return true;
+      });
+
+      if (toResolve.length === 0) {
+        if (mounted) setResolvedProjectIds(new Set());
+        return;
+      }
+
+      try {
+        const pairs = await Promise.all(toResolve.map(async (p: any) => {
+          try {
+            const h = await groupService.fetchProgramHierarchyByProject(p.project_id);
+            const cid = h?.college ? (h.college.cid || h.college.id || h.college) : null;
+            return { projectId: p.project_id, collegeId: cid };
+          } catch (e) {
+            return { projectId: p.project_id, collegeId: null };
+          }
+        }));
+
+        const matched = new Set<number>();
+        pairs.forEach(({ projectId, collegeId }) => {
+          if (collegeId != null && Number(collegeId) === Number(deanCollegeId)) matched.add(Number(projectId));
+        });
+        if (mounted) setResolvedProjectIds(matched);
+      } catch (e) {
+        console.error('[DeanDashboard] failed resolving project colleges via program-group', e);
+      }
+    })();
+    return () => { mounted = false; };
   }, [projects, deanCollegeId]);
 
   const filteredSupervisors = useMemo(() => {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FiX, FiSave, FiInfo } from 'react-icons/fi';
 import { projectService } from '../../services/projectService';
 import { groupService } from '../../services/groupService';
+import { userService } from '../../services/userService';
 import { useAuthStore } from '../../store/useStore';
 
 interface ProjectFormProps {
@@ -10,15 +11,21 @@ interface ProjectFormProps {
   onSuccess: (projectId: number) => void;
   initialData?: any;
   mode?: 'create' | 'edit';
+  showAllGroups?: boolean;
 }
 
-const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSuccess, initialData, mode }) => {
+const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSuccess, initialData, mode, showAllGroups }) => {
   const { user } = useAuthStore();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState('PrivateCompany');
   const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [fieldValue, setFieldValue] = useState('');
+  const [tools, setTools] = useState<string[]>([]);
+  const [toolInput, setToolInput] = useState('');
+  const [createdBy, setCreatedBy] = useState<any>('');
   const [college, setCollege] = useState('');
   const [year, setYear] = useState('');
   const [state, setState] = useState('Active');
@@ -26,6 +33,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSuccess, i
 
   const [colleges, setColleges] = useState<any[]>([]);
   const [availableGroups, setAvailableGroups] = useState<any[]>([]);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -37,17 +45,28 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSuccess, i
         setTitle(initialData.title || '');
         setDescription(initialData.description || '');
         setType(initialData.type || 'PrivateCompany');
-        setStartDate(initialData.start_date || '');
+        setStartDate(initialData.start_date != null ? String(initialData.start_date) : '');
+        setEndDate(initialData.end_date != null ? String(initialData.end_date) : '');
+        setFieldValue(initialData.field || '');
+        // normalize tools which may be array or CSV string
+        const t = initialData.tools ?? [];
+        setTools(Array.isArray(t) ? t : (typeof t === 'string' && t.length ? t.split(',').map((s: string) => s.trim()) : []));
+        setCreatedBy(initialData.created_by?.id || initialData.created_by || '');
         setCollege(initialData.college || '');
-        setYear(initialData.year || '');
+        setYear(initialData.year || initialData.start_year || '');
         setState(initialData.state || 'Active');
-        setGroupId(initialData.group_id || '');
+        setGroupId(initialData.group_id || initialData.group || '');
       } else {
         // Reset for create
         setTitle('');
         setDescription('');
         setType('PrivateCompany');
-        setStartDate(new Date().toISOString().slice(0, 10));
+        setStartDate(String(new Date().getFullYear()));
+        setEndDate('');
+        setFieldValue('');
+        setTools([]);
+        setToolInput('');
+        setCreatedBy('');
         setCollege(user?.college_id || '');
         setYear(new Date().getFullYear().toString());
         setState('Active');
@@ -60,12 +79,22 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSuccess, i
     try {
       const [filterOpts, groupsData] = await Promise.all([
         projectService.getFilterOptions(),
-        groupService.getGroups()
+        // fetch full group rows (bulk-aware) when available
+        (groupService.getGroupsFields ? groupService.getGroupsFields() : groupService.getGroups())
       ]);
       setColleges(filterOpts.colleges || []);
-      // Filter groups that don't have a project, but include the current group if editing
-      const available = groupsData.filter((g: any) => !g.project || (mode === 'edit' && initialData?.group_id == g.group_id));
+      // If caller requested all groups, show them; otherwise filter groups that don't have a project
+      let available = groupsData || [];
+      if (!showAllGroups) {
+        available = available.filter((g: any) => !g.project || (mode === 'edit' && initialData?.group_id == g.group_id));
+      }
       setAvailableGroups(available);
+      try {
+        const users = await userService.getAllUsers();
+        setAllUsers(users || []);
+      } catch (e) {
+        console.warn('Failed to load users for ProjectForm', e);
+      }
     } catch (err) {
       console.error('Failed to load options:', err);
     }
@@ -79,11 +108,31 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSuccess, i
     if (!description.trim()) return setError('يرجى إدخال وصف المشروع');
     if (!startDate) return setError('يرجى تحديد تاريخ البدء');
 
+    // validate years are integers
+    const startYear = parseInt(String(startDate), 10);
+    if (Number.isNaN(startYear) || startYear < 1900 || startYear > 3000) return setError('يرجى إدخال سنة بداية صالحة');
+    let endYear: number | null = null;
+    if (endDate && String(endDate).trim().length) {
+      const e = parseInt(String(endDate), 10);
+      if (Number.isNaN(e) || e < 1900 || e > 3000) return setError('يرجى إدخال سنة انتهاء صالحة');
+      endYear = e;
+    }
+
+    // if the user typed a tool but didn't press Enter, include it
+    const finalTools = toolInput && toolInput.trim()
+      ? Array.from(new Set([...(Array.isArray(tools) ? tools : []), toolInput.trim()]))
+      : (Array.isArray(tools) ? tools : []);
+
     const payload = {
       title: title.trim(),
       description: description.trim(),
       type,
-      start_date: startDate,
+      start_date: startYear,
+      end_date: endYear,
+      field: fieldValue || null,
+      // backend expects text; convert tools array to CSV string
+      tools: finalTools.length ? finalTools.join(', ') : null,
+      created_by: createdBy || undefined,
       college,
       year,
       state,
@@ -129,8 +178,16 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSuccess, i
         }
       }
 
+      // notify other parts of the app to refresh data (DeanDashboard listens)
+      try {
+        window.dispatchEvent(new CustomEvent('projects:changed', { detail: { projectId } }));
+      } catch (e) { /* ignore */ }
+
       onSuccess(projectId);
       onClose();
+      // clear the local input now that we've saved and sync tools state
+      setToolInput('');
+      setTools(finalTools);
       alert(mode === 'edit' ? 'تم تحديث المشروع بنجاح.' : 'تم إنشاء المشروع بنجاح!');
     } catch (err: any) {
       const serverData = err.response?.data;
@@ -166,7 +223,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSuccess, i
                 أدخل تفاصيل المشروع
               </p>
             </div>
-            <button onClick={onClose} className="p-3 hover:bg-white hover:shadow-md rounded-2xl transition-all text-slate-400">
+            <button onClick={onClose} className="p-3 hover:bg-white hover:shadow-md rounded-2xl transition-all !text-slate-400">
               <FiX size={24} />
             </button>
           </div>
@@ -208,14 +265,84 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSuccess, i
               </div>
 
               <div>
-                <label className="block text-sm font-black text-slate-700 mb-2">تاريخ البدء *</label>
+                <label className="block text-sm font-black text-slate-700 mb-2">سنة البدء *</label>
                 <input
-                  type="date"
+                  type="number"
                   value={startDate}
                   onChange={e => setStartDate(e.target.value)}
                   className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
                   required
+                  min={1900}
+                  max={3000}
+                  step={1}
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-black text-slate-700 mb-2">سنة الانتهاء</label>
+                <input
+                  type="number"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  min={1900}
+                  max={3000}
+                  step={1}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-black text-slate-700 mb-2">التخصص / المجال</label>
+                <input
+                  type="text"
+                  value={fieldValue}
+                  onChange={e => setFieldValue(e.target.value)}
+                  className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="مثال: تعلم الآلة"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-black text-slate-700 mb-2">الأدوات (اضغط Enter للإضافة)</label>
+                <div className="flex gap-2 flex-wrap items-center">
+                  {tools.map((t, idx) => (
+                    <span key={idx} className="px-3 py-1 rounded-full bg-slate-100 text-sm text-slate-700 flex items-center gap-2">
+                      {t}
+                      <button type="button" onClick={() => setTools(ts => ts.filter((x, i) => i !== idx))} className="text-rose-500 px-1">×</button>
+                    </span>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  value={toolInput}
+                  onChange={e => setToolInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const v = toolInput.trim();
+                      if (v) {
+                        setTools(ts => Array.from(new Set([...ts, v])));
+                        setToolInput('');
+                      }
+                    }
+                  }}
+                  placeholder="أدخل أداة ثم اضغط Enter"
+                  className="w-full mt-2 p-3 bg-white border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-black text-slate-700 mb-2">تم الإنشاء بواسطة</label>
+                <select
+                  value={createdBy}
+                  onChange={e => setCreatedBy(e.target.value)}
+                  className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">- اختر مستخدم -</option>
+                  {allUsers.map((u: any) => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -286,6 +413,16 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ isOpen, onClose, onSuccess, i
                 required
               />
             </div>
+            {initialData?.users && initialData.users.length > 0 && (
+              <div>
+                <label className="block text-sm font-black text-slate-700 mb-2">المستخدمون في المجموعة</label>
+                <div className="flex gap-2 flex-wrap">
+                  {initialData.users.map((u: any, idx: number) => (
+                    <span key={idx} className="px-3 py-1 rounded-full bg-slate-100 text-sm text-slate-700">{u.displayName || u.name}</span>
+                  ))}
+                </div>
+              </div>
+            )}
           </form>
 
           <div className="p-8 border-t border-slate-100 bg-slate-50/50 flex flex-col md:flex-row justify-end gap-4">

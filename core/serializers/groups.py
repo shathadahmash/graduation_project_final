@@ -94,10 +94,15 @@ class GroupSerializer(serializers.ModelSerializer):
     members = serializers.SerializerMethodField()
     supervisors = serializers.SerializerMethodField()
     members_count = serializers.SerializerMethodField()
+    group_name = serializers.SerializerMethodField()
+    department = serializers.SerializerMethodField()
+    program = serializers.SerializerMethodField()
+    academic_year = serializers.CharField(read_only=True)
+    project_detail = serializers.SerializerMethodField()
 
     class Meta:
         model = Group
-        fields = ['group_id', 'project', 'members', 'supervisors', 'members_count']
+        fields = ['group_id', 'group_name', 'project', 'project_detail', 'members', 'supervisors', 'members_count', 'department', 'program', 'academic_year']
 
     def get_members(self, obj):
         qs = GroupMembers.objects.filter(group=obj).select_related('user')
@@ -109,6 +114,47 @@ class GroupSerializer(serializers.ModelSerializer):
 
     def get_members_count(self, obj):
         return obj.groupmembers_set.count()
+
+    def get_group_name(self, obj):
+        # support legacy field `group_name` if present, otherwise derive
+        name = getattr(obj, 'group_name', None)
+        if name:
+            return name
+        # fallback to pattern + project title
+        pat = obj.pattern.name if getattr(obj, 'pattern', None) else None
+        proj = obj.project.title if getattr(obj, 'project', None) else None
+        if pat and proj:
+            return f"{pat} - {proj}"
+        if proj:
+            return proj
+        return f"Group #{obj.group_id}"
+
+    def get_department(self, obj):
+        # Try to infer department from linked program_groups
+        pg = obj.program_groups.select_related('program__department').first()
+        if pg and getattr(pg.program, 'department', None):
+            return getattr(pg.program.department, 'department_id', None)
+        return None
+
+    def get_program(self, obj):
+        pg = obj.program_groups.select_related('program').first()
+        if not pg or not getattr(pg, 'program', None):
+            return None
+        program = pg.program
+        return {
+            'pid': getattr(program, 'pid', None),
+            'p_name': getattr(program, 'p_name', None),
+            'department_id': getattr(program, 'department_id', None)
+        }
+
+    def get_project_detail(self, obj):
+        if obj.project:
+            return {
+                'project_id': obj.project.project_id,
+                'title': obj.project.title,
+                'state': str(obj.project.state)
+            }
+        return None
 
 
 class GroupDetailSerializer(serializers.ModelSerializer):
@@ -126,7 +172,7 @@ class GroupDetailSerializer(serializers.ModelSerializer):
             return {
                 'project_id': project.project_id,
                 'title': project.title,
-                'state': getattr(project, 'state', 'N/A'),
+                'state': str(getattr(project, 'state', 'N/A')),
             }
         return None
 
@@ -153,12 +199,11 @@ class GroupMemberStatusSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'name', 'role', 'status']
 
 
-class GroupDetailSerializer(serializers.ModelSerializer):
+class GroupCreationRequestSerializer(serializers.ModelSerializer):
     # 'approvals' هو الحقل الذي يبحث عنه الـ React الآن
     approvals = GroupMemberStatusSerializer(many=True, read_only=True)
 
     class Meta:
-     
         model = GroupCreationRequest
         fields = ['id', 'creator', 'approvals', 'is_fully_confirmed']
 
@@ -169,16 +214,26 @@ class GroupProgramSerializer(serializers.ModelSerializer):
     college_name = serializers.CharField(source='program.department.college.name_ar', read_only=True)
     branch_name = serializers.SerializerMethodField()
     university_name = serializers.CharField(source='program.department.college.branch.university.name_ar', read_only=True)
+    program_id = serializers.IntegerField(source='program.pid', read_only=True)
+    department_id = serializers.IntegerField(source='program.department.department_id', read_only=True)
+    college_id = serializers.IntegerField(source='program.department.college.cid', read_only=True)
+    branch_id = serializers.SerializerMethodField()
+    university_id = serializers.IntegerField(source='program.department.college.branch.university.uid', read_only=True)
 
     class Meta:
         model = programgroup
-        fields = ['program_name', 'department_name', 'college_name', 'branch_name', 'university_name']
+        fields = ['program_id','program_name', 'department_id','department_name', 'college_id','college_name', 'branch_id','branch_name', 'university_id','university_name']
 
     def get_branch_name(self, obj):
         # safe traversal
         try:
             return obj.program.department.college.branch.city.bname_ar
         except AttributeError:
+            return None
+    def get_branch_id(self, obj):
+        try:
+            return obj.program.department.college.branch.ubid
+        except Exception:
             return None
         
 

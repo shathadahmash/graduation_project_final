@@ -62,6 +62,23 @@ export function setAuthToken(token: string | null) {
   }
 }
 
+// Why set isAuthenticated this way?
+
+// This runs when the store is created, so:
+
+// If the page refreshes
+
+// And the token is still in localStorage
+
+//  The user stays logged in
+
+// Without this:
+
+// Refresh page → user logged out
+
+// Bad user experience
+
+
 export function persistAuthToken(token: string | null) {
   // Keep localStorage keys in sync so different modules find the token
   if (token) {
