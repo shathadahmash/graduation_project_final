@@ -30,4 +30,6 @@ export const programService = {
   async deleteProgram(id: number) {
     await api.delete(`${API_ENDPOINTS.PROGRAMS}${id}/`);
   },
+
+
 };

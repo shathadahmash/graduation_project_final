@@ -1,6 +1,8 @@
 /// ------ collegeServices.ts ------//
 import axios from 'axios';
 import { bulkFetch } from './bulkService';
+import api from './api';
+
 
 export interface College {
     id: number;
@@ -12,45 +14,14 @@ export interface College {
     branch_detail?: any;
 }
 
-function normalizeItem(item: any): College {
-    if (!item || typeof item !== 'object') return item;
-    const cid = item.cid ?? item.id ?? item.pk ?? null;
-    const name_ar = item.name_ar ?? item.college_name ?? item.name ?? null;
-    return {
-        id: cid ?? (item.id ?? null),
-        cid: cid ?? undefined,
-        college_name: name_ar || (item.name_en ?? item.college_name ?? ''),
-        name_ar: name_ar ?? undefined,
-        name_en: item.name_en ?? undefined,
-        branch: item.branch ?? (item.branch_id ?? undefined),
-        branch_detail: item.branch_detail ?? undefined,
-    } as College;
-}
 
-function normalizeResponse(data: any): College[] {
-    if (!data) return [];
-
-    let arr: any[] = [];
-
-    // Common patterns
-    if (Array.isArray(data)) arr = data;
-    else if (data.results && Array.isArray(data.results)) arr = data.results;
-    else if (data.colleges && Array.isArray(data.colleges)) arr = data.colleges;
-    else if (data.data && Array.isArray(data.data)) arr = data.data;
-    else if (typeof data === 'object') {
-        // Pick the first array value in the object
-        arr = Object.values(data).find(v => Array.isArray(v)) ?? [];
-    }
-
-    return arr.map(normalizeItem).filter(Boolean) as College[];
-}
 
 export const collegeService = {
     async getColleges(params?: any) {
         try {
-            const response = await axios.get('colleges/', { params });
+            const response = await axios.get('/api/colleges/', { params });
             try { console.debug('[collegeService] raw response:', response.status, response.data); } catch (e) { }
-            const normalized = normalizeResponse(response.data);
+            const normalized = response.data;
             console.log('[collegeService] normalized colleges:', normalized);
             try { console.debug('[collegeService] normalized count:', normalized.length, 'sample:', normalized.slice(0, 3)); } catch (e) { }
             return normalized;
@@ -61,7 +32,7 @@ export const collegeService = {
     },
     async getCollegeById(collegeId: number) {
         try {
-            const response = await axios.get(`colleges/${collegeId}/`);
+            const response = await axios.get(`/api/colleges/${collegeId}/`);
             return response.data;
         } catch (error) {
             console.error('Failed to fetch college:', error);
@@ -71,7 +42,7 @@ export const collegeService = {
 
     async getfilterOptions() {
         try {
-            const response = await axios.get('colleges/filter-options/');
+            const response = await axios.get('/api/colleges/filter-options/');
             return response.data;
         } catch (error) {
             console.error('Failed to fetch filter options:', error);
@@ -81,7 +52,7 @@ export const collegeService = {
 
     async searchColleges(query: string, params?: any) {
         try {
-            const response = await axios.get('colleges/search/', {
+            const response = await axios.get('/api/colleges/search/', {
                 params: { q: query, ...params },
             });
             return response.data;
@@ -93,7 +64,7 @@ export const collegeService = {
 
     async addcollege(collegeData: Omit<College, 'id'>) {
         try {
-            const response = await axios.post('colleges/', collegeData);
+            const response = await axios.post('/api/colleges/', collegeData);
             return response.data;
         } catch (error) {
             console.error('Failed to add college:', error);
@@ -103,7 +74,7 @@ export const collegeService = {
 
     async updateCollege(collegeId: number, collegeData: Partial<Omit<College, 'id'>>) {
         try {
-            const response = await axios.put(`colleges/${collegeId}/`, collegeData);
+            const response = await axios.put(`/api/colleges/${collegeId}/`, collegeData);
             return response.data;
         } catch (error) {
             console.error('Failed to update college:', error);
@@ -113,7 +84,7 @@ export const collegeService = {
 
     async deleteCollege(collegeId: number) {
         try {
-            await axios.delete(`/colleges/${collegeId}/`);
+            await axios.delete(`/api/colleges/${collegeId}/`);
             return true;
         } catch (error) {
             console.error('Failed to delete college:', error);
@@ -123,7 +94,7 @@ export const collegeService = {
 
     async downloadcollegesCSV(params?: any) {
         try {
-            const response = await axios.get('/colleges/download-csv/', { params, responseType: 'blob' });
+            const response = await axios.get('/api/colleges/download-csv/', { params, responseType: 'blob' });
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -136,5 +107,16 @@ export const collegeService = {
             throw error;
         }
     },
+
+    async getCollegePrograms(collegeId: number) {
+        try {
+            const response = await api.get(`/programs/`, { params: { college: collegeId } });
+            return response.data; // array of programs
+        } catch (err) {
+            console.error('Failed to fetch programs:', err);
+            return [];
+        }
+    }
+
 };
 export default collegeService;

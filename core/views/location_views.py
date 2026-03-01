@@ -47,7 +47,7 @@ class CollegeViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
-        qs = self.get_queryset().order_by('c_name')
+        qs = self.get_queryset().order_by('name_ar')
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
 
