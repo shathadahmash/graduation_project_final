@@ -13,26 +13,6 @@ import {
 } from "react-icons/fi";
 import { useAuthStore } from "../../../store/useStore";
 
-/**
- * Simple Import v1 (Users)
- * - Upload Excel (.xlsx)
- * - Validate (dry-run): POST /api/system/import/users/validate/
- * - Commit import:      POST /api/system/import/users/commit/
- *
- * Expected backend response (suggested):
- * {
- *   total_rows: number,
- *   valid_rows: number,
- *   invalid_rows: number,
- *   created_users?: number,
- *   updated_users?: number,
- *   roles_assigned?: number,
- *   affiliations_created?: number,
- *   errors: Array<{ row: number; field?: string; message: string; value?: any }>
- * }
- *
- * NOTE: Adjust endpoints to match your Django URLs.
- */
 
 type ImportError = {
   row: number;

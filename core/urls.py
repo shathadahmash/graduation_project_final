@@ -34,7 +34,7 @@ from core.views import (
     
 )
 from core.views.groups import GroupProgramViewSet
-from core.views.location_views import BranchViewSet, CollegeDepartmentsView, CollegeProgramsView, DepartmentViewSet, UniversityViewSet
+from core.views.location_views import BranchViewSet, CollegeDepartmentsView, CollegeProgramsView, DepartmentViewSet, UniversityViewSet, universitycollegeviewset
 from core.views.location_views import ProgramViewSet
 
 from .views import get_csrf_token
@@ -59,7 +59,7 @@ router.register(r'program-groups', GroupProgramViewSet, basename='program-groups
 router.register(r'colleges', CollegeViewSet, basename='colleges')
 router.register(r'departments', DepartmentViewSet, basename='departments')
 router.register(r'branches', BranchViewSet, basename='branches')
-
+router.register(r'university-colleges', universitycollegeviewset, basename='university-colleges')
 
 urlpatterns = [
     path('colleges/<int:college_id>/departments/', CollegeDepartmentsView.as_view(), name='college-departments'),

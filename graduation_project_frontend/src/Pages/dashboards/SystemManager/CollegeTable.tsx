@@ -26,7 +26,6 @@ const CollegeTable: React.FC = () => {
       try {
         // 1️⃣ Fetch all colleges
         const data = await collegeService.getColleges();
-        console.log('Fetched colleges:', data);
 
         // 2️⃣ Fetch programs for each college
         const collegesWithPrograms = await Promise.all(
@@ -35,9 +34,8 @@ const CollegeTable: React.FC = () => {
             const collegeId = college.id ?? college.cid;
             if (!collegeId) return college;
 
-            console.log('Fetching programs for collegeId:', collegeId);
             const programs = await collegeService.getCollegePrograms(collegeId);
-            console.log('Programs fetched:', programs);
+           
 
             return {
               ...college,

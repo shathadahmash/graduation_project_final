@@ -64,3 +64,4 @@ class ProgramSerializer(serializers.ModelSerializer):
     class Meta:
         model = Program
         fields = ['pid', 'p_name', 'department', 'department_detail']
+  # include any other fields needed

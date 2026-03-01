@@ -39,17 +39,18 @@ import CollegesTable from './CollegeTable.tsx';
 import DepartmentsTable from './DepartmentsTable.tsx';
 import ProgramsTable from './ProgramTable.tsx';
 import Branches from './BranchTable';
-import collegeServices from  '../../../services/collegeServices.ts';
+import collegeServices from '../../../services/collegeServices.ts';
+import universityService from '../../../services/universityService.ts';
 
 const SystemManagerDashboard: React.FC = () => {
-   const { user } = useAuthStore();
+  const { user } = useAuthStore();
   const { unreadCount } = useNotificationsStore();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<
     'home' | 'users' | 'projects' | 'groups' | 'approvals' | 'settings'
   >('home');
-  console.log("user : ",user?.name)
+  console.log("user : ", user?.name)
   const [users, setUsers] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
@@ -101,12 +102,12 @@ const SystemManagerDashboard: React.FC = () => {
             console.log(`DIAG ${name}:`, {
               typeof: typeof val,
               isArray: Array.isArray(val),
-              keys: val && typeof val === 'object' ? Object.keys(val).slice(0,10) : undefined,
-              sample: (() => { try { return JSON.stringify(val).slice(0,1000); } catch(e){ return String(val); } })(),
+              keys: val && typeof val === 'object' ? Object.keys(val).slice(0, 10) : undefined,
+              sample: (() => { try { return JSON.stringify(val).slice(0, 1000); } catch (e) { return String(val); } })(),
             });
           } catch (e) { console.warn('diag error', e); }
         };
-        diag('fetchedUniversities', fetchedUniversities);
+
         diag('fetchedPrograms', fetchedPrograms);
         diag('fetchedBranches', fetchedBranches);
         setUsers(Array.isArray(fetchedUsers) ? fetchedUsers : []);
@@ -150,9 +151,21 @@ const SystemManagerDashboard: React.FC = () => {
           arraysFound.sort((a, b) => b.length - a.length);
           return arraysFound[0];
         };
-
+        // Fetch universities reliably
+        let normUniversities: any[] = [];
+        try {
+          const fetchedUniversities = await universityService.getUniversities(); // this should return an array
+          if (Array.isArray(fetchedUniversities)) {
+            normUniversities = fetchedUniversities;
+          } else if (fetchedUniversities?.results && Array.isArray(fetchedUniversities.results)) {
+            normUniversities = fetchedUniversities.results;
+          }
+        } catch (e) {
+          console.warn('Failed to fetch universities', e);
+          normUniversities = [];
+        }
+        setUniversities(normUniversities);
         let normColleges = normalizeBulk(fetchedColleges, 'colleges');
-        let normUniversities = normalizeBulk(fetchedUniversities, 'universities');
         let normPrograms = normalizeBulk(fetchedPrograms, 'programs');
         let normBranches = normalizeBulk(fetchedBranches, 'branches');
 
@@ -172,15 +185,14 @@ const SystemManagerDashboard: React.FC = () => {
         } catch (e) { console.warn('branchService fallback failed', e); }
 
         setColleges(Array.isArray(normColleges) ? normColleges : []);
-        setUniversities(Array.isArray(normUniversities) ? normUniversities : []);
         setPrograms(Array.isArray(normPrograms) ? normPrograms : []);
         setBranches(Array.isArray(normBranches) ? normBranches : []);
 
         console.log('SystemManagerDashboard normalized samples:', {
-          colleges: Array.isArray(normColleges) ? normColleges.slice(0,5) : normColleges,
-          universities: Array.isArray(normUniversities) ? normUniversities.slice(0,5) : normUniversities,
-          programs: Array.isArray(normPrograms) ? normPrograms.slice(0,5) : normPrograms,
-          branches: Array.isArray(normBranches) ? normBranches.slice(0,5) : normBranches,
+          colleges: Array.isArray(normColleges) ? normColleges.slice(0, 5) : normColleges,
+          universities: Array.isArray(normUniversities) ? normUniversities.slice(0, 5) : normUniversities,
+          programs: Array.isArray(normPrograms) ? normPrograms.slice(0, 5) : normPrograms,
+          branches: Array.isArray(normBranches) ? normBranches.slice(0, 5) : normBranches,
         });
 
         console.log('SystemManagerDashboard fetched counts:', {
@@ -371,25 +383,25 @@ const SystemManagerDashboard: React.FC = () => {
             else if (deptObj.college && typeof deptObj.college === 'object') cid = deptObj.college.cid || deptObj.college.id;
             else if (deptObj.college_id) cid = deptObj.college_id;
             if (cid) enrichedProj.college = enrichedProj.college || cid;
-              // attempt to resolve university name from department -> college -> branch -> university
-              try {
-                if (!enrichedProj.university_name) {
-                  let uniName: any = null;
-                  // if department has college object with nested university
-                  const col = (typeof deptObj.college === 'object' && deptObj.college) ? deptObj.college : null;
-                  if (col) {
-                    if (col.uname_ar || col.name_ar) uniName = col.uname_ar || col.name_ar;
-                    if (!uniName && col.branch_detail && col.branch_detail.university_detail) {
-                      const ud = col.branch_detail.university_detail;
-                      uniName = ud.uname_ar || ud.name_ar || ud.uname_en || ud.name || null;
-                    }
-                    if (!uniName && col.university && typeof col.university === 'object') {
-                      uniName = col.university.uname_ar || col.university.name_ar || col.university.uname_en || col.university.name || null;
-                    }
+            // attempt to resolve university name from department -> college -> branch -> university
+            try {
+              if (!enrichedProj.university_name) {
+                let uniName: any = null;
+                // if department has college object with nested university
+                const col = (typeof deptObj.college === 'object' && deptObj.college) ? deptObj.college : null;
+                if (col) {
+                  if (col.uname_ar || col.name_ar) uniName = col.uname_ar || col.name_ar;
+                  if (!uniName && col.branch_detail && col.branch_detail.university_detail) {
+                    const ud = col.branch_detail.university_detail;
+                    uniName = ud.uname_ar || ud.name_ar || ud.uname_en || ud.name || null;
                   }
-                  if (uniName) enrichedProj.university_name = uniName;
+                  if (!uniName && col.university && typeof col.university === 'object') {
+                    uniName = col.university.uname_ar || col.university.name_ar || col.university.uname_en || col.university.name || null;
+                  }
                 }
-              } catch (e) { /* ignore */ }
+                if (uniName) enrichedProj.university_name = uniName;
+              }
+            } catch (e) { /* ignore */ }
           }
         }
 
@@ -538,15 +550,15 @@ const SystemManagerDashboard: React.FC = () => {
         gradient: 'from-blue-500 to-blue-700',
         description: 'إدارة مجموعات الطلاب والفرق'
       },
-       {
+      {
         id: 'universities',
         title: 'الجامعات',
-        value: filteredUniversities.length,
+        value: universities.length, // use the state directly
         icon: <FiCompass />,
         gradient: 'from-blue-500 to-blue-700',
-        description: 'إدارة الجامعات '
+        description: 'إدارة الجامعات'
       },
-       {
+      {
         id: 'colleges',
         title: 'الكليات ',
         value: filteredColleges.length,
@@ -554,7 +566,7 @@ const SystemManagerDashboard: React.FC = () => {
         gradient: 'from-blue-500 to-blue-700',
         description: 'إدارة الكليات '
       },
-       {
+      {
         id: 'departments',
         title: 'الأقسام',
         value: filteredDepartments.length,
@@ -570,7 +582,7 @@ const SystemManagerDashboard: React.FC = () => {
         gradient: 'from-blue-500 to-blue-700',
         description: 'إدارة الأقسام '
       },
-       {
+      {
         id: 'branches',
         title: 'الفروع',
         value: filteredBranches.length,
@@ -601,16 +613,16 @@ const SystemManagerDashboard: React.FC = () => {
             <ProjectsTable filteredProjects={filteredProjects} />
           </div>
         );
-        case 'الجامعات':
-          return <UniversitiesTable />;
-        case 'الكليات':
-          return <CollegesTable />;
-        case 'الأقسام':
-          return <DepartmentsTable />;
-        case 'التخصصات':
-          return <ProgramsTable />;
-        case 'الفروع':
-          return <Branches />;
+      case 'الجامعات':
+        return <UniversitiesTable />;
+      case 'الكليات':
+        return <CollegesTable />;
+      case 'الأقسام':
+        return <DepartmentsTable />;
+      case 'التخصصات':
+        return <ProgramsTable />;
+      case 'الفروع':
+        return <Branches />;
       default:
         return null;
     }
@@ -633,17 +645,15 @@ const SystemManagerDashboard: React.FC = () => {
     <div className="flex h-screen bg-[#F8FAFC]" dir="rtl">
       {/* Sidebar Overlay */}
       <div
-        className={`fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 ${
-          isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
+        className={`fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
         onClick={() => setIsSidebarOpen(false)}
       />
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 right-0 w-80 bg-[#0F172A] text-white z-[60] transition-transform duration-300 ease-out shadow-2xl ${
-          isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        className={`fixed inset-y-0 right-0 w-80 bg-[#0F172A] text-white z-[60] transition-transform duration-300 ease-out shadow-2xl ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
       >
         <div className="p-6 flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center gap-3">
@@ -661,7 +671,7 @@ const SystemManagerDashboard: React.FC = () => {
         </div>
 
         <nav className="mt-4 space-y-2">
-              {[
+          {[
             { id: 'home', label: 'الرئيسية', icon: <FiHome /> },
             { id: 'users', label: 'المستخدمون', icon: <FiUsers />, cardPanel: 'المستخدمون' },
             { id: 'projects', label: 'المشاريع', icon: <FiLayers />, cardPanel: 'المشاريع' },
@@ -674,10 +684,10 @@ const SystemManagerDashboard: React.FC = () => {
               onClick={() => {
                 if (tab.id === 'home') {
                   setActiveTab('home');
-                      setActiveCardPanel(null);
+                  setActiveCardPanel(null);
                 } else if (tab.cardPanel) {
                   setActiveTab('home');
-                      setActiveCardPanel((tab.cardPanel as string).trim());
+                  setActiveCardPanel((tab.cardPanel as string).trim());
                 } else {
                   setActiveTab(tab.id as any);
                   setActiveCardPanel(null);
@@ -686,11 +696,10 @@ const SystemManagerDashboard: React.FC = () => {
                 setActiveReport(null);
                 setIsSidebarOpen(false);
               }}
-              className={`w-full flex items-center gap-4 p-4 rounded-xl transition-colors group ${
-                activeTab === tab.id
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-              }`}
+              className={`w-full flex items-center gap-4 p-4 rounded-xl transition-colors group ${activeTab === tab.id
+                ? 'bg-blue-600 text-white'
+                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                }`}
             >
               <span className={`${activeTab === tab.id ? 'text-white' : 'group-hover:text-white'}`}>
                 {tab.icon}
@@ -711,88 +720,87 @@ const SystemManagerDashboard: React.FC = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
- {/* Header (DESIGN ONLY - like DepartmentHead) */}
-<header className="h-20 bg-white  border-b border-slate-100 px-6 lg:px-8 flex items-center justify-between sticky top-0 z-40">
-  {/* Left: menu + title */}
-  <div className="flex items-center gap-4">
-    <button
-      onClick={() => setIsSidebarOpen(true)}
-      className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl transition-all border border-slate-200"
-      aria-label="فتح القائمة"
-    >
-      <FiMenu size={20} />
-    </button>
+        {/* Header (DESIGN ONLY - like DepartmentHead) */}
+        <header className="h-20 bg-white  border-b border-slate-100 px-6 lg:px-8 flex items-center justify-between sticky top-0 z-40">
+          {/* Left: menu + title */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl transition-all border border-slate-200"
+              aria-label="فتح القائمة"
+            >
+              <FiMenu size={20} />
+            </button>
 
-    <h2 className="text-xl font-black text-slate-800">نظام الإدارة</h2>
-  </div>
+            <h2 className="text-xl font-black text-slate-800">نظام الإدارة</h2>
+          </div>
 
-  {/* Center: tabs */}
-  <nav className="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-1">
-    {[
-      { id: 'home', label: 'الرئيسية' },
-      { id: 'users', label: 'المستخدمون', cardPanel: 'المستخدمون' },
-      { id: 'projects', label: 'المشاريع', cardPanel: 'المشاريع' },
-      { id: 'groups', label: 'المجموعات', cardPanel: 'المجموعات' },
-      { id: 'approvals', label: 'الموافقات' },
-      { id: 'settings', label: 'الإعدادات' },
-    ].map(item => {
-      const active = activeTab === item.id;
-      return (
-        <button
-          key={item.id}
-          onClick={() => {
-            if (item.id === 'home') {
-              setActiveTab('home');
-              setActiveCardPanel(null);
-            } else if ((item as any).cardPanel) {
-              setActiveTab('home');
-              setActiveCardPanel(((item as any).cardPanel as string).trim());
-            } else {
-              setActiveTab(item.id as any);
-              setActiveCardPanel(null);
-            }
-            setShowManagementContent(false);
-            setActiveReport(null);
-          }}
-          className={`px-5 py-2 rounded-xl text-sm font-black transition-all ${
-            active
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-              : 'text-slate-600 hover:bg-white'
-          }`}
-        >
-          {item.label}
-        </button>
-      );
-    })}
-  </nav>
+          {/* Center: tabs */}
+          <nav className="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-1">
+            {[
+              { id: 'home', label: 'الرئيسية' },
+              { id: 'users', label: 'المستخدمون', cardPanel: 'المستخدمون' },
+              { id: 'projects', label: 'المشاريع', cardPanel: 'المشاريع' },
+              { id: 'groups', label: 'المجموعات', cardPanel: 'المجموعات' },
+              { id: 'approvals', label: 'الموافقات' },
+              { id: 'settings', label: 'الإعدادات' },
+            ].map(item => {
+              const active = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    if (item.id === 'home') {
+                      setActiveTab('home');
+                      setActiveCardPanel(null);
+                    } else if ((item as any).cardPanel) {
+                      setActiveTab('home');
+                      setActiveCardPanel(((item as any).cardPanel as string).trim());
+                    } else {
+                      setActiveTab(item.id as any);
+                      setActiveCardPanel(null);
+                    }
+                    setShowManagementContent(false);
+                    setActiveReport(null);
+                  }}
+                  className={`px-5 py-2 rounded-xl text-sm font-black transition-all ${active
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                    : 'text-slate-600 hover:bg-white'
+                    }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </nav>
 
-  {/* Right: notifications + hello + avatar */}
-  <div className="flex items-center gap-3">
-    <button
-      onClick={() => setIsNotifPanelOpen(true)}
-      className="relative p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl transition-all border border-slate-200"
-      aria-label="فتح الإشعارات"
-    >
-      <FiBell size={20} />
-      {unreadCount > 0 && (
-        <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] font-black rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center">
-          {unreadCount}
-        </span>
-      )}
-    </button>
+          {/* Right: notifications + hello + avatar */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsNotifPanelOpen(true)}
+              className="relative p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl transition-all border border-slate-200"
+              aria-label="فتح الإشعارات"
+            >
+              <FiBell size={20} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] font-black rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
 
-    <div className="hidden sm:block text-right">
-      <p className="text-xs font-black text-slate-800 leading-none">مرحباً</p>
-      <p className="text-[11px] text-slate-400 font-bold mt-1">
-        {user?.name || 'مدير النظام'}
-      </p>
-    </div>
+            <div className="hidden sm:block text-right">
+              <p className="text-xs font-black text-slate-800 leading-none">مرحباً</p>
+              <p className="text-[11px] text-slate-400 font-bold mt-1">
+                {user?.name || 'مدير النظام'}
+              </p>
+            </div>
 
-    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md flex items-center justify-center text-white font-black">
-      {(user?.name || 'م')?.charAt(0)?.toUpperCase()}
-    </div>
-  </div>
-</header>
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md flex items-center justify-center text-white font-black">
+              {(user?.name || 'م')?.charAt(0)?.toUpperCase()}
+            </div>
+          </div>
+        </header>
 
         {/* Main Scrollable Content */}
         <main className="flex-1 overflow-y-auto">
@@ -846,12 +854,12 @@ const SystemManagerDashboard: React.FC = () => {
               </div>
             </div>
           )}
-<button
-  onClick={() => navigate("/dashboard/system-manager/import-users")}
-  className="px-4 py-2 rounded-xl bg-blue-600 text-white"
->
-  استيراد مستخدمين (Excel)
-</button>
+          <button
+            onClick={() => navigate("/dashboard/system-manager/import-users")}
+            className="px-4 py-2 rounded-xl bg-blue-600 text-white"
+          >
+            استيراد مستخدمين (Excel)
+          </button>
           {/* Management Panel - Full screen when active */}
           {activeCardPanel && (
             <div className="relative mt-8">
