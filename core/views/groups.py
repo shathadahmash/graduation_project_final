@@ -68,15 +68,8 @@ class GroupViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return GroupCreateSerializer
-<<<<<<< HEAD
-        if self.action == 'retrieve':
-            return GroupDetailSerializer
-        if self.action == 'my_group':
-            return GroupCreationRequestSerializer
-=======
         if self.action in ['retrieve', 'my_group']:
             return GroupDetailSerializer
->>>>>>> fatma-branch
         return GroupSerializer
 
     # ============================
