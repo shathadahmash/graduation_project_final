@@ -90,7 +90,6 @@ const SystemManagerDashboard: React.FC = () => {
 
         const results = settled.map(s => s.status === 'fulfilled' ? (s as any).value : null);
         const [fetchedUsers, fetchedRoles, fetchedProjectsRaw, fetchedGroups, fetchedAffiliations, fetchedDepartments, fetchedColleges, fetchedUniversities, fetchedPrograms, fetchedBranches] = results;
-
         // Log rejections for visibility
         settled.forEach((s, idx) => { if (s.status === 'rejected') console.warn('fetch failed idx', idx, (s as any).reason); });
 
