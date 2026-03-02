@@ -750,52 +750,52 @@ const ProjectsTable: React.FC<Props> = ({ filteredProjects }) => {
           </div>
         </div>
       </div>
-      <div className="bg-white text-slate-900">
-        <table className="table-auto min-w-full border-collapse border border-gray-200">
-          <thead className="bg-gray-100">
+      <div className="overflow-x-auto shadow-lg rounded-lg bg-white">
+        <table className="min-w-full table-fixed border-collapse text-center">
+          <thead className="bg-gray-100 text-gray-700">
           <tr>
-            <th className="px-4 py-2 text-center">الإجراءات</th>
-            <th className="px-4 py-2 text-center">ملف المشروع</th>
-            <th className="px-4 py-2 text-right">عنوان المشروع</th>
-            <th className="px-4 py-2 text-right">نوع المشروع</th>
-            <th className="px-4 py-2 text-right">الحالة</th>
-            <th className="px-4 py-2 text-right">الملخص</th>
-            <th className="px-4 py-2 text-right">المشرف</th>
-            <th className="px-4 py-2 text-right">المشرف المشارك</th>
-            <th className="px-4 py-2 text-right">الكلية</th>
-            <th className="px-4 py-2 text-right">الجامعة</th>
-            <th className="px-4 py-2 text-right">القسم</th>
-            <th className="px-4 py-2 text-right">تاريخ الانتهاء</th>
-            <th className="px-4 py-2 text-right">المجال</th>
-            <th className="px-4 py-2 text-right">التخصص</th>
-            <th className="px-4 py-2 text-right">الأدوات</th>
-            <th className="px-4 py-2 text-right">إنشأ بواسطة</th>
-            <th className="px-4 py-2 text-right">تاريخ البداية</th>
-            <th className="px-4 py-2 text-right">المستخدمون</th>
+            <th className="px-4 py-3 border-b text-center">الإجراءات</th>
+            <th className="px-4 py-3 border-b text-center">ملف المشروع</th>
+            <th className="px-4 py-3 border-b text-right">عنوان المشروع</th>
+            <th className="px-4 py-3 border-b text-right">نوع المشروع</th>
+            <th className="px-4 py-3 border-b text-right">الحالة</th>
+            <th className="px-4 py-3 border-b text-right">الملخص</th>
+            <th className="px-4 py-3 border-b text-right">المشرف</th>
+            <th className="px-4 py-3 border-b text-right">المشرف المشارك</th>
+            <th className="px-4 py-3 border-b text-right">الكلية</th>
+            <th className="px-4 py-3 border-b text-right">الجامعة</th>
+            <th className="px-4 py-3 border-b text-right">القسم</th>
+            <th className="px-4 py-3 border-b text-right">تاريخ الانتهاء</th>
+            <th className="px-4 py-3 border-b text-right">المجال</th>
+            <th className="px-4 py-3 border-b text-right">التخصص</th>
+            <th className="px-4 py-3 border-b text-right">الأدوات</th>
+            <th className="px-4 py-3 border-b text-right">إنشأ بواسطة</th>
+            <th className="px-4 py-3 border-b text-right">تاريخ البداية</th>
+            <th className="px-4 py-3 border-b text-right">المستخدمون</th>
           </tr>
         </thead>
         <tbody>
           {projects.map((proj) => (
-            <tr key={proj.project_id} className="border-b last:border-b-0">
+            <tr key={proj.project_id} className="hover:bg-gray-50">
               <td className="px-4 py-2 text-center">
                 <button
                   onClick={() => { setEditingProject(proj); setShowProjectForm(true); }}
-                  className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all mr-2"
+                  className="bg-yellow-200 hover:bg-yellow-300 text-gray-800 px-3 py-1 rounded mr-2 transition"
                   title="تعديل"
                 >
-                  <FiEdit3 size={18} />
+                  <FiEdit3 size={16} />
                 </button>
                 <button
                   onClick={() => handleDeleteProject(proj.project_id)}
-                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                  className="bg-red-200 hover:bg-red-300 text-gray-800 px-3 py-1 rounded transition"
                   title="حذف"
                 >
-                  <FiTrash2 size={18} />
+                  <FiTrash2 size={16} />
                 </button>
               </td>
               <td className="px-4 py-2 text-center align-top">
                 <button
-                  className="text-primary-700 hover:opacity-80 flex items-center justify-center gap-1"
+                  className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition flex items-center justify-center gap-1"
                   onClick={() => projectService.downloadProjectFile(proj.project_id)}
                 >
                   <FiDownload /> تنزيل

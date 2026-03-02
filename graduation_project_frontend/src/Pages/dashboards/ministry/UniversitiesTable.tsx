@@ -47,6 +47,12 @@ const UniversitiesTable: React.FC = () => {
                 نوع الجامعة
               </th>
               <th className="py-3 px-6 border-r-2 border-black text-left !text-black font-semibold">
+                عدد الكليات
+              </th>
+              <th className="py-3 px-6 border-r-2 border-black text-left !text-black font-semibold">
+                المدينة
+              </th>
+              <th className="py-3 px-6 border-r-2 border-black text-left !text-black font-semibold">
                 إجراءات
               </th>
             </tr>
@@ -63,6 +69,12 @@ const UniversitiesTable: React.FC = () => {
                 </td>
                 <td className="py-3 px-6 border-r-2 border-black">
                   {u.type}
+                </td>
+                <td className="py-3 px-6 border-r-2 border-black">
+                  {u.colleges?.length ?? 0}
+                </td>
+                <td className="py-3 px-6 border-r-2 border-black">
+                  {u.city || '-'}
                 </td>
                 <td className="py-3 px-6 border-r-2 border-black flex gap-2">
                   <button className="bg-yellow-500 text-white px-4 py-1 rounded-lg hover:bg-yellow-600 transition">

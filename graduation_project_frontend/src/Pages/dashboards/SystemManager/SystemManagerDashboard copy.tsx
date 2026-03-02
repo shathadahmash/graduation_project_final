@@ -42,7 +42,7 @@ import Branches from './BranchTable';
 import collegeServices from '../../../services/collegeServices.ts';
 import universityService from '../../../services/universityService.ts';
 
-const MinistryDashboard: React.FC = () => {
+const SystemManagerDashboard: React.FC = () => {
   const { user } = useAuthStore();
   const { unreadCount } = useNotificationsStore();
   const navigate = useNavigate();
@@ -1033,4 +1033,4 @@ const MinistryDashboard: React.FC = () => {
   );
 };
 
-export default MinistryDashboard;
+export default SystemManagerDashboard;

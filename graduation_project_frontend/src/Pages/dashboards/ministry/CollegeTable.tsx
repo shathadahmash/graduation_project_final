@@ -99,7 +99,6 @@ const CollegeTable: React.FC = () => {
                     <td className="border border-black px-4 py-2">
                       {c.branch_detail?.university_detail?.uname_ar ?? '-'}
                     </td>
-                    
                     <td className="border border-black px-4 py-2">
                       {c.programs && c.programs.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
