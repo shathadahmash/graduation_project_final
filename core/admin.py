@@ -227,15 +227,38 @@ class StudentProgressAdmin(admin.ModelAdmin):
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'name', 'is_staff', 'phone', 'gender')
-    fieldsets = UserAdmin.fieldsets + (
-        (_('Additional Info'), {'fields': ('phone', 'name', 'gender')}),
+    # الأعمدة الظاهرة في قائمة المستخدمين
+    list_display = (
+        'username',
+        'CID',
+        'email',
+        'name',
+        'phone',
+        'gender',
+        'is_staff',
+        'is_active',
     )
-    add_fieldsets = UserAdmin.add_fieldsets + (
-        (_('Additional Info'), {'fields': ('phone', 'name', 'gender')}),
-    )
-    search_fields = ('username', 'email', 'name', 'phone')
+
+    # البحث
+    search_fields = ('username', 'CID', 'email', 'name', 'phone')
+
+    # الفلاتر
     list_filter = ('is_staff', 'is_superuser', 'is_active', 'gender')
+
+    # إضافة الحقول في صفحة التعديل
+    fieldsets = UserAdmin.fieldsets + (
+        (_('Additional Info'), {
+            'fields': ('CID', 'phone', 'name', 'gender')
+        }),
+    )
+
+    # إضافة الحقول في صفحة الإضافة
+    add_fieldsets = UserAdmin.add_fieldsets + (
+        (_('Additional Info'), {
+            'fields': ('CID', 'phone', 'name', 'gender')
+        }),
+    )
+
     inlines = [UserRolesInline]
 
 @admin.register(ContactUs)

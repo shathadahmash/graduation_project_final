@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.utils import timezone
 import datetime
+from django.core.validators import RegexValidator
 
 # ============================================================================== 
 # 1. نموذج المدينة (City)
@@ -253,9 +254,16 @@ class StudentProgress(models.Model):
 # ============================================================================== 
 # 3. نموذج المستخدم المخصص
 # ==============================================================================
+
+cid_validator = RegexValidator(
+    regex=r'^\d{12}$',
+    message='CID must be exactly 12 digits.'
+)
+
 class User(AbstractUser):
     CID = models.CharField(
-        max_length=20,
+        max_length=12,
+        validators=[cid_validator],
         unique=True,
         null=True,
         blank=True
