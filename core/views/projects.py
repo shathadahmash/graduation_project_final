@@ -8,7 +8,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from core.models import (
     User, Group, Project, ApprovalRequest, Role, College, UserRoles,
-    AcademicAffiliation, ProjectState
+    AcademicAffiliation, ProjectState, GroupSupervisors
 )
 from core.serializers import ProjectSerializer
 from core.permissions import PermissionManager
@@ -31,6 +31,7 @@ class ProjectFilter(django_filters.FilterSet):
     department = django_filters.NumberFilter(
         field_name="groups__program_groups__program__department__department_id"
     )
+
     supervisor = django_filters.NumberFilter(
         field_name="groups__groupsupervisors_set__user__id"
     )
@@ -51,12 +52,14 @@ class ProjectViewSet(viewsets.ModelViewSet):
     ordering_fields = ["title", "start_date", "created_by__name", "state__name"]
 
     def get_queryset(self):
+        logger.debug("ProjectViewSet query params: %s", dict(self.request.query_params))
         user = self.request.user
         qs = Project.objects.all().order_by("-start_date")
         # bring in related state and creator in single join
         qs = qs.select_related('state', 'created_by')
 
         # Prefetch related objects used heavily in serializer to avoid N+1 queries
+      #to solve supervisor dash 
         qs = qs.prefetch_related(
             'groups__groupsupervisors_set__user',
             'groups__program_groups__program__department__college__branch__university'
@@ -84,11 +87,13 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if PermissionManager.is_admin(user) and not PermissionManager.is_dean(user):
             logger.debug('ProjectViewSet: user %s is admin (not dean) - returning all projects', user)
             return qs
-
+# i did this to solve what is happening in the supervisor dashboard
         if PermissionManager.is_supervisor(user):
             return qs.filter(
-                groups__groupsupervisors_set__user=user
+                groups__groupsupervisors__user=user
             ).distinct()
+
+
 
         # Allow dean to view projects belonging to their college(s)
         if PermissionManager.is_dean(user):

@@ -8,20 +8,11 @@ function safeArray(x: any): any[] {
   return Array.isArray(x) ? x : [];
 }
 
-function groupId(g: AnyObj): string | number {
-  return g.group_id ?? g.id ?? g.pk ?? Math.random();
-}
-
-function groupName(g: AnyObj): string {
-  return g.group_name ?? g.name ?? "—";
-}
-
 function projectTitle(g: AnyObj): string {
   return g.project_title ?? g.project?.title ?? g.project?.name ?? "—";
 }
 
 function memberNames(g: AnyObj): string[] {
-  // SupervisorGroupSerializer يرجّع members كقائمة أسماء (strings)
   const buckets = [g.members];
   const names: string[] = [];
 
@@ -45,8 +36,7 @@ const SupervisorGroupsProjectsTable: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await groupService.getSupervisorGroups(); // ✅ الدالة الجديدة
-      console.log("Supervisor Groups API response:", res);
+      const res = await groupService.getSupervisorGroups();
       const arr = Array.isArray(res) ? res : (res?.results || []);
       setGroups(arr);
     } catch (err) {
@@ -73,7 +63,7 @@ const SupervisorGroupsProjectsTable: React.FC = () => {
             <FiUsers size={18} />
           </div>
           <div>
-            <h3 className="text-lg font-black text-slate-800">المجموعات والمشاريع</h3>
+            <h3 className="text-lg font-black text-slate-800">المشاريع والأعضاء</h3>
             <p className="text-slate-400 text-xs font-bold">Total: {rows.length}</p>
           </div>
         </div>
@@ -100,7 +90,6 @@ const SupervisorGroupsProjectsTable: React.FC = () => {
           <table className="min-w-full text-right">
             <thead className="bg-slate-50">
               <tr className="text-slate-500 text-xs font-black uppercase tracking-widest">
-                <th className="p-4">Group Name</th>
                 <th className="p-4">Project</th>
                 <th className="p-4">Members</th>
               </tr>
@@ -109,27 +98,26 @@ const SupervisorGroupsProjectsTable: React.FC = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td className="p-6 text-slate-500 font-bold" colSpan={3}>
+                  <td className="p-6 text-slate-500 font-bold" colSpan={2}>
                     Loading...
                   </td>
                 </tr>
               ) : rows.length ? (
-                rows.map((g) => {
+                rows.map((g, idx) => {
                   const members = memberNames(g);
 
                   return (
                     <tr
-                      key={String(groupId(g))}
+                      key={idx}
                       className="border-t border-slate-100 hover:bg-slate-50/60"
                     >
-                      <td className="p-4 font-black text-slate-800">{groupName(g)}</td>
                       <td className="p-4 text-slate-600 font-bold">{projectTitle(g)}</td>
                       <td className="p-4">
                         {members.length ? (
                           <div className="flex flex-wrap gap-2">
-                            {members.slice(0, 8).map((m, idx) => (
+                            {members.slice(0, 8).map((m, i) => (
                               <span
-                                key={idx}
+                                key={i}
                                 className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-[11px] font-black"
                               >
                                 {m}
@@ -154,7 +142,7 @@ const SupervisorGroupsProjectsTable: React.FC = () => {
                 <tr>
                   <td
                     className="p-8 text-slate-500 font-bold text-center"
-                    colSpan={3}
+                    colSpan={2}
                   >
                     No data
                   </td>
@@ -164,10 +152,6 @@ const SupervisorGroupsProjectsTable: React.FC = () => {
           </table>
         </div>
       </div>
-
-      <p className="text-slate-400 text-[11px] font-bold">
-       
-      </p>
     </div>
   );
 };
