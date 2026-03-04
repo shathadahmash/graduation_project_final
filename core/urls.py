@@ -12,7 +12,9 @@ from .views.import_projects import import_projects_validate, import_projects_com
 from .views import head_department_groups, head_department_projects
 from core.views import StudentViewSet
 from .views import students_by_department
+from .views import GroupProgramViewSet, CollegeViewSet, DepartmentViewSet, BranchViewSet, universitycollegeviewset
 
+# from .views import UniversityViewSet, ProgramViewSet
 
 
 # import users excel endpoints
@@ -51,6 +53,10 @@ router.register(r'departments', DepartmentViewSet, basename='departments')
 router.register(r'branches', BranchViewSet, basename='branches')
 router.register(r'university-colleges', universitycollegeviewset, basename='university-colleges')
 router.register(r'students', StudentViewSet, basename='students')
+## 
+# router.register(r'universities', UniversityViewSet, basename='universities')
+# router.register(r'programs', ProgramViewSet, basename='programs')
+
 
 
 urlpatterns = [
