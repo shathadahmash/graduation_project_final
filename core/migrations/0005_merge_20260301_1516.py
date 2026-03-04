@@ -6,8 +6,8 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0002_remove_groupcreationrequest_group_name_and_more'),
-        ('core', '0003_companytype_sector_program_duration_externalcompany_and_more'),
+        # ('core', '0002_remove_groupcreationrequest_group_name_and_more'),
+        # ('core', '0003_companytype_sector_program_duration_externalcompany_and_more'),
         ('core', '0004_merge_20260301_1147'),
     ]
 
