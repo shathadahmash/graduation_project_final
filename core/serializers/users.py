@@ -1,26 +1,42 @@
-#####        content         #####
-# UserSerializer
-# UserDetailSerializer
-# AcademicAffiliationSerializer
-# RoleSerializer
-# PermissionSerializer
-# RolePermissionSerializer
-# UserRolesSerializer
-
-
 from rest_framework import serializers
-from core.serializers.location import(
-DepartmentSerializer,
-CollegeSerializer,
-UniversitySerializer
+from core.serializers.location import (
+    DepartmentSerializer,
+    CollegeSerializer,
+    UniversitySerializer
 )
 from core.models import (
     User, Role, UserRoles, Permission, RolePermission,
-      AcademicAffiliation,Student, StudentEnrollmentPeriod
+    AcademicAffiliation, Student, StudentEnrollmentPeriod
 )
 
+# ----------------------------
+# Minimal User Serializer
+# ----------------------------
+class SimpleUserSerializer(serializers.ModelSerializer):
+    """Shallow user representation to avoid circular references."""
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'name', 'email', 'phone', 'gender']
 
 
+# ----------------------------
+# Staff Serializer
+# ----------------------------
+class StaffSerializer(serializers.ModelSerializer):
+    user = SimpleUserSerializer(read_only=True)
+    role = serializers.SerializerMethodField()
+
+    class Meta:
+        model = getattr(__import__('core.models', fromlist=['Staff']), 'Staff')
+        fields = ['staff_id', 'user', 'role', 'Qualification', 'Office_Hours']
+
+    def get_role(self, obj):
+        return obj.role.type if obj.role else None
+
+
+# ----------------------------
+# User Serializer
+# ----------------------------
 class UserSerializer(serializers.ModelSerializer):
     roles = serializers.SerializerMethodField()
     department_id = serializers.SerializerMethodField()
@@ -29,7 +45,10 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'name', 'email', 'phone', 'gender', 'roles', 'department_id', 'college_id', 'staff_profiles']
+        fields = [
+            'id', 'username', 'name', 'email', 'phone', 'gender',
+            'roles', 'department_id', 'college_id', 'staff_profiles'
+        ]
 
     def get_roles(self, obj):
         return list(UserRoles.objects.filter(user=obj).values('role__role_ID', 'role__type'))
@@ -44,27 +63,20 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_staff_profiles(self, obj):
         staffs = obj.staff_profiles.all() if hasattr(obj, 'staff_profiles') else []
-        # import here to avoid circular import at module import time
-        try:
-            from core.serializers.users import StaffSerializer
-            return StaffSerializer(staffs, many=True, read_only=True).data
-        except Exception:
-            return [
-                {
-                    'staff_id': s.staff_id,
-                    'role': getattr(s.role, 'type', None),
-                    'Qualification': s.Qualification,
-                    'Office_Hours': s.Office_Hours,
-                }
-                for s in staffs
-            ]
+        return StaffSerializer(staffs, many=True, read_only=True).data
 
 
+# ----------------------------
+# User Detail Serializer
+# ----------------------------
 class UserDetailSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + ['company_name', 'date_joined']
 
 
+# ----------------------------
+# Academic Affiliation Serializer
+# ----------------------------
 class AcademicAffiliationSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     university = UniversitySerializer(read_only=True)
@@ -76,14 +88,15 @@ class AcademicAffiliationSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-
+# ----------------------------
+# Role Serializer
+# ----------------------------
 class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
         fields = ['role_ID', 'type', 'role_type']
 
     def validate_type(self, value):
-        # Prevent duplicate role names (case-insensitive)
         qs = Role.objects.filter(type__iexact=value)
         if self.instance:
             qs = qs.exclude(pk=self.instance.pk)
@@ -92,12 +105,18 @@ class RoleSerializer(serializers.ModelSerializer):
         return value
 
 
+# ----------------------------
+# Permission Serializer
+# ----------------------------
 class PermissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Permission
         fields = ['perm_ID', 'name', 'Description']
 
 
+# ----------------------------
+# Role Permission Serializer
+# ----------------------------
 class RolePermissionSerializer(serializers.ModelSerializer):
     role_detail = RoleSerializer(source='role', read_only=True)
     permission_detail = PermissionSerializer(source='permission', read_only=True)
@@ -107,6 +126,9 @@ class RolePermissionSerializer(serializers.ModelSerializer):
         fields = ['id', 'role', 'role_detail', 'permission', 'permission_detail']
 
 
+# ----------------------------
+# User Roles Serializer
+# ----------------------------
 class UserRolesSerializer(serializers.ModelSerializer):
     user_detail = serializers.StringRelatedField(source='user', read_only=True)
     role_detail = RoleSerializer(source='role', read_only=True)
@@ -115,6 +137,10 @@ class UserRolesSerializer(serializers.ModelSerializer):
         model = UserRoles
         fields = ['id', 'user', 'user_detail', 'role', 'role_detail']
 
+
+# ----------------------------
+# External Company Serializer
+# ----------------------------
 class ExternalCompanySerializer(serializers.ModelSerializer):
     is_external = serializers.SerializerMethodField()
 
@@ -128,17 +154,16 @@ class ExternalCompanySerializer(serializers.ModelSerializer):
             role__type__icontains='External'
         ).exists()
 
-class StaffSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    role = RoleSerializer(read_only=True)
 
-    class Meta:
-        model = getattr(__import__('core.models', fromlist=['Staff']), 'Staff')
-        fields = ['staff_id', 'user', 'role', 'Qualification', 'Office_Hours']
+# ----------------------------
+# Student Enrollment & Student Serializer
+# ----------------------------
 class StudentEnrollmentPeriodSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentEnrollmentPeriod
         fields = ['id', 'start_date', 'end_date']
+
+
 class StudentSerializer(serializers.ModelSerializer):
     user = UserDetailSerializer(read_only=True)
     enrollment_periods = StudentEnrollmentPeriodSerializer(many=True, read_only=True)
@@ -150,15 +175,6 @@ class StudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = [
-            'id',
-            'user',
-            'student_id',
-            'phone',
-            'gender',
-            'status',
-            'enrolled_at',
-            'current_academic_year',
-            'enrollment_periods',
-            'groups',
-            'progress'
+            'id', 'user', 'student_id', 'phone', 'gender', 'status', 'enrolled_at',
+            'current_academic_year', 'enrollment_periods', 'groups', 'progress'
         ]

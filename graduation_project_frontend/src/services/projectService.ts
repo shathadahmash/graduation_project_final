@@ -2,42 +2,54 @@ import api from './api';
 import { bulkFetch } from './bulkService';
 import { groupService } from './groupService';
 
-
 export interface Project {
-  project_id?: number; // optional when creating
+  project_id?: number;
   title: string;
-  type: string; // must match backend choices
-  state?: string;
   description: string;
-  start_date?: string; // required, format: YYYY-MM-DD
-  supervisor?: { name: string; id: number };
-  supervisor_id?: number; // if backend expects an ID
-  college?: string;
-  year?: string;
+  start_date?: number; // YEAR only
+  end_date?: number;   // YEAR only
+  field?: string;
+  tools?: string;
   logo?: string;
+  college?: string;
+  university?: string;
+  supervisor_name?: string;
+  co_supervisor_name?: string | null;
+  created_by?: { id: number; name: string } | null;
+}
+
+// Map backend project response to frontend Project type
+function mapBackendProject(raw: any): Project {
+  return {
+    project_id: raw.project_id,
+    title: raw.title,
+    description: raw.description,
+    start_date: raw.start_date ?? undefined, // use backend value directly
+    end_date: raw.end_date ?? undefined,     // use backend value directly
+    field: raw.field ?? '',
+    tools: raw.tools ?? '',
+    logo: raw.Logo ?? '',
+    college: raw.college_name ?? '',
+    university: raw.university_name ?? '',
+    supervisor_name: raw.supervisor_name ?? 'لا يوجد مشرف',
+    co_supervisor_name: raw.co_supervisor_name ?? null,
+    created_by: raw.created_by
+      ? { id: raw.created_by.id, name: raw.created_by.name }
+      : null,
+  };
 }
 
 export const projectService = {
   async getProjects(params?: any) {
-    console.log('[projectService] getProjects called with params:', params);
     try {
       const response = await api.get('projects/', { params });
-      console.log('[projectService] getProjects response:', response.status, response.data);
-      return response.data;
+      console.log('[projectService] getProjects response:', response.data);
+      return (response.data as any[]).map(mapBackendProject);
     } catch (error: any) {
-      console.error('[projectService] Failed to fetch projects:', error?.response?.status, error?.response?.data ?? error?.message ?? error);
-      return [];
-    }
-  },
-
-  async getProject() {
-    console.log('[projectService] getProject called');
-    try {
-      const response = await api.get('projects/');
-      console.log('[projectService] getProject response:', response.status, response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('[projectService] Failed to fetch projects (getProject):', error?.response?.status, error?.response?.data ?? error?.message ?? error);
+      console.error(
+        '[projectService] getProjects failed:',
+        error?.response?.data ?? error
+      );
       return [];
     }
   },
@@ -45,9 +57,9 @@ export const projectService = {
   async getProjectById(projectId: number) {
     try {
       const response = await api.get(`/projects/${projectId}/`);
-      return response.data;
+      return mapBackendProject(response.data);
     } catch (error) {
-      console.error('Failed to fetch project:', error);
+      console.error('[projectService] getProjectById failed:', error);
       throw error;
     }
   },
@@ -57,7 +69,7 @@ export const projectService = {
       const response = await api.get('/projects/filter-options/');
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch filter options:', error);
+      console.error('[projectService] getFilterOptions failed:', error);
       return { colleges: [], supervisors: [], years: [] };
     }
   },
@@ -67,58 +79,51 @@ export const projectService = {
       const response = await api.get('/projects/search/', {
         params: { q: query, ...params },
       });
-      return response.data;
+      return (response.data as any[]).map(mapBackendProject);
     } catch (error) {
-      console.error('Failed to search projects:', error);
+      console.error('[projectService] searchProjects failed:', error);
       return [];
     }
   },
 
-  async proposeProject(payload: Project) {
-    // Provide sensible defaults for missing required fields
-    if (!payload.start_date) {
-      // default to today's date in YYYY-MM-DD
-      payload.start_date = new Date().toISOString().slice(0, 10);
-    }
-    if (!payload.type) {
-      payload.type = 'PrivateCompany';
-    }
+  async proposeProject(payload: Partial<Project>) {
+    // Ensure start_date is set to current year if missing
+    if (!payload.start_date) payload.start_date = new Date().getFullYear();
 
-    // Prefer the custom 'propose' action if available on backend, fall back to standard create
     try {
-      console.log('[projectService] proposeProject -> trying /projects/propose/ with payload:', payload);
-      const resp = await api.post('/projects/propose/', payload);
-      console.log('[projectService] proposeProject response (propose):', resp.status, resp.data);
-      return resp.data;
+      const resp = await api.post('/projects/propose-project/', payload);
+      return mapBackendProject(resp.data);
     } catch (err: any) {
-      console.warn('[projectService] /projects/propose/ failed, falling back to POST /projects/', err?.response?.status, err?.response?.data ?? err?.message ?? err);
-      try {
-        const resp2 = await api.post('/projects/', payload);
-        console.log('[projectService] proposeProject response (create):', resp2.status, resp2.data);
-        return resp2.data;
-      } catch (err2: any) {
-        console.error('[projectService] Failed to propose/create project:', err2?.response?.status, err2?.response?.data ?? err2?.message ?? err2);
-        throw err2;
-      }
+      console.warn(
+        '[projectService] propose-project failed, falling back to POST /projects/',
+        err?.response?.data ?? err.message
+      );
+      const resp2 = await api.post('/projects/', payload);
+      return mapBackendProject(resp2.data);
     }
   },
 
   async updateProject(projectId: number, payload: Partial<Project>) {
     try {
-      const response = await api.patch(`/projects/${projectId}/update_project/`, payload);
-      return response.data;
+      const response = await api.patch(
+        `/projects/${projectId}/update_project/`,
+        payload
+      );
+      return mapBackendProject(response.data);
     } catch (error) {
-      console.error('Failed to update project:', error);
+      console.error('[projectService] updateProject failed:', error);
       throw error;
     }
   },
 
   async deleteProject(projectId: number) {
     try {
-      const response = await api.delete(`/projects/${projectId}/delete_project/`);
+      const response = await api.delete(
+        `/projects/${projectId}/delete_project/`
+      );
       return response.data;
     } catch (error) {
-      console.error('Failed to delete project:', error);
+      console.error('[projectService] deleteProject failed:', error);
       throw error;
     }
   },
@@ -134,66 +139,47 @@ export const projectService = {
       link.setAttribute('download', `project_${projectId}.pdf`);
       document.body.appendChild(link);
       link.click();
-      link.parentNode?.removeChild(link);
+      document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to download file:', error);
+      console.error('[projectService] downloadProjectFile failed:', error);
       throw error;
     }
   },
 
-
-async proposeAndLinkProject(payload: Project) {
-    // 1. ضمان وجود تاريخ البدء كما يطلبه الموديل (YYYY-MM-DD)
-    if (!payload.start_date) {
-      payload.start_date = new Date().toISOString().slice(0, 10);
-    }
-
-    // 2. تجهيز البيانات لتطابق خيارات الباك إيند (شغل نظيف)
-    const cleanPayload = {
-      ...payload,
-      type: 'ProposedProject', // مطابقة لـ TYPE_CHOICES في Django
-      state: 'Pending'         // مطابقة لـ STATE_CHOICES في Django
-    };
-
-    try {
-      console.log('[projectService] Sending to -> /projects/propose-project/ :', cleanPayload);
-      
-      // 3. الطلب للرابط الجديد في الباك إيند
-      const resp = await api.post('/projects/propose-project/', cleanPayload);
-      
-      console.log('[projectService] Success:', resp.data);
-      return resp.data;
-    } catch (err: any) {
-      console.error('[projectService] Failed in proposeAndLinkProject:', err?.response?.data || err.message);
-      throw err;
-    }
-  },
-
-
   async getProjectsWithGroups(fields?: string[]) {
     const req = [
-      { table: 'projects', fields: fields || ['project_id', 'title', 'type', 'state', 'start_date', 'start_year', 'end_date', 'description', 'field', 'tools', 'created_by', 'Logo', 'Documentation_Path', 'college', 'department'] },
+      {
+        table: 'projects',
+        fields:
+          fields ||
+          [
+            'project_id',
+            'title',
+            'description',
+            'start_date',
+            'end_date',
+            'field',
+            'tools',
+            'created_by',
+            'Logo',
+            'Documentation_Path',
+            'college',
+            'department',
+          ],
+      },
       { table: 'groups', fields: ['group_id', 'group_name', 'project', 'department', 'program', 'academic_year'] },
       { table: 'group_members', fields: ['id', 'user', 'group'] },
       { table: 'group_supervisors', fields: ['id', 'user', 'group', 'type'] },
       { table: 'users', fields: ['id', 'first_name', 'last_name', 'name'] },
       { table: 'colleges', fields: ['cid', 'name_ar', 'branch'] },
       { table: 'departments', fields: ['department_id', 'name', 'college'] },
-      // university model uses uid / uname_ar on the backend
       { table: 'universities', fields: ['uid', 'uname_ar', 'uname_en', 'type'] },
-      // include program-group links and programs to resolve group.program -> program name
-      // also include `groupprogram` which uses GroupProgramSerializer to return flattened names
       { table: 'groupprogram', fields: ['id', 'group', 'program', 'program_name', 'department_name', 'college_name', 'university_name', 'program_id'] },
       { table: 'program_groups', fields: ['id', 'program', 'group', 'program_id', 'program_name'] },
       { table: 'programs', fields: ['id', 'p_name', 'name', 'department_id'] },
     ];
-
-    console.log('[projectService] getProjectsWithGroups request:', JSON.stringify(req));
     const data = await bulkFetch(req);
-    console.log('[projectService] getProjectsWithGroups response keys:', Object.keys(data));
     return data;
   },
 };
-
-

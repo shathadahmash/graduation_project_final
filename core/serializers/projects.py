@@ -5,14 +5,27 @@ from core.models import (
 from core.serializers.users import UserSerializer
 
 class ProjectSerializer(serializers.ModelSerializer):
-    supervisor_name = serializers.SerializerMethodField()
-    co_supervisor_name = serializers.SerializerMethodField()
-    created_by = UserSerializer(read_only=True)
-    college_name = serializers.SerializerMethodField()
-    state_name = serializers.SerializerMethodField()
-    university_name = serializers.SerializerMethodField()
+   start_date = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=1900,
+        max_value=2100
+   )
+   end_date = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=1900,
+        max_value=2100
+    )
 
-    class Meta:
+   supervisor_name = serializers.SerializerMethodField()
+   co_supervisor_name = serializers.SerializerMethodField()
+   created_by = UserSerializer(read_only=True)
+   college_name = serializers.SerializerMethodField()
+   state_name = serializers.SerializerMethodField()
+   university_name = serializers.SerializerMethodField()
+
+   class Meta:
         model = Project
         fields = [
             'project_id',
@@ -33,7 +46,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             'university_name',
         ]
 
-    def get_supervisor_name(self, obj):
+   def get_supervisor_name(self, obj):
         # avoid hitting the DB by iterating over prefetched groups and supervisors
         for grp in getattr(obj, 'groups', []).all():
             for gs in getattr(grp, 'groupsupervisors_set', []).all():
@@ -41,14 +54,14 @@ class ProjectSerializer(serializers.ModelSerializer):
                     return gs.user.name or gs.user.username
         return "لا يوجد مشرف"
 
-    def get_co_supervisor_name(self, obj):
+   def get_co_supervisor_name(self, obj):
         for grp in getattr(obj, 'groups', []).all():
             for gs in getattr(grp, 'groupsupervisors_set', []).all():
                 if gs.type and gs.type.lower().startswith('co_supervisor') and gs.user:
                     return gs.user.name or gs.user.username
         return None
 
-    def get_college_name(self, obj):
+   def get_college_name(self, obj):
         # rely on groups prefetched in viewset
         for grp in getattr(obj, 'groups', []).all():
             for pg in getattr(grp, 'program_groups', []).all():
@@ -63,7 +76,7 @@ class ProjectSerializer(serializers.ModelSerializer):
                     return college.name_ar
         return None
 
-    def get_university_name(self, obj):
+   def get_university_name(self, obj):
         # iterate over already-prefetched relationships to avoid additional queries
         for grp in getattr(obj, 'groups', []).all():
             for pg in getattr(grp, 'program_groups', []).all():
@@ -84,7 +97,7 @@ class ProjectSerializer(serializers.ModelSerializer):
                     return uni.uname_ar
         return None
 
-    def get_state_name(self, obj):
+   def get_state_name(self, obj):
         try:
             return obj.state.name if obj.state else None
         except Exception:
