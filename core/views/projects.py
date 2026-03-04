@@ -412,3 +412,25 @@ def dropdown_data(request):
         "supervisors": [{"id": sp.id, "name": sp.name} for sp in supervisors],
         "assistants": [{"id": a.id, "name": a.name} for a in assistants],
     })
+def get_user_department(user):
+    affiliation = AcademicAffiliation.objects.filter(
+        user=user,
+        end_date__isnull=True
+    ).first()
+
+    return affiliation.department if affiliation else None
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def head_department_projects(request):
+
+    department = get_user_department(request.user)
+
+    if not department:
+        return Response({"detail": "لا يوجد قسم مرتبط بالمستخدم"}, status=400)
+
+    projects = Project.objects.filter(
+        groups__program_groups__program__department=department
+    ).distinct()
+
+    serializer = ProjectSerializer(projects, many=True)
+    return Response(serializer.data)
