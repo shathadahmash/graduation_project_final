@@ -1,6 +1,6 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.decorators import action, api_view
+from rest_framework.decorators import action, api_view,permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -8,6 +8,11 @@ from django.db import transaction
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db.models import Q
+from ..serializers import GroupSerializer, ProjectSerializer
+from core.models import Group, Project, UserRoles
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from core.models import AcademicAffiliation
 
 from core.models import (
     User, Group, GroupMembers, GroupSupervisors,
@@ -455,3 +460,27 @@ class GroupProgramViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return programgroup.objects.all()
+def get_user_department(user):
+    affiliation = AcademicAffiliation.objects.filter(
+        user=user,
+        end_date__isnull=True
+    ).first()
+
+    return affiliation.department if affiliation else None
+
+    return affiliation.department if affiliation else None
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def head_department_groups(request):
+
+    department = get_user_department(request.user)
+
+    if not department:
+        return Response({"detail": "لا يوجد قسم مرتبط بالمستخدم"}, status=400)
+
+    groups = Group.objects.filter(
+    program_groups__program__department=department
+     ).distinct()
+
+    serializer = GroupSerializer(groups, many=True)
+    return Response(serializer.data)

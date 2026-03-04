@@ -7,6 +7,7 @@ from django.utils import timezone
 import datetime
 from django.core.validators import RegexValidator
 
+
 # ============================================================================== 
 # 1. نموذج المدينة (City)
 # ==============================================================================
@@ -401,6 +402,7 @@ class Project(models.Model):
 
     class Meta:
         verbose_name_plural = "Projects"
+    
 
 # ===========================
 # موديل الطالب
@@ -427,9 +429,11 @@ class Student(models.Model):
 
     def __str__(self):
         return f"{self.user.name} - {self.student_id or 'No ID'}"
+    
 
     class Meta:
         verbose_name_plural = "Students"
+
 
     # ===========================
     # دالة لحساب السنة الدراسية الحالية

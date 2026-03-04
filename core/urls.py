@@ -2,6 +2,18 @@ from django.urls import path, include
 from django.views.generic import TemplateView
 from django.contrib.auth.decorators import login_required
 from rest_framework.routers import DefaultRouter
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+#this is added for the import
+# import views for import functionality
+from .views.import_views import import_users_validate, import_users_commit
+#till here
+from .views.import_projects import import_projects_validate, import_projects_commit
+from .views import head_department_groups, head_department_projects
+from core.views import StudentViewSet
+from .views import students_by_department
+
+
 
 # import users excel endpoints
 from core.views.import_views import import_users_validate, import_users_commit
@@ -32,6 +44,14 @@ router.register(r'notifications', NotificationViewSet, basename='notification')
 router.register(r'approvals', ApprovalRequestViewSet, basename='approval')
 router.register(r'roles', RoleViewSet, basename='role')
 router.register(r'user-roles', UserRolesViewSet, basename='userrole')
+router.register(r'groupprogram', GroupProgramViewSet, basename='groupprogram')
+router.register(r'program-groups', GroupProgramViewSet, basename='program-groups')
+router.register(r'colleges', CollegeViewSet, basename='colleges')
+router.register(r'departments', DepartmentViewSet, basename='departments')
+router.register(r'branches', BranchViewSet, basename='branches')
+router.register(r'university-colleges', universitycollegeviewset, basename='university-colleges')
+router.register(r'students', StudentViewSet, basename='students')
+
 
 urlpatterns = [
     path('approvals/<int:approval_id>/approve/', respond_to_group_request, name='approval-approve'),
@@ -59,4 +79,13 @@ urlpatterns = [
     path('groups/', login_required(TemplateView.as_view(template_name='core/groups.html')), name='groups'),
     path('invitations/', login_required(TemplateView.as_view(template_name='core/invitations.html')), name='invitations'),
     path('approvals/', login_required(TemplateView.as_view(template_name='core/approvals.html')), name='approvals'),
+
+    # project imports
+    path('system/import/projects/validate/', import_projects_validate, name='import-projects-validate'),
+    path('system/import/projects/commit/', import_projects_commit, name='import-projects-commit'),
+    path('head/groups/', head_department_groups),
+    path('head/projects/', head_department_projects),
+    path('students-by-department/', students_by_department, name='students-by-department'),
+    
+
 ]
