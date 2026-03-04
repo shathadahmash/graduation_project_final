@@ -254,7 +254,7 @@ class ProjectStateAdmin(admin.ModelAdmin):
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
     list_display = (
-        'project_id', 'title', 'university_name', 'state', 'created_by', 'start_date', 'end_date', 'field', 'tools'
+        'project_id', 'title', 'state', 'created_by', 'start_date', 'end_date', 'field', 'tools'
     )
     list_filter = ('state', 'created_by', 'start_date', 'end_date', 'groups__program_groups__program__department__college__branch__university')
     search_fields = ('title', 'description', 'created_by__username', 'state__name', 'groups__program_groups__program__department__college__branch__university__uname_ar')

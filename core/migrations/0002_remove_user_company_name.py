@@ -9,9 +9,9 @@ class Migration(migrations.Migration):
         ('core', '0001_initial'),
     ]
 
-    operations = [
-        migrations.RemoveField(
-            model_name='user',
-            name='company_name',
-        ),
-    ]
+    # operations = [
+    #     migrations.RemoveField(
+    #         model_name='user',
+    #         name='company_name',
+    #     ),
+    # ]

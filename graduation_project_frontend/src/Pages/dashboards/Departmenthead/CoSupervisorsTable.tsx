@@ -21,23 +21,8 @@ const CoSupervisorsTable: React.FC = () => {
   const [selectedCollegeId, setSelectedCollegeId] = useState<number | null>(null);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null);
 
-  // تحديد إذا كان الدور Co-supervisor
   const isCoSupervisorRole = (roleType: string) => {
-    const t = (roleType || '').toLowerCase().replace(/[_-]/g, ' ').trim();
-    return t.includes('co') && t.includes('supervisor');
-  };
-
-  // جلب قسم المستخدم الحالي بناءً على affiliations
-  const getMyDepartmentId = async (userId: number): Promise<number | null> => {
-    try {
-      const affs = await userService.getAffiliations();
-      const activeAffs = affs.filter((a: any) => a.user_id === userId && (!a.end_date || new Date(a.end_date) >= new Date()));
-      const latestAff = activeAffs.sort((a: any, b: any) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime())[0];
-      return latestAff?.department_id || user?.department_id || null;
-    } catch (err) {
-      console.error('[CoSupervisorsTable] getMyDepartmentId failed', err);
-      return user?.department_id || null;
-    }
+    return (roleType || '').toLowerCase().includes('co') && (roleType || '').toLowerCase().includes('supervisor');
   };
 
   // جلب المشرفين المساعدين
@@ -51,25 +36,15 @@ const CoSupervisorsTable: React.FC = () => {
           userService.getAffiliations(),
           userService.getAllUsers(),
         ]);
-
         setColleges(cols);
         setDepartments(deps);
         setAffiliations(affs);
         setAllUsers(users);
 
-        const myDeptId = user?.id ? await getMyDepartmentId(user.id) : null;
-
         const coSup = users.filter(u => (u.roles || []).some(r => isCoSupervisorRole(r.type)));
 
-        // فلترة حسب القسم
-        const filtered = myDeptId
-          ? coSup.filter(u => {
-              const userAffs = affs.filter(a => a.user_id === u.id && (!a.end_date || new Date(a.end_date) >= new Date()));
-              return userAffs.some(a => a.department_id === myDeptId);
-            })
-          : coSup;
-
-        setCoSupervisors(filtered);
+        // عرض كل المشرفين المساعدين حتى لو لم يكن لديهم affiliation
+        setCoSupervisors(coSup);
       } catch (err) {
         console.error(err);
       } finally {
@@ -80,7 +55,6 @@ const CoSupervisorsTable: React.FC = () => {
     fetchCoSupervisors();
   }, [user]);
 
-  // فتح نافذة إنشاء/تعديل
   const openModal = async () => {
     try {
       const [us, rs, cols, deps, affs] = await Promise.all([
@@ -111,7 +85,6 @@ const CoSupervisorsTable: React.FC = () => {
 
   const closeModal = () => setShowModal(false);
 
-  // حفظ المستخدم
   const submitModal = async () => {
     try {
       setIsCreating(true);
@@ -142,16 +115,8 @@ const CoSupervisorsTable: React.FC = () => {
       // تحديث القائمة بعد الحفظ
       const all = await userService.getAllUsers();
       const affs = await userService.getAffiliations();
-      const myDeptId = user?.id ? await getMyDepartmentId(user.id) : null;
       const coSup = all.filter(u => (u.roles || []).some(r => isCoSupervisorRole(r.type)));
-      const filtered = myDeptId
-        ? coSup.filter(u => {
-            const userAffs = affs.filter(a => a.user_id === u.id && (!a.end_date || new Date(a.end_date) >= new Date()));
-            return userAffs.some(a => a.department_id === myDeptId);
-          })
-        : coSup;
-
-      setCoSupervisors(filtered);
+      setCoSupervisors(coSup);
       setShowModal(false);
     } catch (err: any) {
       console.error(err);
@@ -174,7 +139,7 @@ const CoSupervisorsTable: React.FC = () => {
   });
 
   if (loading) return <div className="p-4 text-center">جاري تحميل المشرفين المساعدين...</div>;
-  if (coSupervisors.length === 0) return <div className="p-4 text-center text-gray-500">لا يوجد مشرفون مساعدين في هذا القسم</div>;
+  if (coSupervisors.length === 0) return <div className="p-4 text-center text-gray-500">لا يوجد مشرفون مساعدين</div>;
 
   return (
     <div className="theme-card p-4">
@@ -205,34 +170,29 @@ const CoSupervisorsTable: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((u, i) => (
-              <tr key={u.id} className="hover:bg-primary-50">
-                <td className="p-2 border text-right">{i + 1}</td>
-                <td className="p-2 border text-right">{u.name || '—'}</td>
-                <td className="p-2 border text-right">{u.username || '—'}</td>
-                <td className="p-2 border text-right">{u.email || '—'}</td>
-                <td className="p-2 border text-right">{u.phone || '—'}</td>
-                <td className="p-2 border text-right">{(() => {
-                  const a = affiliations.find(x => x.user_id === u.id);
-                  if (!a) return '—';
-                  const c = colleges.find(cc => cc.id === a.college_id);
-                  return c ? c.name : a.college_id || '—';
-                })()}</td>
-                <td className="p-2 border text-right">{(() => {
-                  const a = affiliations.find(x => x.user_id === u.id);
-                  if (!a) return '—';
-                  const d = departments.find(dd => dd.id === a.department_id);
-                  return d ? d.name : a.department_id || '—';
-                })()}</td>
-                <td className="p-2 border text-right">{(u.roles || []).map(r => r.type).join(', ') || '—'}</td>
-                <td className="p-2 border">
-                  <div className="flex items-center justify-center gap-2">
-                    <button className="btn-outline-blue" onClick={() => openModal()}>تعديل</button>
-                    <button className="px-3 py-1 text-sm bg-rose-600 text-white rounded hover:bg-rose-700" onClick={() => handleDelete(u.id)}>حذف</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {filtered.map((u, i) => {
+              const a = affiliations.filter(x => x.user_id === u.id && (!x.end_date || new Date(x.end_date) >= new Date()))[0];
+              const collegeName = a ? colleges.find(c => c.id === a.college_id)?.name || '—' : '—';
+              const deptName = a ? departments.find(d => d.id === a.department_id)?.name || '—' : '—';
+              return (
+                <tr key={u.id} className="hover:bg-primary-50">
+                  <td className="p-2 border text-right">{i + 1}</td>
+                  <td className="p-2 border text-right">{u.name || '—'}</td>
+                  <td className="p-2 border text-right">{u.username || '—'}</td>
+                  <td className="p-2 border text-right">{u.email || '—'}</td>
+                  <td className="p-2 border text-right">{u.phone || '—'}</td>
+                  <td className="p-2 border text-right">{collegeName}</td>
+                  <td className="p-2 border text-right">{deptName}</td>
+                  <td className="p-2 border text-right">{(u.roles || []).map(r => r.type).join(', ') || '—'}</td>
+                  <td className="p-2 border">
+                    <div className="flex items-center justify-center gap-2">
+                      <button className="btn-outline-blue" onClick={() => openModal()}>تعديل</button>
+                      <button className="px-3 py-1 text-sm bg-rose-600 text-white rounded hover:bg-rose-700" onClick={() => handleDelete(u.id)}>حذف</button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
