@@ -1,44 +1,22 @@
 from rest_framework import serializers
-from core.serializers.location import (
-    DepartmentSerializer,
-    CollegeSerializer,
-    UniversitySerializer
-)
+from core.serializers.location import DepartmentSerializer, CollegeSerializer, UniversitySerializer
 from core.models import (
     User, Role, UserRoles, Permission, RolePermission,
     AcademicAffiliation, Student, StudentEnrollmentPeriod
 )
-
-# ----------------------------
-# Minimal User Serializer
-# ----------------------------
-class SimpleUserSerializer(serializers.ModelSerializer):
-    """Shallow user representation to avoid circular references."""
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'name', 'email', 'phone', 'gender']
-
-
-# ----------------------------
-# Staff Serializer
-# ----------------------------
-class StaffSerializer(serializers.ModelSerializer):
-    user = SimpleUserSerializer(read_only=True)
-    role = serializers.SerializerMethodField()
-
-    class Meta:
-        model = getattr(__import__('core.models', fromlist=['Staff']), 'Staff')
-        fields = ['staff_id', 'user', 'role', 'Qualification', 'Office_Hours']
-
-    def get_role(self, obj):
-        return obj.role.type if obj.role else None
 
 
 # ----------------------------
 # User Serializer
 # ----------------------------
 class UserSerializer(serializers.ModelSerializer):
-    roles = serializers.SerializerMethodField()
+    roles = serializers.SerializerMethodField(read_only=True)
+    write_roles = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+        help_text="List of role IDs to assign to this user."
+    )
     department_id = serializers.SerializerMethodField()
     college_id = serializers.SerializerMethodField()
     staff_profiles = serializers.SerializerMethodField()
@@ -46,8 +24,9 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'name', 'email', 'phone', 'gender',
-            'roles', 'department_id', 'college_id', 'staff_profiles'
+            'id', 'username', 'first_name', 'last_name', 'name',
+            'email', 'phone', 'gender', 'CID',
+            'roles', 'write_roles', 'department_id', 'college_id', 'staff_profiles'
         ]
 
     def get_roles(self, obj):
@@ -62,8 +41,78 @@ class UserSerializer(serializers.ModelSerializer):
         return affiliation.college.id if affiliation and affiliation.college else None
 
     def get_staff_profiles(self, obj):
-        staffs = obj.staff_profiles.all() if hasattr(obj, 'staff_profiles') else []
-        return StaffSerializer(staffs, many=True, read_only=True).data
+        staffs = getattr(obj, 'staff_profiles', None)
+        if staffs is None:
+            return []
+        return StaffSerializer(staffs.all(), many=True, read_only=True).data
+
+    def create(self, validated_data):
+        roles_data = validated_data.pop('write_roles', [])
+
+        # Auto-generate username if missing
+        if not validated_data.get('username'):
+            base_username = f"{validated_data.get('first_name', '')}{validated_data.get('last_name', '')}".lower() or "user"
+            counter = 0
+            username_candidate = base_username
+            while User.objects.filter(username=username_candidate).exists():
+                counter += 1
+                username_candidate = f"{base_username}{counter}"
+            validated_data['username'] = username_candidate
+
+        # Convert empty strings to None
+        for field in ['email', 'phone', 'gender', 'CID']:
+            if field in validated_data and validated_data[field] == '':
+                validated_data[field] = None
+
+        user = super().create(validated_data)
+
+        # Assign roles
+        for role_id in roles_data:
+            role = Role.objects.filter(role_ID=role_id).first()
+            if role:
+                UserRoles.objects.get_or_create(user=user, role=role)
+        return user
+
+    def update(self, instance, validated_data):
+        roles_data = validated_data.pop('write_roles', None)
+
+        # Update fields directly from validated_data
+        for attr in ['first_name', 'last_name', 'email', 'phone', 'gender', 'username', 'CID']:
+            if attr in validated_data:
+                value = validated_data[attr]
+
+                # Special handling for email: allow null
+                if attr == 'email':
+                    if value == '' or value is None:
+                        value = None
+                    elif isinstance(value, str):
+                        value = value.strip()
+                elif attr == 'CID':
+                    if value == '' or value is None:
+                        value = None
+                    elif isinstance(value, str):
+                        value = value.strip()
+                else:
+                    if isinstance(value, str):
+                        value = value.strip()
+
+                setattr(instance, attr, value)
+
+        # Keep 'name' in sync if first_name or last_name changed
+        instance.name = f"{instance.first_name or ''} {instance.last_name or ''}".strip()
+        instance.save()
+
+        # Update roles if provided
+        if roles_data is not None:
+            # Remove roles not in roles_data
+            UserRoles.objects.filter(user=instance).exclude(role__role_ID__in=roles_data).delete()
+            # Add missing roles
+            for role_id in roles_data:
+                role = Role.objects.filter(role_ID=role_id).first()
+                if role:
+                    UserRoles.objects.get_or_create(user=instance, role=role)
+
+        return instance
 
 
 # ----------------------------
@@ -146,7 +195,7 @@ class ExternalCompanySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'name', 'email', 'is_external']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'CID', 'is_external']
 
     def get_is_external(self, obj):
         return UserRoles.objects.filter(
@@ -178,3 +227,42 @@ class StudentSerializer(serializers.ModelSerializer):
             'id', 'user', 'student_id', 'phone', 'gender', 'status', 'enrolled_at',
             'current_academic_year', 'enrollment_periods', 'groups', 'progress'
         ]
+
+
+# ----------------------------
+# Simple User Serializer
+# ----------------------------
+class SimpleUserSerializer(serializers.ModelSerializer):
+    roles = serializers.SerializerMethodField()
+    write_roles = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False
+    )
+    name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'first_name', 'last_name', 'name',
+                  'email', 'phone', 'gender', 'CID', 'roles', 'write_roles']
+
+    def get_roles(self, obj):
+        return list(UserRoles.objects.filter(user=obj).values('role__role_ID', 'role__type'))
+
+    def get_name(self, obj):
+        return f"{obj.first_name or ''} {obj.last_name or ''}".strip()
+
+
+# ----------------------------
+# Staff Serializer
+# ----------------------------
+class StaffSerializer(serializers.ModelSerializer):
+    user = SimpleUserSerializer(read_only=True)
+    role = serializers.SerializerMethodField()
+
+    class Meta:
+        model = getattr(__import__('core.models', fromlist=['Staff']), 'Staff')
+        fields = ['staff_id', 'user', 'role', 'Qualification', 'Office_Hours']
+
+    def get_role(self, obj):
+        return obj.role.type if obj.role else None

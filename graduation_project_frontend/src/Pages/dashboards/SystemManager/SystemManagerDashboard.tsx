@@ -16,6 +16,7 @@ import {
   FiActivity,
   FiCompass,
   FiShield,
+  FiDownload,
 } from 'react-icons/fi';
 
 import { userService } from '../../../services/userService';
@@ -68,6 +69,7 @@ const SystemManagerDashboard: React.FC = () => {
   const [activeCardPanel, setActiveCardPanel] = useState<string | null>(null);
   const [showManagementContent, setShowManagementContent] = useState(false);
   const [activeReport, setActiveReport] = useState<string | null>(null);
+  const [showImportProjects, setShowImportProjects] = useState(false);
 
   /* ==========================
      Fetch Data
@@ -90,6 +92,7 @@ const SystemManagerDashboard: React.FC = () => {
 
         const results = settled.map(s => s.status === 'fulfilled' ? (s as any).value : null);
         const [fetchedUsers, fetchedRoles, fetchedProjectsRaw, fetchedGroups, fetchedAffiliations, fetchedDepartments, fetchedColleges, fetchedUniversities, fetchedPrograms, fetchedBranches] = results;
+
         // Log rejections for visibility
         settled.forEach((s, idx) => { if (s.status === 'rejected') console.warn('fetch failed idx', idx, (s as any).reason); });
 
@@ -349,112 +352,133 @@ const SystemManagerDashboard: React.FC = () => {
         return gp != null && pid != null && String(gp) === String(pid);
       });
 
-      const enrichedProj: any = { ...project };
-
-      if (linkedGroup) {
-        enrichedProj.group_id = linkedGroup.group_id || linkedGroup.id || null;
-        enrichedProj.group_name = linkedGroup.group_name || linkedGroup.name || null;
-
-        // resolve supervisors from group if available (group may have supervisors array)
-        if (Array.isArray(linkedGroup.supervisors) && linkedGroup.supervisors.length > 0) {
-          const supRow = linkedGroup.supervisors.find((s: any) => String(s.type || '').toLowerCase().includes('supervisor') && !String(s.type || '').toLowerCase().includes('co'));
-          const coRow = linkedGroup.supervisors.find((s: any) => String(s.type || '').toLowerCase().includes('co'));
-          const resolveUser = (row: any) => {
-            if (!row) return null;
-            if (row.user_detail) return row.user_detail;
-            if (row.user && usersById.has(row.user)) return usersById.get(row.user);
-            return null;
-          };
-          enrichedProj.supervisor = resolveUser(supRow) || project.supervisor || null;
-          enrichedProj.co_supervisor = resolveUser(coRow) || project.co_supervisor || null;
-        }
-
-        // resolve department/college from group.department if the project lacks them
-        if (linkedGroup.department) {
-          const deptId = typeof linkedGroup.department === 'number' ? linkedGroup.department : (linkedGroup.department.department_id || linkedGroup.department.id);
-          const deptObj = departments.find((d: any) => String(d.department_id || d.id) === String(deptId));
-          if (deptObj) {
-            enrichedProj.department = deptObj;
-            enrichedProj.department_name = deptObj.name || deptObj.department_name || enrichedProj.department_name || '-';
-            // resolve college id/name if available on department
-            let cid: any = null;
-            if (typeof deptObj.college === 'number') cid = deptObj.college;
-            else if (deptObj.college && typeof deptObj.college === 'object') cid = deptObj.college.cid || deptObj.college.id;
-            else if (deptObj.college_id) cid = deptObj.college_id;
-            if (cid) enrichedProj.college = enrichedProj.college || cid;
-            // attempt to resolve university name from department -> college -> branch -> university
-            try {
-              if (!enrichedProj.university_name) {
-                let uniName: any = null;
-                // if department has college object with nested university
-                const col = (typeof deptObj.college === 'object' && deptObj.college) ? deptObj.college : null;
-                if (col) {
-                  if (col.uname_ar || col.name_ar) uniName = col.uname_ar || col.name_ar;
-                  if (!uniName && col.branch_detail && col.branch_detail.university_detail) {
-                    const ud = col.branch_detail.university_detail;
-                    uniName = ud.uname_ar || ud.name_ar || ud.uname_en || ud.name || null;
-                  }
-                  if (!uniName && col.university && typeof col.university === 'object') {
-                    uniName = col.university.uname_ar || col.university.name_ar || col.university.uname_en || col.university.name || null;
-                  }
-                }
-                if (uniName) enrichedProj.university_name = uniName;
-              }
-            } catch (e) { /* ignore */ }
-          }
-        }
-
-        // also try to resolve university from linkedGroup direct fields if not already set
-        try {
-          if (linkedGroup && !enrichedProj.university_name) {
-            if (linkedGroup.university_name) enrichedProj.university_name = linkedGroup.university_name;
-            else if (linkedGroup.university && typeof linkedGroup.university === 'object') {
-              enrichedProj.university_name = linkedGroup.university.uname_ar || linkedGroup.university.name_ar || linkedGroup.university.uname_en || linkedGroup.university.name || enrichedProj.university_name;
-            } else if (linkedGroup.branch_detail && linkedGroup.branch_detail.university_detail) {
-              const ud = linkedGroup.branch_detail.university_detail;
-              enrichedProj.university_name = ud.uname_ar || ud.name_ar || ud.uname_en || ud.name || enrichedProj.university_name;
-            } else if (linkedGroup.program && typeof linkedGroup.program === 'object') {
-              // try program -> department -> college -> university
-              const pg = linkedGroup.program as any;
-              const mgDept = (pg.department && (typeof pg.department === 'object' ? pg.department : null)) || null;
-              const mgCol = mgDept && mgDept.college && typeof mgDept.college === 'object' ? mgDept.college : null;
-              if (mgCol) {
-                enrichedProj.university_name = mgCol.uname_ar || mgCol.name_ar || (mgCol.branch_detail && mgCol.branch_detail.university_detail && (mgCol.branch_detail.university_detail.uname_ar || mgCol.branch_detail.university_detail.name_ar)) || enrichedProj.university_name;
-              }
-            }
-          }
-        } catch (e) { /* ignore */ }
-
-        // final fallback: try project.college nested university if still missing
-        try {
-          if (!enrichedProj.university_name && project.college && typeof project.college === 'object') {
-            const col = project.college as any;
-            if (col.uname_ar || col.name_ar) enrichedProj.university_name = col.uname_ar || col.name_ar;
-            else if (col.branch_detail && col.branch_detail.university_detail) {
-              const ud = col.branch_detail.university_detail;
-              enrichedProj.university_name = ud.uname_ar || ud.name_ar || ud.uname_en || ud.name || enrichedProj.university_name;
-            } else if (col.university && typeof col.university === 'object') {
-              enrichedProj.university_name = col.university.uname_ar || col.university.name_ar || col.university.uname_en || col.university.name || enrichedProj.university_name;
-            }
-          }
-        } catch (e) { /* ignore */ }
+      // Resolve supervisor
+      let supervisorId = project.supervisor || project.supervisor_id;
+      if (supervisorId && typeof supervisorId === 'object') {
+        supervisorId = supervisorId.id || supervisorId.user_id;
       }
+      const supervisor = supervisorId ? usersById.get(supervisorId) : null;
 
-      return enrichedProj;
+      // Resolve co_supervisor
+      let coSupervisorId = project.co_supervisor || project.co_supervisor_id;
+      if (coSupervisorId && typeof coSupervisorId === 'object') {
+        coSupervisorId = coSupervisorId.id || coSupervisorId.user_id;
+      }
+      const coSupervisor = coSupervisorId ? usersById.get(coSupervisorId) : null;
+
+      // Resolve department
+      let departmentId = project.department || project.department_id;
+      if (departmentId && typeof departmentId === 'object') {
+        departmentId = departmentId.id || departmentId.department_id;
+      }
+      const department = departmentId ? departments.find((d: any) => String(d.id || d.department_id) === String(departmentId)) : null;
+
+      // Resolve college
+      let collegeId = project.college || project.college_id;
+      if (collegeId && typeof collegeId === 'object') {
+        collegeId = collegeId.id || collegeId.cid;
+      }
+      if (!collegeId && linkedGroup) {
+        collegeId = linkedGroup.college || linkedGroup.college_id;
+        if (collegeId && typeof collegeId === 'object') {
+          collegeId = collegeId.id || collegeId.cid;
+        }
+      }
+      if (!collegeId && department) {
+        collegeId = department.college || department.college_id;
+        if (collegeId && typeof collegeId === 'object') {
+          collegeId = collegeId.id || collegeId.cid;
+        }
+      }
+      const college = collegeId ? colleges.find((c: any) => String(c.id || c.cid) === String(collegeId)) : null;
+
+      return {
+        ...project,
+        supervisor,
+        coSupervisor,
+        department,
+        college,
+      };
     });
 
-    // System managers see all projects; skip college filtering entirely.
-    // the original code attempted to narrow results by systemManagerCollegeId,
-    // which makes no sense for this role. keep enriched list as-is.
-    console.log('System Manager Dashboard - returning all enriched projects (no college filter)');
-    return enriched;
-  }, [projects, groups, departments, users, systemManagerCollegeId]);
+    if (!systemManagerCollegeId) {
+      console.log('System Manager Dashboard - no college ID found, showing all projects');
+      return enriched;
+    }
+
+    console.log('System Manager Dashboard - filtering projects for college:', systemManagerCollegeId);
+
+    const result = enriched.filter((project: any) => {
+      // Primary check: project.college_id
+      if (project.college && Number(project.college.id || project.college.cid) === Number(systemManagerCollegeId)) {
+        console.log('Project matched by college:', project.project_id || project.id, systemManagerCollegeId);
+        return true;
+      }
+
+      // Secondary check: department college
+      if (project.department && project.department.college) {
+        const deptCollegeId = project.department.college.id || project.department.college.cid;
+        if (Number(deptCollegeId) === Number(systemManagerCollegeId)) {
+          console.log('Project matched by department college:', project.project_id || project.id, systemManagerCollegeId);
+          return true;
+        }
+      }
+
+      // Tertiary check: linked group college
+      if (linkedGroup && (linkedGroup.college || linkedGroup.college_id)) {
+        const groupCollegeId = linkedGroup.college || linkedGroup.college_id;
+        if (Number(groupCollegeId) === Number(systemManagerCollegeId)) {
+          console.log('Project matched by group college:', project.project_id || project.id, systemManagerCollegeId);
+          return true;
+        }
+      }
+
+      return false;
+    });
+
+    console.log('System Manager Dashboard - filteredProjects result:', result.length, 'from total:', enriched.length);
+    return result;
+  }, [projects, groups, users, departments, colleges, systemManagerCollegeId]);
+
+  const filteredColleges = useMemo(() => {
+    if (!systemManagerCollegeId) return colleges;
+    return colleges.filter((c: any) => Number(c.id || c.cid) === Number(systemManagerCollegeId));
+  }, [colleges, systemManagerCollegeId]);
+
+  const filteredDepartments = useMemo(() => {
+    if (!systemManagerCollegeId) return departments;
+    return departments.filter((d: any) => {
+      const deptCollegeId = d.college || d.college_id;
+      if (deptCollegeId && typeof deptCollegeId === 'object') {
+        return Number(deptCollegeId.id || deptCollegeId.cid) === Number(systemManagerCollegeId);
+      }
+      return Number(deptCollegeId) === Number(systemManagerCollegeId);
+    });
+  }, [departments, systemManagerCollegeId]);
 
   const filteredUniversities = useMemo(() => universities, [universities]);
-  const filteredColleges = useMemo(() => colleges, [colleges]);
-  const filteredDepartments = useMemo(() => departments, [departments]);
-  const filteredPrograms = useMemo(() => programs, [programs]);
-  const filteredBranches = useMemo(() => branches, [branches]);
+
+  const filteredPrograms = useMemo(() => {
+    if (!systemManagerCollegeId) return programs;
+    return programs.filter((p: any) => {
+      const progCollegeId = p.college || p.college_id;
+      if (progCollegeId && typeof progCollegeId === 'object') {
+        return Number(progCollegeId.id || progCollegeId.cid) === Number(systemManagerCollegeId);
+      }
+      return Number(progCollegeId) === Number(systemManagerCollegeId);
+    });
+  }, [programs, systemManagerCollegeId]);
+
+  const filteredBranches = useMemo(() => {
+    if (!systemManagerCollegeId) return branches;
+    return branches.filter((b: any) => {
+      const branchCollegeId = b.college || b.college_id;
+      if (branchCollegeId && typeof branchCollegeId === 'object') {
+        return Number(branchCollegeId.id || branchCollegeId.cid) === Number(systemManagerCollegeId);
+      }
+      return Number(branchCollegeId) === Number(systemManagerCollegeId);
+    });
+  }, [branches, systemManagerCollegeId]);
 
   const filteredGroups = useMemo(() => {
     if (!systemManagerCollegeId) {
@@ -465,29 +489,45 @@ const SystemManagerDashboard: React.FC = () => {
     console.log('System Manager Dashboard - filtering groups for college:', systemManagerCollegeId);
 
     const result = groups.filter((group: any) => {
-      // Primary check: group's department college
-      if (group.department) {
-        const department = departments.find((d: any) => String(d.department_id) === String(group.department));
+      // Primary check: group.college_id
+      if (group.college_id && Number(group.college_id) === Number(systemManagerCollegeId)) {
+        console.log('Group matched by college_id:', group.group_id || group.id, group.college_id);
+        return true;
+      }
+
+      // Secondary check: group.college (object)
+      if (group.college && typeof group.college === 'object') {
+        const groupCollegeId = group.college.id || group.college.cid;
+        if (Number(groupCollegeId) === Number(systemManagerCollegeId)) {
+          console.log('Group matched by college object:', group.group_id || group.id, groupCollegeId);
+          return true;
+        }
+      }
+
+      // Tertiary check: department affiliation
+      if (group.department_id) {
+        const department = departments.find((d: any) => String(d.department_id) === String(group.department_id));
         if (department) {
-          let departmentCollegeId = null;
+          let deptCollegeId = null;
           if (typeof department.college === 'number') {
-            departmentCollegeId = department.college;
+            deptCollegeId = department.college;
           } else if (typeof department.college === 'object' && department.college) {
-            departmentCollegeId = department.college.id || department.college.cid;
+            deptCollegeId = department.college.id || department.college.cid;
           } else if (department.college_id) {
-            departmentCollegeId = department.college_id;
+            deptCollegeId = department.college_id;
           }
 
-          if (departmentCollegeId && Number(departmentCollegeId) === Number(systemManagerCollegeId)) {
-            console.log('Group matched by department:', group.group_id || group.id, departmentCollegeId);
+          if (deptCollegeId && Number(deptCollegeId) === Number(systemManagerCollegeId)) {
+            console.log('Group matched by department college:', group.group_id || group.id, deptCollegeId);
             return true;
           }
         }
       }
 
-      // Secondary check: group's project college
+      // Quaternary check: project affiliation
       if (group.project) {
-        const project = projects.find((p: any) => String(p.project_id || p.id) === String(group.project));
+        const projectId = typeof group.project === 'number' || typeof group.project === 'string' ? group.project : (group.project.project_id || group.project.id);
+        const project = projects.find((p: any) => String(p.project_id || p.id) === String(projectId));
         if (project) {
           let projectCollegeId = null;
           if (typeof project.college === 'number') {
@@ -766,38 +806,25 @@ const SystemManagerDashboard: React.FC = () => {
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
                     : 'text-slate-600 hover:bg-white'
                     }`}
-                >
-                  {item.label}
-                </button>
+                />
               );
             })}
           </nav>
 
-          {/* Right: notifications + hello + avatar */}
+          {/* Right: notifications + menu */}
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsNotifPanelOpen(true)}
+              onClick={() => setIsNotifPanelOpen(!isNotifPanelOpen)}
               className="relative p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl transition-all border border-slate-200"
-              aria-label="فتح الإشعارات"
+              aria-label="الإشعارات"
             >
               <FiBell size={20} />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] font-black rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center">
+                <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                   {unreadCount}
                 </span>
               )}
             </button>
-
-            <div className="hidden sm:block text-right">
-              <p className="text-xs font-black text-slate-800 leading-none">مرحباً</p>
-              <p className="text-[11px] text-slate-400 font-bold mt-1">
-                {user?.name || 'مدير النظام'}
-              </p>
-            </div>
-
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md flex items-center justify-center text-white font-black">
-              {(user?.name || 'م')?.charAt(0)?.toUpperCase()}
-            </div>
           </div>
         </header>
 
@@ -853,12 +880,6 @@ const SystemManagerDashboard: React.FC = () => {
               </div>
             </div>
           )}
-          <button
-            onClick={() => navigate("/dashboard/system-manager/import-users")}
-            className="px-4 py-2 rounded-xl bg-blue-600 text-white"
-          >
-            استيراد مستخدمين (Excel)
-          </button>
           {/* Management Panel - Full screen when active */}
           {activeCardPanel && (
             <div className="relative mt-8">
@@ -895,12 +916,13 @@ const SystemManagerDashboard: React.FC = () => {
 
                 {/* Cards Container */}
                 <div className="p-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                     {/* Management Card */}
                     <div
                       onClick={() => {
                         setShowManagementContent(true);
                         setActiveReport(null);
+                        setShowImportProjects(false);
                       }}
                       className="group relative bg-white rounded-2xl p-8 shadow-lg border border-slate-100 hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden transform hover:-translate-y-2"
                     >
@@ -946,6 +968,7 @@ const SystemManagerDashboard: React.FC = () => {
                         else if (activeCardPanel === 'المشاريع') setActiveReport('projects');
                         else setActiveReport('users');
                         setShowManagementContent(false);
+                        setShowImportProjects(false);
                       }}
                       className="group relative bg-white rounded-2xl p-8 shadow-lg border border-slate-100 hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden transform hover:-translate-y-2"
                     >
@@ -983,14 +1006,76 @@ const SystemManagerDashboard: React.FC = () => {
                         </div>
                       </div>
                     </div>
+
+                    {/* Import Projects Card - NEW */}
+                    {activeCardPanel === 'المشاريع' && (
+                      <div
+                        onClick={() => {
+                          setShowImportProjects(true);
+                          setShowManagementContent(false);
+                          setActiveReport(null);
+                        }}
+                        className="group relative bg-white rounded-2xl p-8 shadow-lg border border-slate-100 hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden transform hover:-translate-y-2"
+                      >
+                        {/* Card background gradient on hover */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-indigo-500/0 group-hover:from-blue-500/5 group-hover:to-indigo-500/5 transition-all duration-500 rounded-2xl"></div>
+
+                        {/* Animated wave effect */}
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-blue-100/30 rounded-full  group-hover:bg-blue-200/40 transition-all duration-700 transform group-hover:scale-150"></div>
+                        <div className="absolute bottom-0 left-0 w-16 h-16 bg-indigo-100/30 rounded-full  group-hover:bg-indigo-200/40 transition-all duration-700 delay-200 transform group-hover:scale-125"></div>
+
+                        <div className="relative z-10">
+                          {/* Icon */}
+                          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300 transform group-hover:scale-110 group-hover:rotate-3">
+                            <FiDownload size={28} className="text-white" />
+                          </div>
+
+                          {/* Title */}
+                          <h4 className="text-xl font-black text-slate-800 mb-3 group-hover:text-indigo-700 transition-colors">
+                            استيراد المشاريع
+                          </h4>
+
+                          {/* Description */}
+                          <p className="text-slate-600 text-sm leading-relaxed mb-6">
+                            استيراد مشاريع جديدة من ملفات Excel أو CSV، مع التحقق من البيانات والتحديثات الدفعية.
+                          </p>
+
+                          {/* Action indicator */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
+                              استيراد دفعي
+                            </span>
+                            <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
+                              <FiChevronLeft size={14} className="text-indigo-600" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
+              
+            
+            
+    
 
               {/* Content below cards */}
               <div className="mt-8">
                 {renderManagementContent()}
                 {renderReport()}
+                {showImportProjects && (
+                  <div className="bg-white p-8 rounded-2xl shadow-lg border border-slate-100">
+                    <h3 className="text-2xl font-black text-slate-800 mb-4">استيراد المشاريع</h3>
+                    <p className="text-slate-600 mb-6">قسم استيراد المشاريع قيد التطوير. سيتم إضافة واجهة لاستيراد المشاريع من ملفات Excel قريباً.</p>
+                    <button
+                      onClick={() => navigate("/dashboard/system-manager/import-projects")}
+                      className="px-6 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors"
+                    >
+                      الذهاب إلى صفحة الاستيراد
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}

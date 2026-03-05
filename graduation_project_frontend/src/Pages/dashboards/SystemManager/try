@@ -1,50 +1,24 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { projectService, Project, Supervisor } from '../../../services/projectService';
+import { projectService, Project } from '../../../services/projectService';
 
 const ProjectsTable: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [editingProject, setEditingProject] = useState<Partial<Project> | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
-  const [states, setStates] = useState<string[]>([]);
 
   useEffect(() => {
-    fetchProjects();
-    fetchSupervisors();
-    fetchStates();
+    (async () => {
+      setLoading(true);
+      try {
+        const data = await projectService.getProjects();
+        setProjects(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error('Failed to fetch projects', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
-
-  const fetchProjects = async () => {
-    setLoading(true);
-    try {
-      const data = await projectService.getProjects();
-      setProjects(Array.isArray(data) ? data : []);
-    } catch (e) {
-      console.error('Failed to fetch projects', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchSupervisors = async () => {
-    try {
-      const data = await projectService.getSupervisors(); // assumes API exists
-      setSupervisors(data);
-    } catch (e) {
-      console.error('Failed to fetch supervisors', e);
-    }
-  };
-
-  const fetchStates = async () => {
-    try {
-      const data = await projectService.getAllStates(); // assumes API exists
-      setStates(data);
-    } catch (e) {
-      console.error('Failed to fetch states', e);
-    }
-  };
 
   const handleDelete = async (id?: number) => {
     if (!id) return;
@@ -59,34 +33,7 @@ const ProjectsTable: React.FC = () => {
     }
   };
 
-  const handleEdit = (project: Project) => {
-    setEditingProject({ ...project });
-    setShowModal(true);
-  };
-
-  const handleModalClose = () => {
-    setShowModal(false);
-    setEditingProject(null);
-  };
-
-  const handleSave = async () => {
-    if (!editingProject?.project_id) return;
-
-    try {
-      const updated = await projectService.updateProject(
-        editingProject.project_id,
-        editingProject
-      );
-      setProjects(prev =>
-        prev.map(p => (p.project_id === updated.project_id ? updated : p))
-      );
-      handleModalClose();
-    } catch (e) {
-      console.error(e);
-      alert('فشل التحديث');
-    }
-  };
-
+  // Filtered projects by search
   const filteredProjects = useMemo(() => {
     return projects.filter(p => {
       return (
@@ -163,6 +110,7 @@ const ProjectsTable: React.FC = () => {
               {filteredProjects.length > 0 ? (
                 filteredProjects.map((p, idx) => {
                   const creator = p.created_by;
+
                   return (
                     <tr
                       key={p.project_id}
@@ -212,12 +160,10 @@ const ProjectsTable: React.FC = () => {
                       {/* files */}
                       <td className="border border-black px-4 py-2">{p.documentation_path ?? '-'}</td>
                       <td className="border border-black px-4 py-2">{p.logo ?? '-'}</td>
-                      {/* ... all other td cells exactly as your original code */}
+
+                      {/* actions */}
                       <td className="border border-black px-4 py-2 flex gap-2 justify-center">
-                        <button
-                          className="px-3 py-1 text-yellow-700 border border-yellow-700 rounded hover:bg-yellow-100"
-                          onClick={() => handleEdit(p)}
-                        >
+                        <button className="px-3 py-1 text-yellow-700 border border-yellow-700 rounded hover:bg-yellow-100">
                           تعديل
                         </button>
                         <button
@@ -239,184 +185,6 @@ const ProjectsTable: React.FC = () => {
               )}
             </tbody>
           </table>
-        </div>
-      )}
-
-      {/* Update Modal */}
-      {showModal && editingProject && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-1/2 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4">تعديل المشروع</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {/* Field */}
-              <div>
-                <label className="block mb-1 font-medium">المجال</label>
-                <input
-                  type="text"
-                  value={editingProject.field ?? ''}
-                  onChange={e => setEditingProject(prev => ({ ...prev, field: e.target.value }))}
-                  className="border border-gray-300 rounded px-3 py-1 w-full"
-                />
-              </div>
-
-              {/* Tools */}
-              <div>
-                <label className="block mb-1 font-medium">الأدوات</label>
-                <input
-                  type="text"
-                  value={editingProject.tools ?? ''}
-                  onChange={e => setEditingProject(prev => ({ ...prev, tools: e.target.value }))}
-                  className="border border-gray-300 rounded px-3 py-1 w-full"
-                />
-              </div>
-
-              {/* Title */}
-              <div>
-                <label className="block mb-1 font-medium">عنوان المشروع</label>
-                <input
-                  type="text"
-                  value={editingProject.title ?? ''}
-                  onChange={e => setEditingProject(prev => ({ ...prev, title: e.target.value }))}
-                  className="border border-gray-300 rounded px-3 py-1 w-full"
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block mb-1 font-medium">الوصف</label>
-                <input
-                  type="text"
-                  value={editingProject.description ?? ''}
-                  onChange={e =>
-                    setEditingProject(prev => ({ ...prev, description: e.target.value }))
-                  }
-                  className="border border-gray-300 rounded px-3 py-1 w-full"
-                />
-              </div>
-
-              {/* Start Date */}
-              <div>
-                <label className="block mb-1 font-medium">سنة البداية</label>
-                <input
-                  type="number"
-                  value={editingProject.start_date ?? ''}
-                  onChange={e =>
-                    setEditingProject(prev => ({ ...prev, start_date: Number(e.target.value) }))
-                  }
-                  className="border border-gray-300 rounded px-3 py-1 w-full"
-                />
-              </div>
-
-              {/* End Date */}
-              <div>
-                <label className="block mb-1 font-medium">سنة النهاية</label>
-                <input
-                  type="number"
-                  value={editingProject.end_date ?? ''}
-                  onChange={e =>
-                    setEditingProject(prev => ({ ...prev, end_date: Number(e.target.value) }))
-                  }
-                  className="border border-gray-300 rounded px-3 py-1 w-full"
-                />
-              </div>
-
-              {/* Logo */}
-              <div>
-                <label className="block mb-1 font-medium">Logo</label>
-                <input
-                  type="text"
-                  value={editingProject.logo ?? ''}
-                  onChange={e => setEditingProject(prev => ({ ...prev, logo: e.target.value }))}
-                  className="border border-gray-300 rounded px-3 py-1 w-full"
-                />
-              </div>
-
-              {/* Documentation_Path */}
-              <div>
-                <label className="block mb-1 font-medium">Documentation Path</label>
-                <input
-                  type="text"
-                  value={editingProject.documentation_path ?? ''}
-                  onChange={e =>
-                    setEditingProject(prev => ({ ...prev, documentation_path: e.target.value }))
-                  }
-                  className="border border-gray-300 rounded px-3 py-1 w-full"
-                />
-              </div>
-
-              {/* State */}
-              <div>
-                <label className="block mb-1 font-medium">الحالة</label>
-                <select
-                  value={editingProject.state_name ?? ''}
-                  onChange={e =>
-                    setEditingProject(prev => ({ ...prev, state_name: e.target.value }))
-                  }
-                  className="border border-gray-300 rounded px-3 py-1 w-full"
-                >
-                  <option value="">اختر الحالة</option>
-                  {states.map(s => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Supervisor */}
-              <div>
-                <label className="block mb-1 font-medium">المشرف</label>
-                <select
-                  value={editingProject.supervisor_id ?? ''}
-                  onChange={e =>
-                    setEditingProject(prev => ({ ...prev, supervisor_id: Number(e.target.value) }))
-                  }
-                  className="border border-gray-300 rounded px-3 py-1 w-full"
-                >
-                  <option value="">اختر المشرف</option>
-                  {supervisors.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Co-Supervisor */}
-              <div>
-                <label className="block mb-1 font-medium">المشرف المشارك</label>
-                <select
-                  value={editingProject.co_supervisor_id ?? ''}
-                  onChange={e =>
-                    setEditingProject(prev => ({ ...prev, co_supervisor_id: Number(e.target.value) }))
-                  }
-                  className="border border-gray-300 rounded px-3 py-1 w-full"
-                >
-                  <option value="">اختر المشرف المشارك</option>
-                  {supervisors.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-4 mt-6">
-              <button
-                onClick={handleModalClose}
-                className="px-4 py-2 border rounded hover:bg-gray-100"
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={handleSave}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-              >
-                حفظ
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>
