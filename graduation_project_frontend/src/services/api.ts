@@ -130,6 +130,7 @@ export const API_ENDPOINTS = {
   LOGIN: "auth/login/",
   ME: "auth/me/",
   STUDENTS: "students/",
+  USERS: "users/",
   SUPERVISORS: "supervisors/",
   CO_SUPERVISORS: "co-supervisors/",
   STATISTICS: "statistics/",
