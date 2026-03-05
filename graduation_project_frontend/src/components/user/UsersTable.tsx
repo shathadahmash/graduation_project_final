@@ -114,6 +114,7 @@ const UsersTable: React.FC = () => {
       const payload = {
         ...newUser,
         phone: newUser.phone || null,
+        // gender is already stored as Arabic string from the dropdown
         gender: newUser.gender || null,
         company_name: newUser.company_name || null,
       };
@@ -264,9 +265,9 @@ const UsersTable: React.FC = () => {
               className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm cursor-pointer appearance-none"
             >
               <option value="">الكل</option>
-              <option value="Male">ذكر</option>
-              <option value="Female">أنثى</option>
-              <option value="Other">أخرى</option>
+              <option value="ذكر">ذكر</option>
+              <option value="انثى">أنثى</option>
+              {/* note: backend does not support an "Other" choice; keep placeholder if needed */}
             </select>
           </div>
 
@@ -336,9 +337,9 @@ const UsersTable: React.FC = () => {
               <label className="text-xs font-bold text-slate-500 mr-1">الجنس</label>
               <select value={editingUser ? editingUser.gender || "" : newUser.gender} onChange={e => editingUser ? setEditingUser({...editingUser, gender: e.target.value}) : setNewUser({ ...newUser, gender: e.target.value })} className="w-full border border-slate-200 px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
                 <option value="">اختر الجنس</option>
-                <option value="Male">ذكر</option>
-                <option value="Female">أنثى</option>
-                <option value="Other">أخرى</option>
+                <option value="ذكر">ذكر</option>
+                <option value="انثى">أنثى</option>
+                {/* gender other not supported by server */}
               </select>
             </div>
             <div className="space-y-1">

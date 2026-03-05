@@ -101,42 +101,59 @@ const UsersTable: React.FC = () => {
 
   // Paginated users
   const paginatedUsers = filteredUsers.slice(0, visibleRows);
+const handleCreateUser = async () => {
+  const { username, first_name, last_name, email, password, roleId } = newUser;
 
-  const handleCreateUser = async () => {
-    const { username, name, email, password, roleId } = newUser;
-    if (!username || !email || !password) {
-      alert("Please fill all required fields!");
-      return;
+  if (!username || !email || !password) {
+    alert("Please fill all required fields!");
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    // Build payload
+    const payload = {
+      username,
+      first_name: first_name || "",
+      last_name: last_name || "",
+      name: `${first_name || ""} ${last_name || ""}`.trim(), // combine first & last
+      email,
+      password,
+      phone: newUser.phone || null,
+      gender: newUser.gender || null,
+      company_name: newUser.company_name || null,
+    };
+
+    const createdUser = await userService.createUser(payload as any);
+
+    if (roleId) {
+      await userService.assignRoleToUser(createdUser.id, roleId);
     }
 
-    try {
-      setLoading(true);
-      const payload = {
-        ...newUser,
-        phone: newUser.phone || null,
-        gender: newUser.gender || null,
-        company_name: newUser.company_name || null,
-      };
+    // Reset form
+    setNewUser({
+      username: "",
+      first_name: "",
+      last_name: "",
+      name: "",
+      email: "",
+      password: "",
+      phone: "",
+      gender: "",
+      company_name: "",
+      roleId: undefined,
+    });
+    setShowCreateForm(false);
+    fetchUsers();
 
-      const createdUser = await userService.createUser(payload as any);
-      if (roleId) {
-        await userService.assignRoleToUser(createdUser.id, roleId);
-      }
-
-      setNewUser({ 
-        username: "", name: "", email: "", password: "", 
-        phone: "", gender: "", company_name: "", 
-        first_name: "", last_name: "", roleId: undefined 
-      });
-      setShowCreateForm(false);
-      fetchUsers();
-    } catch (err: any) {
-      console.error("❌ Error creating user:", err);
-      alert(`Failed to create user: ${err.response?.data?.message || err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (err: any) {
+    console.error("❌ Error creating user:", err);
+    alert(`Failed to create user: ${err.response?.data?.message || err.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleUpdateUser = async () => {
     if (!editingUser) return;
@@ -264,9 +281,9 @@ const UsersTable: React.FC = () => {
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm cursor-pointer appearance-none"
             >
               <option value="">الكل</option>
-              <option value="Male">ذكر</option>
-              <option value="Female">أنثى</option>
-              <option value="Other">أخرى</option>
+              <option value="ذكر">ذكر</option>
+              <option value="انثى">أنثى</option>
+              {/* backend doesn't support an "Other" value; kept only for display */}
             </select>
           </div>
 
@@ -297,94 +314,197 @@ const UsersTable: React.FC = () => {
       </div>
 
       {/* Create/Edit Form */}
-      {(showCreateForm || editingUser) && (
-        <div className="mb-8 p-8 bg-white rounded-2xl shadow-xl border border-indigo-50 animate-in fade-in slide-in-from-top-4 duration-300">
-          <h2 className="text-xl font-black mb-6 text-slate-800 flex items-center gap-2">
-            {editingUser ? <FiBriefcase className="text-yellow-500" /> : <FiUser className="text-indigo-500" />}
-            {editingUser ? "تحديث بيانات المستخدم" : "إنشاء حساب مستخدم جديد"}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {!editingUser && (
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 mr-1">اسم المستخدم *</label>
-                <input type="text" placeholder="Username" value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value })} className="w-full border border-slate-200 px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50" />
-              </div>
-            )}
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 mr-1">الاسم الكامل</label>
-              <input type="text" placeholder="Full Name" value={editingUser ? editingUser.name || "" : newUser.name} onChange={e => editingUser ? setEditingUser({...editingUser, name: e.target.value}) : setNewUser({ ...newUser, name: e.target.value })} className="w-full border border-slate-200 px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 mr-1">البريد الإلكتروني *</label>
-              <input type="email" placeholder="Email" value={editingUser ? editingUser.email || "" : newUser.email} onChange={e => editingUser ? setEditingUser({...editingUser, email: e.target.value}) : setNewUser({ ...newUser, email: e.target.value })} className="w-full border border-slate-200 px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50" />
-            </div>
-            {!editingUser && (
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 mr-1">كلمة المرور *</label>
-                <input type="password" placeholder="Password" value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} className="w-full border border-slate-200 px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50" />
-              </div>
-            )}
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 mr-1">رقم الهاتف</label>
-              <input type="text" placeholder="Phone" value={editingUser ? editingUser.phone || "" : newUser.phone} onChange={e => editingUser ? setEditingUser({...editingUser, phone: e.target.value}) : setNewUser({ ...newUser, phone: e.target.value })} className="w-full border border-slate-200 px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 mr-1">اسم الشركة</label>
-              <input type="text" placeholder="Company Name" value={editingUser ? editingUser.company_name || "" : newUser.company_name} onChange={e => editingUser ? setEditingUser({...editingUser, company_name: e.target.value}) : setNewUser({ ...newUser, company_name: e.target.value })} className="w-full border border-slate-200 px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 mr-1">الجنس</label>
-              <select value={editingUser ? editingUser.gender || "" : newUser.gender} onChange={e => editingUser ? setEditingUser({...editingUser, gender: e.target.value}) : setNewUser({ ...newUser, gender: e.target.value })} className="w-full border border-slate-200 px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50">
-                <option value="">اختر الجنس</option>
-                <option value="Male">ذكر</option>
-                <option value="Female">أنثى</option>
-                <option value="Other">أخرى</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 mr-1">الدور</label>
-              <select 
-                value={editingUser ? editingUser.roleId || "" : newUser.roleId || ""} 
-                onChange={e => editingUser ? setEditingUser({...editingUser, roleId: Number(e.target.value)}) : setNewUser({ ...newUser, roleId: Number(e.target.value) })} 
-                className="w-full border border-slate-200 px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50"
-              >
-                <option value="">اختر الدور</option>
-                {roles.map(role => (
-                  <option key={role.id} value={role.id}>{role.type}</option>
-                ))}
-              </select>
-            </div>
-            {editingUser && (
-              <div className="flex items-center gap-2 pt-6">
-                <input 
-                  type="checkbox" 
-                  id="is_active" 
-                  checked={editingUser.is_active} 
-                  onChange={e => setEditingUser({...editingUser, is_active: e.target.checked})}
-                  className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500"
-                />
-                <label htmlFor="is_active" className="text-sm font-bold text-slate-700">حساب نشط</label>
-              </div>
-            )}
-            <div className="lg:col-span-3 flex gap-3 mt-4">
-              <button 
-                onClick={editingUser ? handleUpdateUser : handleCreateUser} 
-                className={`flex-1 ${editingUser ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-indigo-600 hover:bg-indigo-700'} text-white px-6 py-3 rounded-xl font-black transition-all shadow-lg disabled:opacity-50`} 
-                disabled={loading}
-              >
-                {loading ? "جاري المعالجة..." : (editingUser ? "تحديث البيانات" : "إنشاء الحساب")}
-              </button>
-              <button 
-                onClick={() => { setShowCreateForm(false); setEditingUser(null); }} 
-                className="px-6 py-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all font-bold text-slate-600"
-              >
-                إلغاء
-              </button>
-            </div>
-          </div>
+{(showCreateForm || editingUser) && (
+  <div className="mb-8 p-8 bg-white rounded-2xl shadow-xl border border-indigo-50 animate-in fade-in slide-in-from-top-4 duration-300">
+    <h2 className="text-xl font-black mb-6 text-slate-800 flex items-center gap-2">
+      {editingUser ? <FiBriefcase className="text-yellow-500" /> : <FiUser className="text-indigo-500" />}
+      {editingUser ? "تحديث بيانات المستخدم" : "إنشاء حساب مستخدم جديد"}
+    </h2>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      {!editingUser && (
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-slate-500 mr-1">اسم المستخدم *</label>
+          <input
+            type="text"
+            placeholder="Username"
+            value={newUser.username}
+            onChange={e => setNewUser({ ...newUser, username: e.target.value })}
+            className="w-full border border-slate-200 px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50"
+          />
         </div>
       )}
 
+      {/* First Name */}
+      <div className="space-y-1">
+        <label className="text-xs font-bold text-slate-500 mr-1">الاسم الأول</label>
+        <input
+          type="text"
+          placeholder="First Name"
+          value={editingUser ? editingUser.first_name || "" : newUser.first_name || ""}
+          onChange={e =>
+            editingUser
+              ? setEditingUser({ ...editingUser, first_name: e.target.value })
+              : setNewUser({ ...newUser, first_name: e.target.value })
+          }
+          className="w-full border border-slate-200 px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50"
+        />
+      </div>
+
+      {/* Last Name */}
+      <div className="space-y-1">
+        <label className="text-xs font-bold text-slate-500 mr-1">اسم العائلة</label>
+        <input
+          type="text"
+          placeholder="Last Name"
+          value={editingUser ? editingUser.last_name || "" : newUser.last_name || ""}
+          onChange={e =>
+            editingUser
+              ? setEditingUser({ ...editingUser, last_name: e.target.value })
+              : setNewUser({ ...newUser, last_name: e.target.value })
+          }
+          className="w-full border border-slate-200 px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-xs font-bold text-slate-500 mr-1">البريد الإلكتروني *</label>
+        <input
+          type="email"
+          placeholder="Email"
+          value={editingUser ? editingUser.email || "" : newUser.email}
+          onChange={e =>
+            editingUser
+              ? setEditingUser({ ...editingUser, email: e.target.value })
+              : setNewUser({ ...newUser, email: e.target.value })
+          }
+          className="w-full border border-slate-200 px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50"
+        />
+      </div>
+
+      {!editingUser && (
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-slate-500 mr-1">كلمة المرور *</label>
+          <input
+            type="password"
+            placeholder="Password"
+            value={newUser.password}
+            onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+            className="w-full border border-slate-200 px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50"
+          />
+        </div>
+      )}
+
+      {/* Phone */}
+      <div className="space-y-1">
+        <label className="text-xs font-bold text-slate-500 mr-1">رقم الهاتف</label>
+        <input
+          type="text"
+          placeholder="Phone"
+          value={editingUser ? editingUser.phone || "" : newUser.phone}
+          onChange={e =>
+            editingUser
+              ? setEditingUser({ ...editingUser, phone: e.target.value })
+              : setNewUser({ ...newUser, phone: e.target.value })
+          }
+          className="w-full border border-slate-200 px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50"
+        />
+      </div>
+
+      {/* Company Name */}
+      <div className="space-y-1">
+        <label className="text-xs font-bold text-slate-500 mr-1">اسم الشركة</label>
+        <input
+          type="text"
+          placeholder="Company Name"
+          value={editingUser ? editingUser.company_name || "" : newUser.company_name}
+          onChange={e =>
+            editingUser
+              ? setEditingUser({ ...editingUser, company_name: e.target.value })
+              : setNewUser({ ...newUser, company_name: e.target.value })
+          }
+          className="w-full border border-slate-200 px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50"
+        />
+      </div>
+
+      {/* Gender */}
+      <div className="space-y-1">
+        <label className="text-xs font-bold text-slate-500 mr-1">الجنس</label>
+        <select
+          value={editingUser ? editingUser.gender || "" : newUser.gender}
+          onChange={e =>
+            editingUser
+              ? setEditingUser({ ...editingUser, gender: e.target.value })
+              : setNewUser({ ...newUser, gender: e.target.value })
+          }
+          className="w-full border border-slate-200 px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50"
+        >
+          <option value="">اختر الجنس</option>
+          <option value="ذكر">ذكر</option>
+          <option value="انثى">أنثى</option>
+        </select>
+      </div>
+
+      {/* Role */}
+      <div className="space-y-1">
+        <label className="text-xs font-bold text-slate-500 mr-1">الدور</label>
+        <select
+          value={editingUser ? editingUser.roleId || "" : newUser.roleId || ""}
+          onChange={e =>
+            editingUser
+              ? setEditingUser({ ...editingUser, roleId: Number(e.target.value) })
+              : setNewUser({ ...newUser, roleId: Number(e.target.value) })
+          }
+          className="w-full border border-slate-200 px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50"
+        >
+          <option value="">اختر الدور</option>
+          {roles.map(role => (
+            <option key={role.id} value={role.id}>
+              {role.type}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Active Checkbox */}
+      {editingUser && (
+        <div className="flex items-center gap-2 pt-6">
+          <input
+            type="checkbox"
+            id="is_active"
+            checked={editingUser.is_active}
+            onChange={e => setEditingUser({ ...editingUser, is_active: e.target.checked })}
+            className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500"
+          />
+          <label htmlFor="is_active" className="text-sm font-bold text-slate-700">
+            حساب نشط
+          </label>
+        </div>
+      )}
+
+      {/* Buttons */}
+      <div className="lg:col-span-3 flex gap-3 mt-4">
+        <button
+          onClick={editingUser ? handleUpdateUser : handleCreateUser}
+          className={`flex-1 ${editingUser ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-indigo-600 hover:bg-indigo-700'} text-white px-6 py-3 rounded-xl font-black transition-all shadow-lg disabled:opacity-50`}
+          disabled={loading}
+        >
+          {loading ? "جاري المعالجة..." : editingUser ? "تحديث البيانات" : "إنشاء الحساب"}
+        </button>
+        <button
+          onClick={() => {
+            setShowCreateForm(false);
+            setEditingUser(null);
+          }}
+          className="px-6 py-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all font-bold text-slate-600"
+        >
+          إلغاء
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       {/* Table Section */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div className={tableWrapperClass}>

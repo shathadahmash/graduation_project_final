@@ -32,6 +32,7 @@ interface Group {
   project_detail?: any;
   members?: GroupMember[];
   supervisors?: GroupSupervisor[];
+  co_supervisors?: GroupSupervisor[];
   created_at?: string;
 }
 
@@ -54,19 +55,16 @@ const GroupsTable: React.FC = () => {
     try {
       setLoading(true);
       const data = await groupService.getGroups();
-      // For ministry dashboard, show all groups without filtering
       setGroups(data || []);
 
       const projectIds = Array.from(new Set(
-        (data || [])
-          .map((g: any) => {
-            if (!g) return null;
-            if (typeof g.project === 'number') return g.project;
-            if (g.project && typeof g.project === 'object') return g.project.project_id || g.project.id;
-            if (g.project_detail && g.project_detail.project_id) return g.project_detail.project_id;
-            return null;
-          })
-          .filter(Boolean)
+        (data || []).map((g: any) => {
+          if (!g) return null;
+          if (typeof g.project === 'number') return g.project;
+          if (g.project && typeof g.project === 'object') return g.project.project_id || g.project.id;
+          if (g.project_detail && g.project_detail.project_id) return g.project_detail.project_id;
+          return null;
+        }).filter(Boolean)
       ));
 
       if (projectIds.length > 0) {
@@ -92,7 +90,11 @@ const GroupsTable: React.FC = () => {
   const filteredGroups = useMemo(() => {
     return groups.filter((group) => {
       const q = searchTerm.toLowerCase();
-      const matchesSearch = (group.group_name || '').toLowerCase().includes(q) || (group.project?.title || '').toLowerCase().includes(q) || (group.program?.p_name || '').toLowerCase().includes(q);
+      const matchesSearch =
+        (group.group_name || '').toLowerCase().includes(q) ||
+        (group.project?.title || '').toLowerCase().includes(q) ||
+        (group.project_detail?.title || '').toLowerCase().includes(q) ||
+        (group.program?.p_name || '').toLowerCase().includes(q);
       const matchesDept = filterDepartment === '' || group.department?.name === filterDepartment;
       const matchesYear = filterYear === '' || group.academic_year === filterYear;
       return matchesSearch && matchesDept && matchesYear;
@@ -102,12 +104,12 @@ const GroupsTable: React.FC = () => {
   const paginatedGroups = filteredGroups.slice(0, visibleRows);
 
   const clearFilters = () => { setSearchTerm(''); setFilterDepartment(''); setFilterYear(''); };
-
   const handleEditGroup = (g: Group) => { setEditingGroup(g); setShowGroupForm(true); };
   const handleDeleteGroup = (g: Group) => { setEditingGroup(g); setShowGroupForm(true); };
 
   return (
     <div className={containerClass} dir="rtl">
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-800">إدارة المجموعات</h1>
@@ -122,16 +124,22 @@ const GroupsTable: React.FC = () => {
         </div>
       </div>
 
+      {/* Filters */}
       <div className="bg-white p-6 rounded-2xl shadow-sm mb-8 border border-slate-100">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
           <div className="md:col-span-1">
             <label className="block text-xs font-black text-slate-400 uppercase mb-2 mr-1">بحث سريع</label>
             <div className="relative">
               <FiSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input type="text" placeholder="اسم المجموعة، المشروع، البرنامج..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pr-10 pl-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm" />
+              <input
+                type="text"
+                placeholder="اسم المجموعة، المشروع، البرنامج..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pr-10 pl-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
+              />
             </div>
           </div>
-
           <div>
             <label className="block text-xs font-black text-slate-400 uppercase mb-2 mr-1">القسم</label>
             <select value={filterDepartment} onChange={e => setFilterDepartment(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm cursor-pointer appearance-none">
@@ -139,7 +147,6 @@ const GroupsTable: React.FC = () => {
               {departments.map((d, i) => <option key={i} value={d}>{d}</option>)}
             </select>
           </div>
-
           <div>
             <label className="block text-xs font-black text-slate-400 uppercase mb-2 mr-1">السنة الأكاديمية</label>
             <select value={filterYear} onChange={e => setFilterYear(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm cursor-pointer appearance-none">
@@ -148,7 +155,6 @@ const GroupsTable: React.FC = () => {
             </select>
           </div>
         </div>
-
         {(searchTerm || filterDepartment || filterYear) && (
           <div className="mt-4 flex justify-end">
             <button onClick={clearFilters} className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 font-bold transition-colors"><FiX /> مسح الفلاتر</button>
@@ -156,6 +162,7 @@ const GroupsTable: React.FC = () => {
         )}
       </div>
 
+      {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div className={tableWrapperClass}>
           <table className={tableClass + ' text-right'}>
@@ -164,7 +171,8 @@ const GroupsTable: React.FC = () => {
                 <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-wider">المجموعة</th>
                 <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-wider">الأعضاء</th>
                 <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-wider">المشرفون</th>
-                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-wider">البرنامج والقسم</th>
+                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-wider">البرنامج </th>
+                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-wider">القسم</th>
                 <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-wider">المشروع المرتبط</th>
                 <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-wider">السنة الأكاديمية</th>
                 <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-wider">الإجراءات</th>
@@ -176,6 +184,7 @@ const GroupsTable: React.FC = () => {
               ) : paginatedGroups.length > 0 ? (
                 paginatedGroups.map(group => (
                   <tr key={group.group_id} className="hover:bg-slate-50/50 transition-colors group">
+                    {/* Group Name */}
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-sm"><FiUsers /></div>
@@ -185,32 +194,59 @@ const GroupsTable: React.FC = () => {
                         </div>
                       </div>
                     </td>
+
+                    {/* Members */}
                     <td className="px-6 py-5">
-                      <div className="flex flex-col gap-1">{(group.members && group.members.length > 0) ? group.members.map((m, idx) => (<div key={idx} className="text-sm text-slate-700 font-bold">{m.user_detail?.name || m.user_detail?.username || `#${m.user}`}</div>)) : (<div className="text-sm text-slate-500">لا يوجد أعضاء</div>)}</div>
+                      <div className="flex flex-col gap-1">
+                        {group.members?.length ? group.members.map((m, idx) => (
+                          <div key={idx} className="text-sm text-slate-700 font-bold">
+                            {m.user_detail?.name || m.user_detail?.username || `#${m.user}`}
+                          </div>
+                        )) : <div className="text-sm text-slate-500">لا يوجد أعضاء</div>}
+                      </div>
                     </td>
-                    <td className="px-6 py-5">{(group.supervisors && group.supervisors.length > 0) ? group.supervisors.map((s, idx) => (<div key={idx} className="text-sm text-slate-700 font-bold">{s.user_detail?.name || `#${s.user}`}</div>)) : (<div className="text-sm text-slate-500">لا يوجد مشرفون</div>)}</td>
+
+                    {/* Supervisors & Co-Supervisors */}
+                    <td className="px-6 py-5">
+                      <div className="flex flex-col gap-1">
+                        {group.supervisors?.length ? group.supervisors.map((s, idx) => (
+                          <div key={idx} className="text-sm text-slate-700 font-bold">{s.user_detail?.name || `#${s.user}`}</div>
+                        )) : <div className="text-sm text-slate-500">لا يوجد مشرفون</div>}
+                        {group.co_supervisors?.length ? (
+                          <div className="text-[10px] text-slate-500 mt-1 border-t border-slate-100 pt-1">
+                            <span>مشرفون مشاركون:</span>
+                            {group.co_supervisors.map((c, idx) => (
+                              <div key={idx}>{c.user_detail?.name || `#${c.user}`}</div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </td>
+
+                    {/* Program & Department */}
                     <td className="px-6 py-5">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700"><FiBookOpen className="text-slate-300" />{group.program?.p_name || "بدون برنامج"}</div>
-                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500"><FiLayers className="text-slate-300" />{group.department?.name || "بدون قسم"}</div>
+                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500"><FiLayers className="text-slate-300" />{group.department || "بدون قسم"}</div>
                       </div>
                     </td>
+
+                    {/* Project */}
                     <td className="px-6 py-5">
                       <div className="max-w-[200px]">
-                        <p className="text-xs font-bold text-slate-800 truncate" title={typeof group.project === 'object' ? (group.project?.title || group.project_detail?.title) : undefined}>
-                          {(() => {
-                            if (!group.project) return 'لم يتم تعيين مشروع';
-                            if (typeof group.project === 'object') return group.project.title || group.project_detail?.title || 'لم يتم تعيين مشروع';
-                            const pid = Number(group.project);
-                            if (projectsMap[pid]) return projectsMap[pid].title;
-                            if (group.project_detail && group.project_detail.title) return group.project_detail.title;
-                            return 'لم يتم تعيين مشروع';
-                          })()}
+                        <p className="text-xs font-bold text-slate-800 truncate" title={group.project_detail?.title || group.project?.title}>
+                          {group.project_detail?.title || group.project?.title || 'لم يتم تعيين مشروع'}
                         </p>
                         <span className="text-[10px] text-blue-500 font-black uppercase">{group.pattern?.name || "النمط الافتراضي"}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-5"><div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-lg w-fit"><FiCalendar className="text-slate-400" />{group.academic_year || "N/A"}</div></td>
+
+                    {/* Academic Year */}
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-lg w-fit"><FiCalendar className="text-slate-400" />{group.academic_year || "N/A"}</div>
+                    </td>
+
+                    {/* Actions */}
                     <td className="px-6 py-5">
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => handleEditGroup(group)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><FiEdit3 size={18} /></button>
@@ -235,6 +271,7 @@ const GroupsTable: React.FC = () => {
           </table>
         </div>
 
+        {/* Pagination / Show More */}
         {!loading && filteredGroups.length > visibleRows && (
           <div className="p-6 bg-slate-50/50 border-t border-slate-100 flex flex-col items-center gap-4">
             <button onClick={() => setVisibleRows(prev => prev + 10)} className="flex items-center gap-2 px-8 py-3 bg-white border border-slate-200 rounded-xl text-sm font-black text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm"><FiChevronDown /> عرض المزيد ({filteredGroups.length - visibleRows} متبقي)</button>
@@ -245,13 +282,18 @@ const GroupsTable: React.FC = () => {
         {!loading && visibleRows > 10 && (
           <div className="p-4 flex justify-center"><button onClick={() => setVisibleRows(10)} className="text-xs text-slate-400 hover:text-slate-600 font-bold underline">عرض أقل</button></div>
         )}
-
       </div>
 
+      {/* Group Form */}
       {showGroupForm && (
-        <GroupForm isOpen={showGroupForm} initialData={editingGroup || undefined} mode={editingGroup ? 'edit' : 'create'} onClose={() => { setShowGroupForm(false); setEditingGroup(null); }} onSuccess={() => { setShowGroupForm(false); setEditingGroup(null); fetchGroups(); }} />
+        <GroupForm
+          isOpen={showGroupForm}
+          initialData={editingGroup || undefined}
+          mode={editingGroup ? 'edit' : 'create'}
+          onClose={() => { setShowGroupForm(false); setEditingGroup(null); }}
+          onSuccess={() => { setShowGroupForm(false); setEditingGroup(null); fetchGroups(); }}
+        />
       )}
-
     </div>
   );
 };

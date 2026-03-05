@@ -2,39 +2,127 @@ import api from './api';
 import { bulkFetch } from './bulkService';
 import { groupService } from './groupService';
 
-export interface Project {
-  project_id?: number;
-  title: string;
-  description: string;
-  start_date?: number; // YEAR only
-  end_date?: number;   // YEAR only
-  field?: string;
-  tools?: string;
-  logo?: string;
-  college?: string;
-  university?: string;
-  supervisor_name?: string;
-  co_supervisor_name?: string | null;
-  created_by?: { id: number; name: string } | null;
+// Basic supervisor interface
+export interface Supervisor {
+  id: number;
+  name: string;
 }
 
-// Map backend project response to frontend Project type
+export interface Project {
+  project_id?: number;
+
+  title: string;
+  description: string;
+
+  state?: number;
+  state_name?: string;
+
+  start_date?: number;
+  end_date?: number;
+
+  field?: string | null;
+  tools?: string | null;
+
+  logo?: string | null;
+  documentation_path?: string | null;
+
+  college_name?: string | null;
+  university_name?: string | null;
+
+  supervisor_name?: string | null;
+  co_supervisor_name?: string | null;
+
+  created_by?: {
+    id: number;
+    username?: string;
+
+    first_name?: string;
+    last_name?: string;
+    name?: string;
+
+    email?: string | null;
+    phone?: string | null;
+    gender?: string | null;
+    CID?: string | null;
+
+    roles?: {
+      role__role_ID?: number;
+      role__type?: string;
+    }[];
+
+    staff_profiles?: {
+      staff_id?: number;
+
+      role?: string;
+      Qualification?: string;
+      Office_Hours?: string;
+
+      user?: {
+        id?: number;
+        name?: string;
+      };
+    }[];
+  } | null;
+}
 function mapBackendProject(raw: any): Project {
+
+  const creator = raw.created_by || null;
+
+  const role =
+    creator?.roles?.length > 0
+      ? creator.roles[0]?.role__type
+      : null;
+
+  const qualification =
+    creator?.staff_profiles?.length > 0
+      ? creator.staff_profiles[0]?.Qualification
+      : null;
+
   return {
     project_id: raw.project_id,
+
     title: raw.title,
     description: raw.description,
-    start_date: raw.start_date ?? undefined, // use backend value directly
-    end_date: raw.end_date ?? undefined,     // use backend value directly
-    field: raw.field ?? '',
-    tools: raw.tools ?? '',
-    logo: raw.Logo ?? '',
-    college: raw.college_name ?? '',
-    university: raw.university_name ?? '',
-    supervisor_name: raw.supervisor_name ?? 'لا يوجد مشرف',
+
+    state: raw.state,
+    state_name: raw.state_name,
+
+    start_date: raw.start_date ?? undefined,
+    end_date: raw.end_date ?? undefined,
+
+    field: raw.field ?? null,
+    tools: raw.tools ?? null,
+
+    logo: raw.Logo ?? null,
+    documentation_path: raw.Documentation_Path ?? null,
+
+    college_name: raw.college_name ?? null,
+    university_name: raw.university_name ?? null,
+
+    supervisor_name: raw.supervisor_name ?? null,
     co_supervisor_name: raw.co_supervisor_name ?? null,
-    created_by: raw.created_by
-      ? { id: raw.created_by.id, name: raw.created_by.name }
+
+    // 👇 expose them directly for the table
+    role: role,
+    qualification: qualification,
+
+    created_by: creator
+      ? {
+        id: creator.id,
+        username: creator.username,
+
+        first_name: creator.first_name,
+        last_name: creator.last_name,
+        name: creator.name,
+
+        email: creator.email ?? null,
+        phone: creator.phone ?? null,
+        gender: creator.gender ?? null,
+        CID: creator.CID ?? null,
+
+        role: role,
+        qualification: qualification,
+      }
       : null,
   };
 }
@@ -86,6 +174,18 @@ export const projectService = {
     }
   },
 
+
+  async getSupervisors(): Promise<Supervisor[]> {
+    const res = await api.get('/api/supervisors');
+    console.log('Fetched supervisors:', res.data);
+    return res.data;
+  },
+
+  async getCoSupervisors(): Promise<Supervisor[]> {
+    const res = await api.get('/api/co-supervisors'); // add leading slash
+    console.log('Fetched co-supervisors:', res.data);
+    return res.data;
+  }, 
   async proposeProject(payload: Partial<Project>) {
     // Ensure start_date is set to current year if missing
     if (!payload.start_date) payload.start_date = new Date().getFullYear();
@@ -102,32 +202,42 @@ export const projectService = {
       return mapBackendProject(resp2.data);
     }
   },
-
   async updateProject(projectId: number, payload: Partial<Project>) {
     try {
+      const backendPayload: any = {
+        title: payload.title,
+        description: payload.description,
+        start_date: payload.start_date ?? undefined,
+        end_date: payload.end_date ?? undefined,
+        field: payload.field ?? null,
+        tools: payload.tools ?? null,
+        Logo: payload.logo ?? null,
+        Documentation_Path: payload.documentation_path ?? null,
+        state: payload.state ?? undefined,
+        created_by_id: payload.created_by?.id ?? undefined,
+      };
+
       const response = await api.patch(
         `/projects/${projectId}/update_project/`,
-        payload
+        backendPayload
       );
+
       return mapBackendProject(response.data);
-    } catch (error) {
-      console.error('[projectService] updateProject failed:', error);
+    } catch (error: any) {
+      console.error('[projectService] updateProject failed:', error?.response?.data ?? error);
       throw error;
     }
   },
 
   async deleteProject(projectId: number) {
     try {
-      const response = await api.delete(
-        `/projects/${projectId}/delete_project/`
-      );
-      return response.data;
-    } catch (error) {
-      console.error('[projectService] deleteProject failed:', error);
+      await api.delete(`/projects/${projectId}/delete_project/`);
+      return { success: true, message: "Project deleted successfully" };
+    } catch (error: any) {
+      console.error('[projectService] deleteProject failed:', error?.response?.data ?? error);
       throw error;
     }
   },
-
   async downloadProjectFile(projectId: number) {
     try {
       const response = await api.get(`/projects/${projectId}/download-file/`, {

@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { userService, User, Role } from "../../../services/userService";
 import { FiUsers, FiDatabase, FiUserX } from "react-icons/fi";
 
-const PRIMARY = "#4F46E5";   // indigo
-const ACCENT = "#10B981";   // emerald
+const PRIMARY = "#2470c2";   // indigo
+const ACCENT = "#2470c2";   // emerald
 const MUTED = "#94A3B8";    // slate
 
 interface UsersReportProps {
@@ -52,9 +52,8 @@ const UsersReport: React.FC<UsersReportProps> = ({ filteredUsers }) => {
   const usersWithoutRoles = users.filter(u => !u.roles || u.roles.length === 0);
 
   const genderStats = [
-    { label: "ذكر", value: users.filter(u => u.gender === "Male").length },
-    { label: "أنثى", value: users.filter(u => u.gender === "Female").length },
-    { label: "غير محدد", value: users.filter(u => !u.gender).length },
+    { label: "ذكر", value: users.filter(u => u.gender === "ذكر").length },
+    { label: "أنثى", value: users.filter(u => u.gender === "انثى").length },
   ];
 
   const emailDomains: Record<string, number> = {};
@@ -75,12 +74,12 @@ const UsersReport: React.FC<UsersReportProps> = ({ filteredUsers }) => {
 
       {/* ===== Gender ===== */}
       <Section title="توزيع المستخدمين حسب الجنس">
-        <div className="grid grid-cols-3 gap-8">
+        <div className="grid grid-cols-2 gap-4">
           {genderStats.map(g => (
             <div key={g.label} className="text-center space-y-3">
-              <div className="text-3xl font-extrabold text-indigo-600">{g.value}</div>
+              <div className="text-3xl font-extrabold text-blue-600">{g.value}</div>
               <div className="text-sm text-slate-600">{g.label}</div>
-              <div className="h-1 w-12 mx-auto rounded-full bg-indigo-200" />
+              <div className="h-1 w-12 mx-auto rounded-full bg-blue-200" />
             </div>
           ))}
         </div>
@@ -96,7 +95,7 @@ const UsersReport: React.FC<UsersReportProps> = ({ filteredUsers }) => {
               <div key={role.type} className="space-y-2">
                 <div className="flex justify-between text-sm font-semibold text-slate-700">
                   <span>{role.type}</span>
-                  <span className="text-indigo-600">{count}</span>
+                  <span className="text-blue-600">{count}</span>
                 </div>
 
                 <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
@@ -148,7 +147,7 @@ const UsersReport: React.FC<UsersReportProps> = ({ filteredUsers }) => {
 const StatCard = ({ icon, label, value }: any) => (
   <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition">
     <div className="flex items-center gap-4">
-      <div className="text-indigo-600 text-xl">{icon}</div>
+      <div className="text-blue-600 text-xl">{icon}</div>
       <div>
         <div className="text-sm text-slate-500">{label}</div>
         <div className="text-2xl font-extrabold text-slate-800">{value}</div>

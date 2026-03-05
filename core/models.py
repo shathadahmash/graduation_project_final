@@ -273,18 +273,18 @@ class User(AbstractUser):
     name = models.CharField(max_length=255, blank=True, null=True)
     gender = models.CharField(
         max_length=10,
-        choices=[('Male','Male'),('Female','Female'),('Other','Other')],
-        blank=True, null=True
+        choices=[('ذكر','ذكر'),('انثى','انثى')],
+        blank=True,
+        null=True
     )
 
+    # Make email optional
+    email = models.EmailField(blank=True, null=True)
+
     def save(self, *args, **kwargs):
-        if not self.name:
-            self.name = f"{self.first_name} {self.last_name}".strip()
+        if self.name is None:
+            self.name = f"{self.first_name or ''} {self.last_name or ''}".strip()
         super().save(*args, **kwargs)
-
-    def __str__(self):
-        return self.name or self.username
-
 
 # ============================================================================== 
 # 4. تواصل معنا
