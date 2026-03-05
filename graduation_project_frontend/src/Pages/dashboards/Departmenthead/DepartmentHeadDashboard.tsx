@@ -109,6 +109,7 @@ const DepartmentHeadDashboard: React.FC = () => {
   console.log('Department Head Dashboard - groups sample:', groups.slice(0, 3));
 
   const filteredStudents = useMemo(() => {
+    
     if (!departmentHeadDepartmentId) return [];
     const result = users.filter((user: any) => {
       if (!user || !user.roles || !Array.isArray(user.roles)) return false;
@@ -124,6 +125,7 @@ const DepartmentHeadDashboard: React.FC = () => {
     console.log('Department Head Dashboard - filteredStudents count:', result.length);
     return result;
   }, [users, affiliations, departmentHeadDepartmentId]);
+  
 
   const filteredProjects = useMemo(() => {
     if (!departmentHeadDepartmentId) return [];

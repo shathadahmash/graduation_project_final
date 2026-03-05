@@ -43,6 +43,7 @@ export const groupService = {
   async getDropdownData(): Promise<{ students: Student[], supervisors: Supervisor[], assistants: Supervisor[] }> {
     const res = await api.get('/dropdown-data/');
     return res.data;
+    
   },
 
   // === من الكود الأول ===
@@ -125,9 +126,15 @@ export const groupService = {
   //    🔥 الدوال الناقصة (مضافة الآن)
   // ================================
 
-  // تحديث بيانات مجموعة
+   // تحديث بيانات مجموعة
   async updateGroup(groupId: number, data: any) {
     const response = await api.put(`/groups/${groupId}/`, data);
+    return response.data;
+  },
+
+  // ✅ دالة حذف مجموعة بالكامل
+  async deleteGroup(groupId: number) {
+    const response = await api.delete(`/groups/${groupId}/`);
     return response.data;
   },
 
