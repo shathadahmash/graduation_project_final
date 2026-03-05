@@ -12,7 +12,7 @@ const SupervisorProjectsView: React.FC = () => {
     (async () => {
       try {
         setLoading(true);
-        const res = await projectService.getProject();
+        const res = await projectService.getProjects(); // ✅ استدعاء الدالة الصحيحة
         if (!mounted) return;
         const rows = Array.isArray(res) ? res : (res?.results ?? []);
         setProjects(rows);
