@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { collegeService, branchService } from "../../../services/collegeServices";
+import React, { useEffect, useState, useMemo } from 'react';
+import { collegeService } from '../../../services/collegeServices';
 
 interface College {
   id: number;
@@ -18,47 +18,38 @@ const CollegeTable: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingCollege, setEditingCollege] = useState<College | null>(null);
-  const [collegeName, setCollegeName] = useState("");
-  const [branchId, setBranchId] = useState<number | "">("");
-  const [errorMsg, setErrorMsg] = useState("");
+  const [collegeName, setCollegeName] = useState('');
+  const [branchId, setBranchId] = useState<number | undefined>();
+  const [errorMsg, setErrorMsg] = useState('');
+  const [search, setSearch] = useState('');
 
-  /* ============================
-     Fetch Colleges + Branches
-  ============================ */
-
-  const fetchData = async () => {
+  // جلب الكليات عند تحميل المكون
+  const fetchColleges = async () => {
     setLoading(true);
-
+    setErrorMsg('');
     try {
-      const collegesData = await collegeService.getColleges();
-      const branchesData = await branchService.getBranches();
-      console.log("Fetched colleges:", collegesData);
-      console.log("Fetched branches:", branchesData);
-
-      setColleges(collegesData);
-      setBranches(branchesData);
+      const data = await collegeService.getColleges();
+      setColleges(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      setErrorMsg("فشل تحميل البيانات");
+      console.error('Fetch error:', err);
+      setErrorMsg('فشل تحميل الكليات، يرجى المحاولة لاحقاً');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    fetchColleges();
   }, []);
 
-  /* ============================
-     Open Modal
-  ============================ */
-
+  // فتح النافذة المنبثقة (إضافة أو تعديل)
   const openModal = (college?: College) => {
     setErrorMsg("");
 
     if (college) {
       setEditingCollege(college);
-      setCollegeName(college.name_ar);
-      setBranchId(college.branch ?? "");
+      setCollegeName(college.name_ar || '');
+      setBranchId(college.branch);
     } else {
       setEditingCollege(null);
       setCollegeName("");
@@ -68,195 +59,184 @@ const CollegeTable: React.FC = () => {
     setModalVisible(true);
   };
 
-  /* ============================
-     Save College
-  ============================ */
-
-  const handleSave = async () => {
-    if (!collegeName || !branchId) {
-      setErrorMsg("الرجاء إدخال اسم الكلية واختيار الفرع");
+  // حفظ البيانات (إضافة أو تعديل)
+    const handleSave = async () => {
+    if (!collegeName.trim()) {
+      setErrorMsg('الرجاء إدخال اسم الكلية');
       return;
     }
-
+    
+    setLoading(true);
+    setErrorMsg('');
     try {
+      const payload = {
+        name_ar: collegeName,
+        branch: branchId || null,
+      };
+
       if (editingCollege) {
-        const updated = await collegeService.updateCollege(editingCollege.id, {
-          name_ar: collegeName,
-          branch: branchId,
-        });
-
-        setColleges((prev) =>
-          prev.map((c) => (c.id === updated.id ? updated : c))
+        // حالة التعديل
+        const updated = await collegeService.updateCollege(editingCollege.cid, payload);
+        setColleges((prev) => 
+          prev.map((c) => (c.cid === editingCollege.cid ? { ...c, ...payload } : c))
         );
+        alert('تم التحديث بنجاح');
       } else {
-        const newCollege = await collegeService.addCollege({
-          name_ar: collegeName,
-          branch: branchId,
-        });
-
-        setColleges((prev) => [...prev, newCollege]);
+        // حالة الإضافة - تم تصحيح المسمى هنا إلى addCollege
+        const newCollege = await collegeService.addCollege(payload);
+        setColleges((prev) => [newCollege, ...prev]);
+        alert('تمت إضافة الكلية بنجاح');
       }
 
       setModalVisible(false);
     } catch (err: any) {
-      setErrorMsg("فشل الحفظ");
+      console.error('Save error:', err);
+      setErrorMsg('فشل الحفظ: ' + (err.response?.data?.message ?? 'خطأ في الخادم'));
+    } finally {
+      setLoading(false);
     }
   };
-
-  /* ============================
-     Delete College
-  ============================ */
-
-  const handleDelete = async (id: number) => {
-    if (!confirm("هل أنت متأكد من الحذف؟")) return;
-
+  // حذف كلية
+  const handleDelete = async (cid: number) => {
+    if (!cid) return;
+    if (!confirm('هل أنت متأكد من حذف هذه الكلية؟')) return;
+    
+    setLoading(true);
+    setErrorMsg('');
     try {
-      await collegeService.deleteCollege(id);
-      setColleges((prev) => prev.filter((c) => c.id !== id));
-    } catch (err) {
-      setErrorMsg("فشل الحذف");
+      await collegeService.deleteCollege(cid);
+      setColleges((prev) => prev.filter((c) => c.cid !== cid));
+      alert('تم الحذف بنجاح');
+    } catch (err: any) {
+      console.error('Delete error:', err);
+      setErrorMsg('فشل الحذف: ' + (err.response?.data?.message ?? 'خطأ في الصلاحيات'));
+    } finally {
+      setLoading(false);
     }
   };
 
-  /* ============================
-     Get Branch Name
-  ============================ */
-
-  const getBranchName = (branchId?: number | null) => {
-    const branch = branches.find((b) => b.id === branchId);
-
-    return branch ? branch.branch_name : "-";
-  };
+  // تصفية الكليات بناءً على البحث
+  const filteredColleges = useMemo(() => {
+    return colleges.filter(c => 
+      (c.name_ar || '').toLowerCase().includes(search.toLowerCase())
+    );
+  }, [colleges, search]);
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
+    <div className="bg-white p-6 rounded-lg shadow text-right" dir="rtl">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">إدارة الكليات</h2>
+        <button
+          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+          onClick={() => openModal()}
+        >
+          + إضافة كلية جديدة
+        </button>
+      </div>
 
-      <h2 className="text-2xl font-bold mb-4">الكليات</h2>
+      {/* البحث */}
+      <div className="mb-6">
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="ابحث عن كلية..."
+          className="border border-gray-300 rounded px-3 py-1 w-full max-w-xs"
+        />
+      </div>
 
-      {/* ADD BUTTON */}
+      {/* رسائل الخطأ */}
+      {errorMsg && <div className="mb-4 p-2 bg-red-100 text-red-600 rounded border border-red-200">{errorMsg}</div>}
 
-      <button
-        className="mb-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-        onClick={() => openModal()}
-      >
-        إضافة كلية جديدة
-      </button>
+      {loading && <div className="text-blue-600 mb-2 font-bold">جاري المعالجة...</div>}
 
-      {errorMsg && (
-        <div className="mb-4 text-red-600 font-medium">{errorMsg}</div>
-      )}
-
-      {loading ? (
-        <div className="text-center text-gray-500 py-6">جاري التحميل...</div>
-      ) : (
-        <table className="w-full border border-black">
-
-          <thead>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse border border-black">
+          <thead className="bg-gray-100">
             <tr>
-              <th className="border px-4 py-2">ID</th>
-              <th className="border px-4 py-2">اسم الكلية</th>
-              <th className="border px-4 py-2">الفرع</th>
-              <th className="border px-4 py-2">الإجراءات</th>
+              <th className="border border-black px-4 py-2">CID</th>
+              <th className="border border-black px-4 py-2">اسم الكلية</th>
+              <th className="border border-black px-4 py-2">الإجراءات</th>
             </tr>
           </thead>
 
           <tbody>
-
-            {colleges.length === 0 && (
+            {filteredColleges.length > 0 ? (
+              filteredColleges.map((c, idx) => (
+                <tr key={c.cid || idx} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}>
+                  <td className="border border-black px-4 py-2">{c.cid}</td>
+                  <td className="border border-black px-4 py-2">{c.name_ar}</td>
+                  <td className="border border-black px-4 py-2 flex gap-2 justify-center">
+                    <button
+                      className="px-3 py-1 text-yellow-700 border border-yellow-700 rounded hover:bg-yellow-100"
+                      onClick={() => openModal(c)}
+                    >
+                      تعديل
+                    </button>
+                    <button
+                      className="px-3 py-1 text-rose-700 border border-rose-700 rounded hover:bg-rose-100"
+                      onClick={() => handleDelete(c.cid)}
+                    >
+                      حذف
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
               <tr>
-                <td colSpan={4} className="text-center py-4">
-                  لا توجد كليات
+                <td colSpan={3} className="border border-black py-6 text-center text-gray-400">
+                  لا توجد كليات متاحة
                 </td>
               </tr>
             )}
-
-            {colleges.map((c) => (
-              <tr key={c.cid ?? c.cid}>
-                <td className="border px-4 py-2">{c.cid}</td>
-                <td className="border px-4 py-2">{c.name_ar}</td>
-                <td className="border px-4 py-2">
-                  {getBranchName(c.branch)}
-                </td>
-
-                <td className="border px-4 py-2 flex gap-2">
-
-                  <button
-                    className="px-2 py-1 bg-yellow-400 rounded"
-                    onClick={() => openModal(c)}
-                  >
-                    تعديل
-                  </button>
-
-                  <button
-                    className="px-2 py-1 bg-red-500 text-white rounded"
-                    onClick={() => handleDelete(c.id)}
-                  >
-                    حذف
-                  </button>
-
-                </td>
-              </tr>
-            ))}
-
           </tbody>
 
         </table>
-      )}
+      </div>
 
-      {/* MODAL */}
-
+      {/* النافذة المنبثقة (Modal) */}
       {modalVisible && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
-
-          <div className="bg-white p-6 rounded shadow w-80">
-
-            <h3 className="text-xl font-bold mb-4">
-              {editingCollege ? "تعديل الكلية" : "إضافة كلية جديدة"}
+        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+            <h3 className="text-xl font-bold mb-4 border-b pb-2">
+              {editingCollege ? 'تعديل بيانات الكلية' : 'إضافة كلية جديدة'}
             </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block mb-1 font-medium">اسم الكلية (عربي):</label>
+                <input
+                  className="border p-2 w-full rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={collegeName}
+                  onChange={(e) => setCollegeName(e.target.value)}
+                  placeholder="مثال: كلية الهندسة"
+                />
+              </div>
+              
+              <div>
+                <label className="block mb-1 font-medium">رقم الفرع (اختياري):</label>
+                <input
+                  type="number"
+                  className="border p-2 w-full rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={branchId ?? ''}
+                  onChange={(e) => setBranchId(e.target.value ? Number(e.target.value) : undefined)}
+                  placeholder="أدخل رقم الفرع"
+                />
+              </div>
+            </div>
 
-            {errorMsg && (
-              <div className="mb-2 text-red-600">{errorMsg}</div>
-            )}
-
-            <label className="block mb-2">اسم الكلية</label>
-
-            <input
-              className="border p-1 w-full mb-4"
-              value={collegeName}
-              onChange={(e) => setCollegeName(e.target.value)}
-            />
-
-            <label className="block mb-2">الفرع</label>
-
-            <select
-              className="border p-1 w-full mb-4"
-              value={branchId}
-              onChange={(e) => setBranchId(Number(e.target.value))}
-            >
-              <option value="">اختر الفرع</option>
-
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.branch_name}
-                </option>
-              ))}
-
-            </select>
-
-            <div className="flex justify-end gap-2">
-
-              <button
-                className="px-3 py-1 bg-gray-300 rounded"
+            <div className="flex justify-end gap-2 mt-6">
+              <button 
+                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition" 
                 onClick={() => setModalVisible(false)}
               >
                 إلغاء
               </button>
-
-              <button
-                className="px-3 py-1 bg-blue-600 text-white rounded"
+              <button 
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition" 
                 onClick={handleSave}
               >
-                حفظ
+                {editingCollege ? 'حفظ التغييرات' : 'إضافة الآن'}
               </button>
 
             </div>
