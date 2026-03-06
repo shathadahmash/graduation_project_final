@@ -16,22 +16,20 @@ export interface College {
 
 
 export const universityService = {
+    // جلب الجامعات (يمكن استخدام axios أو api)
     async getUniversities(params?: any) {
         try {
-            const response = await axios.get('/api/universities/', { params });
-            try { console.debug('[universityService] raw response:', response.status, response.data); } catch (e) { }
-            const normalized = response.data;
-            console.log('[universityService] normalized universities:', normalized);
-            try { console.debug('[universityService] normalized count:', normalized.length, 'sample:', normalized.slice(0, 3)); } catch (e) { }
-            return normalized;
+            const response = await api.get('/universities/', { params });
+            return response.data;
         } catch (error: any) {
-            console.error('[universityService] Failed to fetch universities:', error?.response?.status, error?.response?.data ?? error?.message ?? error);
+            console.error('[universityService] Failed to fetch universities:', error);
             return [];
         }
     },
+
     async getUniversityById(universityId: number) {
         try {
-            const response = await axios.get(`/api/universities/${universityId}/`);
+            const response = await api.get(`/universities/${universityId}/`);
             return response.data;
         } catch (error) {
             console.error('Failed to fetch university:', error);
@@ -39,9 +37,44 @@ export const universityService = {
         }
     },
 
+    // إضافة جامعة جديدة - استخدام api لإرسال التوكن
+    async addUniversity(universityData: Omit<College, 'id'>) {
+        try {
+            const response = await api.post('/universities/', universityData);
+            return response.data;
+        } catch (error) {
+            console.error('Failed to add university:', error);
+            throw error;
+        }
+    },
+
+    // تعديل جامعة - تم إصلاح الرابط واستخدام api
+    async updateUniversity(universityId: number, universityData: Partial<Omit<College, 'id'>>) {
+        if (!universityId) throw new Error("University ID is required for update");
+        try {
+            const response = await api.put(`/universities/${universityId}/`, universityData);
+            return response.data;
+        } catch (error) {
+            console.error('Failed to update university:', error);
+            throw error;
+        }
+    },
+
+    // حذف جامعة - تم إصلاح الرابط واستخدام api لحل مشكلة 403
+    async deleteUniversity(universityId: number) {
+        if (!universityId) throw new Error("University ID is required for deletion");
+        try {
+            await api.delete(`/universities/${universityId}/`);
+            return true;
+        } catch (error) {
+            console.error('Failed to delete university:', error);
+            throw error;
+        }
+    },
+
     async getfilterOptions() {
         try {
-            const response = await axios.get('/api/universities/filter-options/');
+            const response = await api.get('/universities/filter-options/');
             return response.data;
         } catch (error) {
             console.error('Failed to fetch filter options:', error);
@@ -51,7 +84,7 @@ export const universityService = {
 
     async searchUniversities(query: string, params?: any) {
         try {
-            const response = await axios.get('/api/universities/search/', {
+            const response = await api.get('/universities/search/', {
                 params: { q: query, ...params },
             });
             return response.data;
@@ -61,39 +94,9 @@ export const universityService = {
         }
     },
 
-    async addUniversity(universityData: Omit<College, 'id'>) {
-        try {
-            const response = await axios.post('/api/universities/', universityData);
-            return response.data;
-        } catch (error) {
-            console.error('Failed to add university:', error);
-            throw error;
-        }
-    },
-
-    async updateUniversity(universityId: number, universityData: Partial<Omit<College, 'id'>>) {
-        try {
-            const response = await axios.put(`/api/universities/${universityId}/`, universityData);
-            return response.data;
-        } catch (error) {
-            console.error('Failed to update university:', error);
-            throw error;
-        }
-    },
-
-    async deleteUniversity(universityId: number) {
-        try {
-            await axios.delete(`/api/universities/${universityId}/`);
-            return true;
-        } catch (error) {
-            console.error('Failed to delete university:', error);
-            throw error;
-        }
-    },
-
     async downloadUniversitiesCSV(params?: any) {
         try {
-            const response = await axios.get('/api/universities/download-csv/', { params, responseType: 'blob' });
+            const response = await api.get('/universities/download-csv/', { params, responseType: 'blob' });
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -108,15 +111,13 @@ export const universityService = {
     },
 
     async getUniversityPrograms(universityId: number) {
-    try {
-        const response = await axios.get(`/api/universities/${universityId}/programs/`);
-        return response.data; // array of programs
-    } catch (err) {
-        return [];
+        try {
+            const response = await api.get(`/universities/${universityId}/programs/`);
+            return response.data;
+        } catch (err) {
+            return [];
+        }
     }
-}
-   
-
-
 };
+
 export default universityService;

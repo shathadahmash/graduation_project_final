@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from rest_framework import viewsets, mixins
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
@@ -10,7 +11,23 @@ from core.serializers.location import BranchSerializer, CollegeSerializer, Depar
 
 from core.models import Program,University,Department,College
 from core.serializers.location import ProgramSerializer
+# Add this near the top with your imports
+from rest_framework.permissions import BasePermission
+from core.permissions import PermissionManager
 
+# -------------------------------------------------------------------
+# Custom DRF Permission for creating departments
+# -------------------------------------------------------------------
+class CanCreateDepartment(BasePermission):
+    """
+    Allow creating a department only if user has 'create_department' permission
+    via PermissionManager.
+    """
+    def has_permission(self, request, view):
+        # Only enforce for 'create' action
+        if view.action == 'create':
+            return PermissionManager.has_permission(request.user, 'create_department')
+        return True
 
 class UniversityViewSet(viewsets.ModelViewSet):
     """Simple CRUD for University used by frontend list/create."""
@@ -30,13 +47,27 @@ class UniversityViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class ProgramViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only list/retrieve for programs used by frontend import form."""
+
+class ProgramViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet
+):
+    """
+    Full CRUD for programs used by frontend import form.
+    Supports list, retrieve, create, update, and delete.
+    """
     queryset = Program.objects.all()
     serializer_class = ProgramSerializer
     permission_classes = [IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
+        """
+        List programs ordered by name
+        """
         qs = self.get_queryset().order_by('p_name')
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
@@ -76,12 +107,12 @@ class CollegeViewSet(viewsets.ModelViewSet):
         qs = Department.objects.filter(college=college).order_by('name')
         serializer = DepartmentSerializer(qs, many=True)
         return Response(serializer.data)
-    
 class DepartmentViewSet(viewsets.ModelViewSet):
     """Simple CRUD for Department used by frontend list/create."""
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
-    permission_classes = [IsAuthenticated]
+    # Add our custom permission
+    permission_classes = [IsAuthenticated, CanCreateDepartment]
 
     def list(self, request, *args, **kwargs):
         qs = self.get_queryset().order_by('name')
@@ -89,6 +120,12 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
+        # Optional: extra manual check, ensures 403 with proper message
+        if not PermissionManager.has_permission(request.user, 'create_department'):
+            return Response(
+                {"detail": "ليس لديك صلاحية إنشاء قسم"},
+                status=status.HTTP_403_FORBIDDEN
+            )
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)

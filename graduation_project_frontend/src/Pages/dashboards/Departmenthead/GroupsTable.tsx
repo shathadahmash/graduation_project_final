@@ -25,7 +25,7 @@ interface GroupMember { user: number; user_detail?: any }
 interface GroupSupervisor { user: number; user_detail?: any }
 interface Group {
   group_id: number;
-  group_name: string;
+  group_name?: string; // جعلناه اختيارياً لأنه قد يكون محذوفاً
   department?: any;
   program?: any;
   academic_year?: string;
@@ -50,6 +50,8 @@ const GroupsTable: React.FC<GroupsTableProps> = ({ departmentId }) => {
   const [projectsMap, setProjectsMap] = useState<Record<number, any>>({});
   const [showGroupForm, setShowGroupForm] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
+  const [deletingGroupId, setDeletingGroupId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("");
@@ -108,9 +110,6 @@ useEffect(() => {
       if (!departmentHeadDepartmentId) {
         // Fallback: Get department head's department from AcademicAffiliation
         departmentHeadDepartmentId = user?.id ? await getDepartmentHeadDepartmentId(user.id) : null;
-        console.log('[GroupsTable] department head department_id from fallback:', departmentHeadDepartmentId);
-      } else {
-        console.log('[GroupsTable] department head department_id from props:', departmentHeadDepartmentId);
       }
 
 
@@ -119,15 +118,10 @@ useEffect(() => {
         fetchTableFields('departments'),
         fetchTableFields('colleges')
       ]);
-      console.log('[GroupsTable] fetched groups before filtering:', data?.length || 0);
       setAllDepartments(fetchedDepartments);
       setColleges(fetchedColleges);
 
-      // طباعة جميع بيانات المجموعات قبل الفلترة
-      console.log('[GroupsTable] All groups data:', data);
-      // طباعة department_id لرئيس القسم
       const deptHeadId = Number(departmentHeadDepartmentId);
-      console.log('[GroupsTable] Department Head department_id:', deptHeadId);
 
       const filteredGroups = (data || []).filter((g: any) => {
         let groupDeptId = null;
@@ -136,14 +130,9 @@ useEffect(() => {
         else if (g.department?.department_id) groupDeptId = g.department.department_id;
         else if (g.department?.id) groupDeptId = g.department.id;
 
-        // طباعة بيانات كل مجموعة وقيم القسم
-        console.log('[GroupsTable][Filter] group_name:', g.group_name, '| groupDeptId:', groupDeptId, '| deptHeadId:', deptHeadId);
-
-        // عرض المجموعة فقط إذا كان لديها قسم مطابق للقسم الحالي
         return groupDeptId && deptHeadId ? groupDeptId === Number(deptHeadId) : false;
       });
 
-      console.log('[GroupsTable] filtered groups:', filteredGroups.length, filteredGroups);
       setGroups(filteredGroups);
 
       const projectIds = Array.from(new Set(
@@ -181,7 +170,10 @@ useEffect(() => {
   const filteredGroups = useMemo(() => {
     return groups.filter((group) => {
       const q = searchTerm.toLowerCase();
-      const matchesSearch = (group.group_name || '').toLowerCase().includes(q) || (group.project?.title || '').toLowerCase().includes(q) || (group.program?.p_name || '').toLowerCase().includes(q);
+      // البحث في اسم المشروع أو البرنامج بدلاً من اسم المجموعة المحذوف
+      const projectTitle = (group.project?.title || group.project_detail?.title || '').toLowerCase();
+      const programName = (group.program?.p_name || '').toLowerCase();
+      const matchesSearch = projectTitle.includes(q) || programName.includes(q);
       const matchesDept = filterDepartment === '' || group.department?.name === filterDepartment;
       const matchesYear = filterYear === '' || group.academic_year === filterYear;
       return matchesSearch && matchesDept && matchesYear;
@@ -192,8 +184,31 @@ useEffect(() => {
 
   const clearFilters = () => { setSearchTerm(''); setFilterDepartment(''); setFilterYear(''); };
 
-  const handleEditGroup = (g: Group) => { setEditingGroup(g); setShowGroupForm(true); };
-  const handleDeleteGroup = (g: Group) => { setEditingGroup(g); setShowGroupForm(true); };
+  const handleEditGroup = (g: Group) => { 
+    setEditingGroup(g); 
+    setShowGroupForm(true); 
+  };
+  
+  const handleDeleteGroup = async (g: Group) => {
+    if (!window.confirm(`هل أنت متأكد من حذف المجموعة #${g.group_id}؟`)) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      setDeletingGroupId(g.group_id);
+      await groupService.deleteGroup(g.group_id);
+      setGroups(prevGroups => prevGroups.filter(group => group.group_id !== g.group_id));
+      await fetchGroups();
+      alert('تم حذف المجموعة بنجاح');
+    } catch (err) {
+      console.error('[GroupsTable] Error deleting group:', err);
+      alert('حدث خطأ أثناء حذف المجموعة. يرجى المحاولة مرة أخرى.');
+    } finally {
+      setIsDeleting(false);
+      setDeletingGroupId(null);
+    }
+  };
 
   return (
     <div className={containerClass} dir="rtl">
@@ -217,7 +232,7 @@ useEffect(() => {
             <label className="block text-xs font-black text-slate-400 uppercase mb-2 mr-1">بحث سريع</label>
             <div className="relative">
               <FiSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input type="text" placeholder="اسم المجموعة، المشروع، البرنامج..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pr-10 pl-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm" />
+              <input type="text" placeholder="اسم المشروع، البرنامج..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pr-10 pl-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm" />
             </div>
           </div>
 
@@ -269,13 +284,14 @@ useEffect(() => {
                   const department = allDepartments.find(d => d.department_id === group.department);
                   const college = colleges.find(c => c.cid === department?.college);
                   const collegeName = college?.name_ar || 'غير محدد';
+                  const isDeleting_ = deletingGroupId === group.group_id && isDeleting;
                   return (
-                  <tr key={group.group_id} className="hover:bg-slate-50/50 transition-colors group border-b border-slate-50">
+                  <tr key={group.group_id} className={`hover:bg-slate-50/50 transition-colors group border-b border-slate-50 ${isDeleting_ ? 'opacity-50' : ''}`}>
                     <td className="px-6 py-6">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-base"><FiUsers /></div>
                         <div className="flex flex-col">
-                          <span className="text-base font-black text-slate-800">{group.group_name}</span>
+                          <span className="text-base font-black text-slate-800">مجموعة #{group.group_id}</span>
                           <span className="text-xs text-slate-400 font-bold uppercase tracking-tight">ID: #{group.group_id}</span>
                         </div>
                       </div>
@@ -320,8 +336,24 @@ useEffect(() => {
                     <td className="px-6 py-5"><div className="flex items-center gap-2 text-sm font-bold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg w-fit"><FiCalendar className="text-slate-400" size={16} />{group.academic_year || "N/A"}</div></td>
                     <td className="px-6 py-5">
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => handleEditGroup(group)} className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><FiEdit3 size={20} /></button>
-                        <button onClick={() => handleDeleteGroup(group)} className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"><FiTrash2 size={20} /></button>
+                        <button 
+                          onClick={() => handleEditGroup(group)} 
+                          disabled={isDeleting}
+                          className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <FiEdit3 size={20} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteGroup(group)} 
+                          disabled={isDeleting}
+                          className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isDeleting_ ? (
+                            <div className="w-5 h-5 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <FiTrash2 size={20} />
+                          )}
+                        </button>
                         <button className="p-2.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all"><FiMoreVertical size={20} /></button>
                       </div>
                     </td>
@@ -357,7 +389,13 @@ useEffect(() => {
       </div>
 
       {showGroupForm && (
-        <GroupForm isOpen={showGroupForm} initialData={editingGroup || undefined} mode={editingGroup ? 'edit' : 'create'} onClose={() => { setShowGroupForm(false); setEditingGroup(null); }} onSuccess={() => { setShowGroupForm(false); setEditingGroup(null); fetchGroups(); }} />
+        <GroupForm 
+          isOpen={showGroupForm} 
+          initialData={editingGroup || undefined} 
+          mode={editingGroup ? 'edit' : 'create'} 
+          onClose={() => { setShowGroupForm(false); setEditingGroup(null); }} 
+          onSuccess={() => { setShowGroupForm(false); setEditingGroup(null); fetchGroups(); }} 
+        />
       )}
 
     </div>

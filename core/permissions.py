@@ -97,6 +97,7 @@ ROLES_PERMISSIONS = {
         'view_notifications',
         'send_notification',
         'view_reports',
+        'create_department',
     ],
     
     'Dean': [
@@ -109,6 +110,7 @@ ROLES_PERMISSIONS = {
         'view_notifications',
         'send_notification',
         'view_reports',
+        'create_department',
     ],
     
     'University President': [
@@ -128,6 +130,7 @@ ROLES_PERMISSIONS = {
         'manage_system_settings',
         'view_reports',
         'view_notifications',
+        'create_department',
     ],
     
     'System Manager': [
@@ -137,11 +140,13 @@ ROLES_PERMISSIONS = {
         'manage_system_settings',
         'view_reports',
         'view_notifications',
+        'create_department',
     ],
     
     'External Company': [
         'submit_external_project',
         'view_notifications',
+        
     ],
 }
 
