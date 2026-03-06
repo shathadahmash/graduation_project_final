@@ -214,12 +214,23 @@ class StudentEnrollmentPeriodSerializer(serializers.ModelSerializer):
 
 
 class StudentSerializer(serializers.ModelSerializer):
+<<<<<<< HEAD
     user = UserDetailSerializer(read_only=True)
     enrollment_periods = StudentEnrollmentPeriodSerializer(many=True, read_only=True)
 
     current_academic_year = serializers.SerializerMethodField()
     groups = serializers.SerializerMethodField()
     progress = serializers.SerializerMethodField()
+=======
+    name = serializers.CharField(write_only=True, required=False)
+    email = serializers.CharField(write_only=True, required=False)
+    phone = serializers.CharField(write_only=True, required=False)
+
+    username = serializers.CharField(source="user.username", read_only=True)
+    is_active = serializers.BooleanField(source="user.is_active", read_only=True)
+    department_name = serializers.CharField(source="department.name", read_only=True)
+    college_name = serializers.CharField(source="college.name_ar", read_only=True)
+>>>>>>> 477e6270a063177e6945f4542c3a7ded2da5ef25
 
     class Meta:
         model = Student
@@ -228,6 +239,37 @@ class StudentSerializer(serializers.ModelSerializer):
             'current_academic_year', 'enrollment_periods', 'groups', 'progress'
         ]
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["name"] = instance.user.name if instance.user else ""
+        data["email"] = instance.user.email if instance.user else ""
+        data["phone"] = instance.user.phone if instance.user else ""
+        return data
+
+    def update(self, instance, validated_data):
+        name = validated_data.pop("name", None)
+        email = validated_data.pop("email", None)
+        phone = validated_data.pop("phone", None)
+
+        # تحديث Student
+        instance.status = validated_data.get("status", instance.status)
+        instance.save()
+
+        # تحديث User
+        user = instance.user
+        if user:
+            if name is not None:
+                user.name = name
+            if email is not None:
+                user.email = email
+            if phone is not None:
+                user.phone = phone
+            user.save()
+
+        return instance
+    # هذه الدالة لحقل current_academic_year
+    def get_current_academic_year(self, obj):
+        return ""
 
 # ----------------------------
 # Simple User Serializer
@@ -241,6 +283,10 @@ class SimpleUserSerializer(serializers.ModelSerializer):
     )
     name = serializers.SerializerMethodField()
 
+    # هذه الدالة لحقل progress
+    def get_progress(self, obj):
+        return []
+    
     class Meta:
         model = User
         fields = ['id', 'username', 'first_name', 'last_name', 'name',
