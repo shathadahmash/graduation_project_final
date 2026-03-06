@@ -68,9 +68,9 @@ const GroupsTable: React.FC<GroupsTableProps> = ({ filteredGroups }) => {
 
       if (projectIds.length > 0) {
         const fetched: Record<number, any> = {};
-        await Promise.all(projectIds.map(async (pid: number) => {
+        await Promise.all(projectIds.map(async (pid: any) => {
           try {
-            const p = await projectService.getProjectById(pid);
+            const p = await projectService.getProjectById(Number(pid));
             if (p && (p.project_id || p.id)) fetched[p.project_id || p.id] = p;
           } catch (e) { /* ignore */ }
         }));
@@ -87,26 +87,53 @@ const GroupsTable: React.FC<GroupsTableProps> = ({ filteredGroups }) => {
   const academicYears = useMemo(() => Array.from(new Set(groups.map(g => g.academic_year).filter(Boolean))), [groups]);
 
   const searchFilteredGroups = useMemo(() => {
+    if (!groups) return [];
     return groups.filter((group) => {
-      const q = searchTerm.toLowerCase();
-      const matchesSearch = (group.group_name || '').toLowerCase().includes(q)
-        || (group.project?.title || '').toLowerCase().includes(q)
-        || (group.program?.p_name || '').toLowerCase().includes(q);
+      const q = searchTerm.trim().toLowerCase();
+      const groupNameMatch = (group.group_name || '').toLowerCase().includes(q);
+      const projectTitleMatch = (
+        group.project?.title || 
+        group.project_detail?.title || 
+        (typeof group.project === 'number' && projectsMap[group.project]?.title) || 
+        ''
+      ).toLowerCase().includes(q);
+      const programMatch = (group.program?.p_name || '').toLowerCase().includes(q);
+      const matchesSearch = q === "" || groupNameMatch || projectTitleMatch || programMatch;
       const matchesDept = filterDepartment === '' || group.department?.name === filterDepartment;
       const matchesYear = filterYear === '' || group.academic_year === filterYear;
       return matchesSearch && matchesDept && matchesYear;
     });
-  }, [groups, searchTerm, filterDepartment, filterYear]);
+  }, [groups, searchTerm, filterDepartment, filterYear, projectsMap]);
 
-  const paginatedGroups = searchFilteredGroups.slice(0, visibleRows);
+  const paginatedGroups = useMemo(() => searchFilteredGroups.slice(0, visibleRows), [searchFilteredGroups, visibleRows]);
 
   const clearFilters = () => { setSearchTerm(''); setFilterDepartment(''); setFilterYear(''); };
-  const handleEditGroup = (g: Group) => { setEditingGroup(g); setShowGroupForm(true); };
-  const handleDeleteGroup = (g: Group) => { setEditingGroup(g); setShowGroupForm(true); };
+  
+  const handleCreateGroup = () => {
+    setEditingGroup(null);
+    setShowGroupForm(true);
+  };
+
+  const handleEditGroup = (g: Group) => {
+    setEditingGroup(g);
+    setShowGroupForm(true);
+  };
+
+  const handleDeleteGroup = async (g: Group) => {
+    if (confirm(`هل أنت متأكد من حذف المجموعة "${g.group_name}"؟`)) {
+      try {
+        await groupService.deleteGroup(g.group_id);
+        alert('تم حذف المجموعة بنجاح');
+        fetchGroups();
+      } catch (err) {
+        console.error('Error deleting group:', err);
+        alert('فشل حذف المجموعة');
+      }
+    }
+  };
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-md" dir="rtl">
-
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
@@ -115,7 +142,7 @@ const GroupsTable: React.FC<GroupsTableProps> = ({ filteredGroups }) => {
         </div>
         <div className="flex gap-3">
           <button onClick={() => exportToCSV('groups.csv', searchFilteredGroups)} className="px-4 py-2 text-black bg-gray-100 rounded hover:bg-gray-200 transition">تصدير</button>
-          <button onClick={() => { setEditingGroup(null); setShowGroupForm(true); }} className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+          <button onClick={handleCreateGroup} className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
             <FiPlus /> إنشاء مجموعة جديدة
           </button>
         </div>
@@ -133,43 +160,49 @@ const GroupsTable: React.FC<GroupsTableProps> = ({ filteredGroups }) => {
             className="w-full pl-10 pr-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           />
         </div>
-        <select value={filterDepartment} onChange={e => setFilterDepartment(e.target.value)} className="px-3 py-2 border rounded text-sm cursor-pointer">
+        <select value={filterDepartment} onChange={e => setFilterDepartment(e.target.value)} className="px-3 py-2 border rounded text-sm cursor-pointer bg-white">
           <option value="">جميع الأقسام</option>
           {departments.map((d, i) => <option key={i} value={d}>{d}</option>)}
         </select>
-        <select value={filterYear} onChange={e => setFilterYear(e.target.value)} className="px-3 py-2 border rounded text-sm cursor-pointer">
+        <select value={filterYear} onChange={e => setFilterYear(e.target.value)} className="px-3 py-2 border rounded text-sm cursor-pointer bg-white">
           <option value="">جميع السنوات</option>
           {academicYears.map((y, i) => <option key={i} value={y}>{y}</option>)}
         </select>
         {(searchTerm || filterDepartment || filterYear) && (
-          <button onClick={clearFilters} className="flex items-center gap-1 text-red-600 text-sm font-bold">مسح الفلاتر <FiX /></button>
+          <button onClick={clearFilters} className="flex items-center gap-1 text-red-600 text-sm font-bold hover:underline">مسح الفلاتر <FiX /></button>
         )}
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse border border-black text-right">
-          <thead className="bg-gray-100">
+      <div className="overflow-x-auto border rounded-lg">
+        <table className="w-full border-collapse text-right">
+          <thead className="bg-gray-100 border-b border-black">
             <tr>
-              <th className="border border-black px-4 py-2">المجموعة</th>
-              <th className="border border-black px-4 py-2">الأعضاء</th>
-              <th className="border border-black px-4 py-2">المشرفون</th>
-              <th className="border border-black px-4 py-2">البرنامج / القسم</th>
-              <th className="border border-black px-4 py-2">المشروع المرتبط</th>
-              <th className="border border-black px-4 py-2">السنة الأكاديمية</th>
-              <th className="border border-black px-4 py-2">الإجراءات</th>
+              <th className="border-l border-black px-4 py-3 font-bold">المجموعة</th>
+              <th className="border-l border-black px-4 py-3 font-bold">الأعضاء</th>
+              <th className="border-l border-black px-4 py-3 font-bold">المشرفون</th>
+              <th className="border-l border-black px-4 py-3 font-bold">البرنامج / القسم</th>
+              <th className="border-l border-black px-4 py-3 font-bold">المشروع المرتبط</th>
+              <th className="border-l border-black px-4 py-3 font-bold">السنة الأكاديمية</th>
+              <th className="px-4 py-3 font-bold">الإجراءات</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-gray-200">
             {loading ? (
-              <tr><td colSpan={7} className="text-center py-6 text-gray-500">جاري تحميل البيانات...</td></tr>
+              <tr><td colSpan={7} className="text-center py-10 text-gray-500">جاري تحميل البيانات...</td></tr>
             ) : paginatedGroups.length > 0 ? paginatedGroups.map((group, idx) => (
-              <tr key={group.group_id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}>
-                <td className="border border-black px-4 py-2">{group.group_name}</td>
-                <td className="border border-black px-4 py-2">{group.members?.map(m => m.user_detail?.name || `#${m.user}`).join(', ') || '-'}</td>
-                <td className="border border-black px-4 py-2">{group.supervisors?.map(s => s.user_detail?.name || `#${s.user}`).join(', ') || '-'}</td>
-                <td className="border border-black px-4 py-2">{group.program?.p_name || '-'} / {group.department?.name || '-'}</td>
-                <td className="border border-black px-4 py-2">
+              <tr key={group.group_id || idx} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
+                <td className="border-l border-gray-200 px-4 py-3 font-medium">{group.group_name}</td>
+                <td className="border-l border-gray-200 px-4 py-3 text-sm">
+                  {group.members?.map(m => m.user_detail?.name || `#${m.user}`).join(', ') || '-'}
+                </td>
+                <td className="border-l border-gray-200 px-4 py-3 text-sm">
+                  {group.supervisors?.map(s => s.user_detail?.name || `#${s.user}`).join(', ') || '-'}
+                </td>
+                <td className="border-l border-gray-200 px-4 py-3 text-sm">
+                  {group.program?.p_name || '-'} <br/> <span className="text-xs text-gray-500">{group.department?.name || '-'}</span>
+                </td>
+                <td className="border-l border-gray-200 px-4 py-3 text-sm">
                   {(() => {
                     if (!group.project) return 'لم يتم تعيين مشروع';
                     if (typeof group.project === 'object') return group.project.title || group.project_detail?.title || 'لم يتم تعيين مشروع';
@@ -179,16 +212,20 @@ const GroupsTable: React.FC<GroupsTableProps> = ({ filteredGroups }) => {
                     return 'لم يتم تعيين مشروع';
                   })()}
                 </td>
-                <td className="border border-black px-4 py-2">{group.academic_year || '-'}</td>
-                <td className="border border-black px-4 py-2 flex gap-2 justify-center">
-                  <button onClick={() => handleEditGroup(group)} className="px-2 py-1 text-yellow-700 border border-yellow-700 rounded hover:bg-yellow-100">تعديل</button>
-                  <button onClick={() => handleDeleteGroup(group)} className="px-2 py-1 text-rose-700 border border-rose-700 rounded hover:bg-rose-100">حذف</button>
+                <td className="border-l border-gray-200 px-4 py-3 text-sm">{group.academic_year || '-'}</td>
+                <td className="px-4 py-3 flex gap-2 justify-center">
+                  <button onClick={() => handleEditGroup(group)} className="p-1.5 text-yellow-600 border border-yellow-600 rounded-md hover:bg-yellow-50 transition-colors" title="تعديل">
+                    <FiEdit3 size={16} />
+                  </button>
+                  <button onClick={() => handleDeleteGroup(group)} className="p-1.5 text-rose-600 border border-rose-600 rounded-md hover:bg-rose-50 transition-colors" title="حذف">
+                    <FiTrash2 size={16} />
+                  </button>
                 </td>
               </tr>
             )) : (
               <tr>
-                <td colSpan={7} className="border border-black text-center py-6 text-gray-400">
-                  لم يتم العثور على مجموعات
+                <td colSpan={7} className="text-center py-10 text-gray-400">
+                  {groups.length === 0 ? "لا توجد مجموعات متاحة" : "لم يتم العثور على مجموعات تطابق البحث"}
                 </td>
               </tr>
             )}
@@ -199,21 +236,20 @@ const GroupsTable: React.FC<GroupsTableProps> = ({ filteredGroups }) => {
       {/* Pagination */}
       {!loading && searchFilteredGroups.length > visibleRows && (
         <div className="flex flex-col items-center gap-2 mt-4">
-          <button onClick={() => setVisibleRows(prev => prev + 10)} className="px-4 py-2 border rounded hover:bg-gray-50 text-sm font-bold">عرض المزيد ({searchFilteredGroups.length - visibleRows} متبقي)</button>
-        </div>
-      )}
-      {!loading && visibleRows > 10 && (
-        <div className="flex justify-center mt-2">
-          <button onClick={() => setVisibleRows(10)} className="text-xs text-gray-600 underline">عرض أقل</button>
+          <button onClick={() => setVisibleRows(prev => prev + 10)} className="px-4 py-2 bg-gray-100 border rounded-lg hover:bg-gray-200 text-sm font-bold transition">
+            عرض المزيد ({searchFilteredGroups.length - visibleRows} متبقي)
+          </button>
         </div>
       )}
 
-      {/* GroupForm */}
+      {/* GroupForm Modal */}
       {showGroupForm && (
         <GroupForm
           isOpen={showGroupForm}
           initialData={editingGroup || undefined}
           mode={editingGroup ? 'edit' : 'create'}
+          // only suppress notifications when editing from the table
+          silent={editingGroup != null}
           onClose={() => { setShowGroupForm(false); setEditingGroup(null); }}
           onSuccess={() => { setShowGroupForm(false); setEditingGroup(null); fetchGroups(); }}
         />

@@ -9,6 +9,7 @@ export interface Supervisor {
 }
 
 export interface Project {
+  members?: { id: number; name?: string; CID?: string | null }[];
   project_id?: number;
 
   title: string;
@@ -174,18 +175,42 @@ export const projectService = {
     }
   },
 
+async getSupervisors(): Promise<Supervisor[]> {
+  const res = await api.get('/users');
 
-  async getSupervisors(): Promise<Supervisor[]> {
-    const res = await api.get('/api/supervisors');
-    console.log('Fetched supervisors:', res.data);
-    return res.data;
-  },
+  const supervisors = res.data.filter((user: any) =>
+    user.roles.some((role: any) => role.role__type === "Supervisor")
+  );
 
-  async getCoSupervisors(): Promise<Supervisor[]> {
-    const res = await api.get('/api/co-supervisors'); // add leading slash
-    console.log('Fetched co-supervisors:', res.data);
-    return res.data;
-  }, 
+  console.log("Fetched supervisors:", supervisors);
+  return supervisors;
+},
+
+async getCoSupervisors(): Promise<Supervisor[]> {
+  const res = await api.get('/users');
+
+  const coSupervisors = res.data.filter((user: any) =>
+    user.roles.some((role: any) => role.role__type === "Co-Supervisor")
+  );
+
+  console.log("Fetched co-supervisors:", coSupervisors);
+  return coSupervisors;
+},
+
+
+async updateGroup(
+  groupId: number,
+  supervisors: { user: number; type: "supervisor" | "co_supervisor" }[]
+) {
+  const res = await api.put(`/groups/${groupId}/`, {
+    supervisors: supervisors,
+  });
+
+  return res.data;
+},
+
+
+
   async proposeProject(payload: Partial<Project>) {
     // Ensure start_date is set to current year if missing
     if (!payload.start_date) payload.start_date = new Date().getFullYear();

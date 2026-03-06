@@ -132,6 +132,13 @@ export const groupService = {
     return response.data;
   },
 
+  // update without sending any notification flags (backend may ignore if unsupported)
+  async updateGroupSilent(groupId: number, data: any) {
+    // some APIs interpret query params to skip notifications; we add flag just in case
+    const response = await api.put(`/groups/${groupId}/?skip_notifications=1`, data);
+    return response.data;
+  },
+
   // ✅ دالة حذف مجموعة بالكامل
   async deleteGroup(groupId: number) {
     const response = await api.delete(`/groups/${groupId}/`);
