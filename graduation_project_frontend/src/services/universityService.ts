@@ -73,7 +73,7 @@ export const universityService = {
 
     async updateUniversity(universityId: number, universityData: Partial<Omit<College, 'id'>>) {
         try {
-            const response = await axios.put(`/api/universities/${universityId}/`, universityData);
+            const response = await axios.put(`universities/${universityId}/`, universityData);
             return response.data;
         } catch (error) {
             console.error('Failed to update university:', error);
@@ -83,7 +83,7 @@ export const universityService = {
 
     async deleteUniversity(universityId: number) {
         try {
-            await axios.delete(`/api/universities/${universityId}/`);
+            await axios.delete(`universities/${universityId}/`);
             return true;
         } catch (error) {
             console.error('Failed to delete university:', error);
@@ -93,7 +93,7 @@ export const universityService = {
 
     async downloadUniversitiesCSV(params?: any) {
         try {
-            const response = await axios.get('/api/universities/download-csv/', { params, responseType: 'blob' });
+            const response = await axios.get('universities/download-csv/', { params, responseType: 'blob' });
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -109,7 +109,7 @@ export const universityService = {
 
     async getUniversityPrograms(universityId: number) {
     try {
-        const response = await axios.get(`/api/universities/${universityId}/programs/`);
+        const response = await axios.get(`universities/${universityId}/programs/`);
         return response.data; // array of programs
     } catch (err) {
         return [];

@@ -1,21 +1,16 @@
 # core/views/import_projects.py
 
-from io import BytesIO
-import re
-import random
-import string
-
-import openpyxl
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment
-
-from django.db import transaction
-from django.http import HttpResponse
-
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
+
+from django.db import transaction
+import openpyxl
+
+import re
+import random
+import string
 
 from core.models import (
     User,
@@ -38,20 +33,21 @@ def is_system_manager(user) -> bool:
         return True
     return UserRoles.objects.filter(user=user, role__type__iexact="system manager").exists()
 
+
 # ==========================================================
 # Excel Header Mapping (Arabic → Internal Keys)
 # ==========================================================
 
 AR_HEADER_MAP = {
     "عنوان المشروع": "title",
-    "نوع المشروع": "project_type",          # ignored حاليا
+    "نوع المشروع": "project_type",          # (ignored حاليا)
     "الحالة": "state",
     "الملخص": "abstract",
     "المشرف": "supervisor_name",            # name or email
     "المشرف المشارك": "co_supervisor_name", # name or email
-    "الجامعة": "university_name_ar",        # ignored حاليا
-    "الكلية": "college_name_ar",            # ignored حاليا
-    "القسم": "department_name",             # ignored حاليا
+    "الجامعة": "university_name_ar",        # (ignored حاليا)
+    "الكلية": "college_name_ar",            # (ignored حاليا)
+    "القسم": "department_name",             # (ignored حاليا)
     "سنة البداية": "start_year",
     "سنة النهاية": "end_year",
     "المجال": "field",
@@ -77,26 +73,6 @@ STATE_MAP = {
     "مرفوض": "Rejected",
 }
 
-# ==========================================================
-# Template headers (MUST match AR_HEADER_MAP keys)
-# ==========================================================
-
-TEMPLATE_HEADERS_AR = [
-    "عنوان المشروع",
-    "نوع المشروع",
-    "الحالة",
-    "الملخص",
-    "المشرف",
-    "المشرف المشارك",
-    "الجامعة",
-    "الكلية",
-    "القسم",
-    "سنة البداية",
-    "سنة النهاية",
-    "المجال",
-    "الأدوات",
-    "أنشئ بواسطة",
-]
 
 # ==========================================================
 # Helpers
@@ -168,7 +144,7 @@ def get_or_create_user_by_name_or_email(raw: str, role_type: str = None):
 
     created = False
 
-    # Email
+    # 1) Email case
     if "@" in val:
         u = User.objects.filter(email__iexact=val).first()
         if not u:
@@ -184,13 +160,14 @@ def get_or_create_user_by_name_or_email(raw: str, role_type: str = None):
             u.save()
             created = True
 
+        # assign role if exists
         if role_type:
             role_obj = Role.objects.filter(type__iexact=role_type).first()
             if role_obj:
                 UserRoles.objects.get_or_create(user=u, role=role_obj)
         return u, None, created
 
-    # Name
+    # 2) Name case
     qs = User.objects.filter(name__iexact=val)
     cnt = qs.count()
 
@@ -205,7 +182,7 @@ def get_or_create_user_by_name_or_email(raw: str, role_type: str = None):
             username=username,
             email="",
             name=val,
-            first_name=val,
+            first_name=val,  # optional
             last_name="",
         )
         u.set_password("password123")
@@ -218,6 +195,7 @@ def get_or_create_user_by_name_or_email(raw: str, role_type: str = None):
             UserRoles.objects.get_or_create(user=u, role=role_obj)
 
     return u, None, created
+
 
 # ==========================================================
 # Excel Reading (Row 2 headers, Row 3+ data)
@@ -236,6 +214,7 @@ def read_excel_projects(file_obj):
 
     missing = [k for k in REQUIRED_KEYS if k not in index_map]
     if missing:
+        # عرض المفاتيح المفقودة كـ internal keys (يكفي الآن)
         return None, [{
             "row": 2,
             "field": ",".join(missing),
@@ -257,72 +236,6 @@ def read_excel_projects(file_obj):
 
     return rows, []
 
-# ==========================================================
-# TEMPLATE ENDPOINT (Download .xlsx)
-# ==========================================================
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def import_projects_template(request):
-    if not is_system_manager(request.user):
-        return Response({"detail": "Forbidden"}, status=403)
-
-    uni = request.query_params.get("university", "")
-    college = request.query_params.get("college", "")
-    dept = request.query_params.get("department", "")
-
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Projects"
-
-    ws["A1"] = "ملاحظة: العناوين في الصف 2 والبيانات تبدأ من الصف 3. لا تغيّر أسماء الأعمدة."
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(TEMPLATE_HEADERS_AR))
-    ws["A1"].font = Font(bold=True)
-    ws["A1"].alignment = Alignment(horizontal="center")
-
-    # Row 2 headers
-    for col, header in enumerate(TEMPLATE_HEADERS_AR, start=1):
-        cell = ws.cell(row=2, column=col, value=header)
-        cell.font = Font(bold=True)
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-
-    # Row 3 example (prefill selected)
-    example = [
-        "مثال: نظام بوابة موحدة",
-        "",
-        "معلق",
-        "اكتب ملخص المشروع هنا...",
-        "",
-        "",
-        uni,
-        college,
-        dept,
-        2026,
-        "",
-        "",
-        "",
-        request.user.email or request.user.name or "",
-    ]
-    for col, v in enumerate(example, start=1):
-        ws.cell(row=3, column=col, value=v)
-
-    widths = {
-        1: 35, 2: 18, 3: 14, 4: 45, 5: 22, 6: 22,
-        7: 22, 8: 22, 9: 22, 10: 14, 11: 14, 12: 18, 13: 18, 14: 18
-    }
-    for col_idx, w in widths.items():
-        ws.column_dimensions[openpyxl.utils.get_column_letter(col_idx)].width = w
-
-    output = BytesIO()
-    wb.save(output)
-    output.seek(0)
-
-    resp = HttpResponse(
-        output.getvalue(),
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
-    resp["Content-Disposition"] = 'attachment; filename="projects_import_template.xlsx"'
-    return resp
 
 # ==========================================================
 # Validation
@@ -347,6 +260,7 @@ def validate_rows(rows, request_user):
         supervisor_raw = _str(row.get("supervisor_name"))
         co_raw = _str(row.get("co_supervisor_name"))
 
+        # created_by strict (if provided must exist)
         created_by_user = request_user
         cb_raw = _str(row.get("created_by_name"))
         if cb_raw:
@@ -356,7 +270,7 @@ def validate_rows(rows, request_user):
             else:
                 created_by_user = cb_user
 
-        # Required
+        # Required checks
         if not title:
             errors.append({"row": excel_row, "field": "عنوان المشروع", "message": "مطلوب", "value": row.get("title")})
         if not abstract:
@@ -387,6 +301,10 @@ def validate_rows(rows, request_user):
                 "value": state_ar
             })
 
+        # ✅ IMPORTANT CHANGE:
+        # supervisor/co-supervisor are NOT validated as existing users anymore
+        # we will create them in commit if not found
+
         if any(e["row"] == excel_row for e in errors):
             continue
 
@@ -395,16 +313,22 @@ def validate_rows(rows, request_user):
             "title": title,
             "description": abstract,
             "state_en": STATE_MAP[state_ar],
+            "university_name": uni_name,
+            "college_name": college_name,
+            "dept_name": dept_name,
             "start_year": start_year,
             "end_year": end_year,
             "field": field,
             "tools": tools,
             "created_by_id": created_by_user.id if created_by_user else request_user.id,
+
+            # keep raw values to create users later
             "supervisor_raw": supervisor_raw,
             "co_raw": co_raw,
         })
 
     return valid, errors
+
 
 # ==========================================================
 # API: VALIDATE
@@ -439,6 +363,7 @@ def import_projects_validate(request):
         "errors": errors,
     })
 
+
 # ==========================================================
 # API: COMMIT
 # ==========================================================
@@ -468,6 +393,7 @@ def import_projects_commit(request):
     created_projects = 0
     updated_projects = 0
 
+    # extra counters (optional - helpful for you)
     created_supervisor_users = 0
     created_co_users = 0
     supervisors_linked = 0
@@ -475,8 +401,10 @@ def import_projects_commit(request):
 
     with transaction.atomic():
         for item in valid:
+            # Resolve project state
             state_obj, _ = ProjectState.objects.get_or_create(name=item["state_en"])
 
+            # Find existing project (policy v1)
             existing = Project.objects.filter(
                 title__iexact=item["title"],
                 start_date=item["start_year"],
@@ -505,6 +433,7 @@ def import_projects_commit(request):
                 )
                 created_projects += 1
 
+            # Ensure group exists
             g = Group.objects.filter(project=p).first()
             if not g:
                 g = Group.objects.create(
@@ -513,6 +442,7 @@ def import_projects_commit(request):
                     pattern=None
                 )
 
+            # ✅ Create/resolve supervisor users (names or emails)
             sup_user = None
             co_user = None
 
@@ -522,6 +452,7 @@ def import_projects_commit(request):
                     role_type="supervisor"
                 )
                 if sup_err:
+                    # name duplicated -> stop with clear error
                     return Response({
                         "invalid_rows": 1,
                         "errors": [{
@@ -537,7 +468,7 @@ def import_projects_commit(request):
             if item.get("co_raw"):
                 co_user, co_err, co_created = get_or_create_user_by_name_or_email(
                     item["co_raw"],
-                    role_type="co-supervisor"
+                    role_type="Co-supervisor"
                 )
                 if co_err:
                     return Response({
@@ -552,6 +483,7 @@ def import_projects_commit(request):
                 if co_created:
                     created_co_users += 1
 
+            # Link supervisors
             if sup_user:
                 _, created = GroupSupervisors.objects.get_or_create(
                     group=g,
@@ -576,9 +508,12 @@ def import_projects_commit(request):
         "invalid_rows": 0,
         "created_projects": created_projects,
         "updated_projects": updated_projects,
+
+        # optional debug/info
         "created_supervisor_users": created_supervisor_users,
         "created_co_users": created_co_users,
         "supervisors_linked": supervisors_linked,
         "co_linked": co_linked,
+
         "message": "Projects import completed successfully."
     })

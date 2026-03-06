@@ -9,6 +9,7 @@ export interface Program {
 export const programService = {
   async getPrograms(params?: Record<string, any>) {
     const resp = await api.get(API_ENDPOINTS.PROGRAMS, { params });
+    console.log('[programService] getPrograms response:', resp.data);
     return resp.data;
   },
 

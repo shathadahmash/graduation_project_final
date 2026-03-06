@@ -119,32 +119,13 @@ class UserSerializer(serializers.ModelSerializer):
 # User Detail Serializer
 # ----------------------------
 class UserDetailSerializer(UserSerializer):
-    company_name = serializers.SerializerMethodField()
-    department_id = serializers.SerializerMethodField()
-    college_id = serializers.SerializerMethodField()
-
     class Meta(UserSerializer.Meta):
-        fields = UserSerializer.Meta.fields + [
-            'company_name',
-            'date_joined',
-            'department_id',
-            'college_id'
-        ]
+        fields = UserSerializer.Meta.fields + ['company_name', 'date_joined']
 
-    def get_company_name(self, obj):
-        return getattr(obj, 'company_name', None)
 
-    def get_department_id(self, obj):
-        if hasattr(obj, 'student_profile') and obj.student_profile.department:
-            return obj.student_profile.department.pk
-        return None
-
-    def get_college_id(self, obj):
-        if hasattr(obj, 'student_profile') and obj.student_profile.college:
-            return obj.student_profile.college.pk
-        return None
-
-    
+# ----------------------------
+# Academic Affiliation Serializer
+# ----------------------------
 class AcademicAffiliationSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     university = UniversitySerializer(read_only=True)
@@ -233,19 +214,12 @@ class StudentEnrollmentPeriodSerializer(serializers.ModelSerializer):
 
 
 class StudentSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(source="user.name", default="—", read_only=True)
-    username = serializers.CharField(source="user.username", default="—", read_only=True)
-    email = serializers.CharField(source="user.email", default="—", read_only=True)
-    phone = serializers.CharField(source="user.phone", default="—", read_only=True)
-    is_active = serializers.BooleanField(source="user.is_active", default=False, read_only=True)
+    user = UserDetailSerializer(read_only=True)
+    enrollment_periods = StudentEnrollmentPeriodSerializer(many=True, read_only=True)
 
-    department_name = serializers.CharField(
-        source="department.name", default="—", read_only=True
-    )
-    college_name = serializers.CharField(
-        source="college.name_ar", default="—", read_only=True
-    )
-    
+    current_academic_year = serializers.SerializerMethodField()
+    groups = serializers.SerializerMethodField()
+    progress = serializers.SerializerMethodField()
 
     class Meta:
         model = Student
