@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from rest_framework import viewsets, mixins
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
@@ -30,13 +31,27 @@ class UniversityViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class ProgramViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only list/retrieve for programs used by frontend import form."""
+
+class ProgramViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet
+):
+    """
+    Full CRUD for programs used by frontend import form.
+    Supports list, retrieve, create, update, and delete.
+    """
     queryset = Program.objects.all()
     serializer_class = ProgramSerializer
     permission_classes = [IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
+        """
+        List programs ordered by name
+        """
         qs = self.get_queryset().order_by('p_name')
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)

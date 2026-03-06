@@ -57,11 +57,9 @@ class DepartmentSerializer(serializers.ModelSerializer):
             'department_id', 'name', 'description', 'college', 'college_detail'
         ]
 
-
 class ProgramSerializer(serializers.ModelSerializer):
     department_detail = DepartmentSerializer(source='department', read_only=True)
 
     class Meta:
         model = Program
-        fields = ['pid', 'p_name', 'department', 'department_detail']
-  # include any other fields needed
+        fields = ['pid', 'p_name', 'department', 'duration', 'department_detail']
