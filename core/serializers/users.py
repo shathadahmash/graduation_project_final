@@ -214,6 +214,8 @@ class StudentEnrollmentPeriodSerializer(serializers.ModelSerializer):
 
 
 class StudentSerializer(serializers.ModelSerializer):
+<<<<<<< HEAD
+=======
 
     user = UserDetailSerializer(read_only=True)
     enrollment_periods = StudentEnrollmentPeriodSerializer(many=True, read_only=True)
@@ -221,6 +223,7 @@ class StudentSerializer(serializers.ModelSerializer):
     current_academic_year = serializers.SerializerMethodField()
     groups = serializers.SerializerMethodField()
     progress = serializers.SerializerMethodField()
+>>>>>>> 8876fbcf208f3cfe74c4ed937904c19ba2c0585e
     name = serializers.CharField(write_only=True, required=False)
     email = serializers.CharField(write_only=True, required=False)
     phone = serializers.CharField(write_only=True, required=False)
