@@ -9,8 +9,8 @@ const ProjectSearch: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   
   // الفلاتر
-  const [filters, setFilters] = useState({ college: '', department: '', supervisor: '', year: '', type: '', state: '' });
-  const [filterOptions, setFilterOptions] = useState<any>({ colleges: [], departments: [], supervisors: [], years: [], types: [], states: [] });
+  const [filters, setFilters] = useState({ college: '', department: '', supervisor: '', co_supervisor: '', year: '', type: '', state: '' ,tools : '', field: '', university: ''});
+  const [filterOptions, setFilterOptions] = useState<any>({ colleges: [], departments: [], supervisors: [], co_supervisors: [], years: [], types: [], states: [],tools:[], fields:[] });
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   
   // مودال التفاصيل
@@ -31,10 +31,14 @@ const ProjectSearch: React.FC = () => {
       // Add filters only if they have values (convert to numbers where needed)
       if (currentFilters.college) params.college = Number(currentFilters.college);
       if (currentFilters.department) params.department = Number(currentFilters.department);
+      if (currentFilters.university) params.university = Number(currentFilters.university);
       if (currentFilters.supervisor) params.supervisor = Number(currentFilters.supervisor);
+      if (currentFilters.co_supervisor) params.co_supervisor = Number(currentFilters.co_supervisor);
       if (currentFilters.year) params.year = currentFilters.year;
       if (currentFilters.type) params.type = currentFilters.type;
       if (currentFilters.state) params.state = currentFilters.state;
+      if (currentFilters.tools) params.tools = currentFilters.tools;
+      if (currentFilters.field) params.field = currentFilters.field;
       
       console.log('[ProjectSearch] Fetching projects with params:', params);
       const data = await projectService.getProjects(params);
@@ -63,7 +67,7 @@ const ProjectSearch: React.FC = () => {
   useEffect(() => {
     const loadFilterOptions = async () => {
       try {
-        // Get filter options from project service (colleges, supervisors, years)
+        // Get filter options from project service (colleges, supervisors, years, states, tools, fields)
         const options = await projectService.getFilterOptions();
         
         // Get departments from user service
@@ -118,8 +122,45 @@ const ProjectSearch: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. قسم الفلاتر (الكلية، القسم، المشرف، السنة، النوع، الحالة) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 max-w-6xl mx-auto">
+      {/* 2. قسم الفلاتر (الجامعة، الكلية، القسم، المشرف، السنة، النوع، الحالة، الأدوات، المجال) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-10 gap-4 max-w-7xl mx-auto">
+        {/* فلتر الجامعة */}
+        <div className="relative filter-dropdown">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveDropdown(activeDropdown === 'uni' ? null : 'uni');
+            }} 
+            className="w-full p-3 bg-white rounded-xl shadow-sm flex justify-between items-center hover:shadow-md transition-shadow"
+          >
+            <FiChevronDown className={activeDropdown === 'uni' ? 'transform rotate-180 transition-transform' : 'transition-transform'} />
+            <span className="text-right flex-1">{filterOptions.universities?.find((u:any) => String(u.id) === String(filters.university))?.name || 'كل الجامعات'}</span>
+          </button>
+          {activeDropdown === 'uni' && (
+            <div className="absolute z-20 w-full mt-1 bg-white border rounded-xl shadow-xl max-h-48 overflow-y-auto filter-dropdown">
+              <div 
+                onClick={() => { setFilters({...filters, university: ''}); setActiveDropdown(null); }} 
+                className="p-2 hover:bg-blue-50 cursor-pointer text-blue-600 border-b font-semibold"
+              >
+                الكل
+              </div>
+              {filterOptions.universities?.length > 0 ? (
+                filterOptions.universities.map((u: any) => (
+                  <div 
+                    key={u.id} 
+                    onClick={() => { setFilters({...filters, university: String(u.id)}); setActiveDropdown(null); }} 
+                    className="p-2 hover:bg-gray-50 cursor-pointer text-right"
+                  >
+                    {u.name}
+                  </div>
+                ))
+              ) : (
+                <div className="p-2 text-gray-400 text-right">لا توجد جامعات</div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* فلتر الكلية */}
         <div className="relative filter-dropdown">
           <button 
@@ -226,6 +267,43 @@ const ProjectSearch: React.FC = () => {
                 ))
               ) : (
                 <div className="p-2 text-gray-400 text-right">لا يوجد مشرفون</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* فلتر المشرف المشارك */}
+        <div className="relative filter-dropdown">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveDropdown(activeDropdown === 'co_sup' ? null : 'co_sup');
+            }} 
+            className="w-full p-3 bg-white rounded-xl shadow-sm flex justify-between items-center hover:shadow-md transition-shadow"
+          >
+            <FiChevronDown className={activeDropdown === 'co_sup' ? 'transform rotate-180 transition-transform' : 'transition-transform'} />
+            <span className="text-right flex-1">{filterOptions.co_supervisors?.find((s:any) => String(s.id) === String(filters.co_supervisor))?.name || 'كل المشرفين المشاركين'}</span>
+          </button>
+          {activeDropdown === 'co_sup' && (
+            <div className="absolute z-20 w-full mt-1 bg-white border rounded-xl shadow-xl max-h-48 overflow-y-auto filter-dropdown">
+              <div 
+                onClick={() => { setFilters({...filters, co_supervisor: ''}); setActiveDropdown(null); }} 
+                className="p-2 hover:bg-blue-50 cursor-pointer text-blue-600 border-b font-semibold"
+              >
+                الكل
+              </div>
+              {filterOptions.co_supervisors?.length > 0 ? (
+                filterOptions.co_supervisors.map((s: any) => (
+                  <div 
+                    key={s.id} 
+                    onClick={() => { setFilters({...filters, co_supervisor: String(s.id)}); setActiveDropdown(null); }} 
+                    className="p-2 hover:bg-gray-50 cursor-pointer text-right"
+                  >
+                    {s.name}
+                  </div>
+                ))
+              ) : (
+                <div className="p-2 text-gray-400 text-right">لا يوجد مشرفون مشاركون</div>
               )}
             </div>
           )}
@@ -341,12 +419,91 @@ const ProjectSearch: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* فلتر الأدوات */}
+        <div className="relative filter-dropdown">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveDropdown(activeDropdown === 'tools' ? null : 'tools');
+            }} 
+            className="w-full p-3 bg-white rounded-xl shadow-sm flex justify-between items-center hover:shadow-md transition-shadow"
+          >
+            <FiChevronDown className={activeDropdown === 'tools' ? 'transform rotate-180 transition-transform' : 'transition-transform'} />
+            <span className="flex-1 text-right">{filters.tools || 'كل الأدوات'}</span>
+          </button>
+          {activeDropdown === 'tools' && (
+            <div className="absolute z-20 w-full mt-1 bg-white border rounded-xl shadow-xl max-h-48 overflow-y-auto filter-dropdown">
+              <div 
+                onClick={() => { setFilters({...filters, tools: ''}); setActiveDropdown(null); }} 
+                className="p-2 hover:bg-blue-50 cursor-pointer text-blue-600 border-b font-semibold"
+              >
+                الكل
+              </div>
+              {filterOptions.tools?.length > 0 ? (
+                filterOptions.tools.map((tool: string, idx: number) => (
+                  <div 
+                    key={idx} 
+                    onClick={() => { setFilters({...filters, tools: tool}); setActiveDropdown(null); }} 
+                    className="p-2 hover:bg-gray-50 cursor-pointer text-right"
+                  >
+                    {tool}
+                  </div>
+                ))
+              ) : (
+                <div className="p-2 text-gray-400 text-right">لا توجد أدوات</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* فلتر المجال */}
+        <div className="relative filter-dropdown">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveDropdown(activeDropdown === 'field' ? null : 'field');
+            }} 
+            className="w-full p-3 bg-white rounded-xl shadow-sm flex justify-between items-center hover:shadow-md transition-shadow"
+          >
+            <FiChevronDown className={activeDropdown === 'field' ? 'transform rotate-180 transition-transform' : 'transition-transform'} />
+            <span className="flex-1 text-right">{filters.field || 'كل المجالات'}</span>
+          </button>
+          {activeDropdown === 'field' && (
+            <div className="absolute z-20 w-full mt-1 bg-white border rounded-xl shadow-xl max-h-48 overflow-y-auto filter-dropdown">
+              <div 
+                onClick={() => { setFilters({...filters, field: ''}); setActiveDropdown(null); }} 
+                className="p-2 hover:bg-blue-50 cursor-pointer text-blue-600 border-b font-semibold"
+              >
+                الكل
+              </div>
+              {filterOptions.fields?.length > 0 ? (
+                filterOptions.fields.map((field: string, idx: number) => (
+                  <div 
+                    key={idx} 
+                    onClick={() => { setFilters({...filters, field: field}); setActiveDropdown(null); }} 
+                    className="p-2 hover:bg-gray-50 cursor-pointer text-right"
+                  >
+                    {field}
+                  </div>
+                ))
+              ) : (
+                <div className="p-2 text-gray-400 text-right">لا توجد مجالات</div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Show active filters count */}
-      {(filters.college || filters.department || filters.supervisor || filters.year || filters.type || filters.state) && (
+      {(filters.university || filters.college || filters.department || filters.supervisor || filters.co_supervisor || filters.year || filters.type || filters.state || filters.tools || filters.field) && (
         <div className="max-w-4xl mx-auto flex items-center gap-2 text-sm text-gray-600">
           <span className="font-semibold">فلاتر نشطة:</span>
+          {filters.university && (
+            <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs">
+              {filterOptions.universities?.find((u:any) => String(u.id) === String(filters.university))?.name || filters.university}
+            </span>
+          )}
           {filters.college && (
             <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs">
               {filterOptions.colleges?.find((c:any) => String(c.id) === String(filters.college))?.name || filters.college}
@@ -360,6 +517,11 @@ const ProjectSearch: React.FC = () => {
           {filters.supervisor && (
             <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs">
               {filterOptions.supervisors?.find((s:any) => String(s.id) === String(filters.supervisor))?.name || filters.supervisor}
+            </span>
+          )}
+          {filters.co_supervisor && (
+            <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs">
+              {filterOptions.co_supervisors?.find((s:any) => String(s.id) === String(filters.co_supervisor))?.name || filters.co_supervisor}
             </span>
           )}
           {filters.year && (
@@ -377,8 +539,18 @@ const ProjectSearch: React.FC = () => {
               {filters.state}
             </span>
           )}
+          {filters.tools && (
+            <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs">
+              {filters.tools}
+            </span>
+          )}
+          {filters.field && (
+            <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs">
+              {filters.field}
+            </span>
+          )}
           <button 
-            onClick={() => setFilters({ college: '', department: '', supervisor: '', year: '', type: '', state: '' })}
+            onClick={() => setFilters({ university: '', college: '', department: '', supervisor: '', co_supervisor: '', year: '', type: '', state: '', tools: '', field: '' })}
             className="text-red-600 hover:text-red-800 font-semibold text-xs"
           >
             مسح الكل
@@ -441,6 +613,12 @@ const ProjectSearch: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 border-y py-4 border-gray-100">
                 <div><p className="text-xs text-gray-400">المشرف</p><p className="font-bold">{selectedProject.supervisor_name}</p></div>
                 <div><p className="text-xs text-gray-400">الكلية</p><p className="font-bold">{selectedProject.college_name}</p></div>
+                {selectedProject.field && (
+                  <div><p className="text-xs text-gray-400">المجال</p><p className="font-bold">{selectedProject.field}</p></div>
+                )}
+                {selectedProject.tools && (
+                  <div><p className="text-xs text-gray-400">الأدوات</p><p className="font-bold">{selectedProject.tools}</p></div>
+                )}
               </div>
               <div>
                 <h4 className="font-bold text-gray-800 mb-2">وصف المشروع:</h4>

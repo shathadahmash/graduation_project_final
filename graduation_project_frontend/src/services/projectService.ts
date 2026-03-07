@@ -159,7 +159,7 @@ export const projectService = {
       return response.data;
     } catch (error) {
       console.error('[projectService] getFilterOptions failed:', error);
-      return { colleges: [], supervisors: [], years: [] };
+      return { colleges: [], supervisors: [], years: [], states: [], tools: [], fields: [] };
     }
   },
 

@@ -5,10 +5,11 @@ from rest_framework.permissions import IsAuthenticated ,AllowAny
 from django.utils import timezone
 import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models import Exists, OuterRef
 
 from core.models import (
     User, Group, Project, ApprovalRequest, Role, College, UserRoles,
-    AcademicAffiliation, ProjectState
+    AcademicAffiliation, ProjectState, GroupSupervisors, University
 )
 from core.serializers import ProjectSerializer
 from core.permissions import PermissionManager
@@ -31,14 +32,37 @@ class ProjectFilter(django_filters.FilterSet):
     department = django_filters.NumberFilter(
         field_name="groups__program_groups__program__department__department_id"
     )
-    supervisor = django_filters.NumberFilter(
-        field_name="groups__groupsupervisors_set__user__id"
-    )
+    supervisor = django_filters.NumberFilter(method='filter_supervisor')
+    co_supervisor = django_filters.NumberFilter(method='filter_co_supervisor')
     year = django_filters.NumberFilter(field_name="start_date")
+    tools = django_filters.CharFilter(field_name="tools", lookup_expr="icontains")
+    field = django_filters.CharFilter(field_name="field", lookup_expr="icontains")
+
+    def filter_supervisor(self, queryset, name, value):
+        return queryset.filter(
+            Exists(
+                GroupSupervisors.objects.filter(
+                    group__project=OuterRef('pk'),
+                    user__id=value,
+                    type='supervisor'
+                )
+            )
+        )
+
+    def filter_co_supervisor(self, queryset, name, value):
+        return queryset.filter(
+            Exists(
+                GroupSupervisors.objects.filter(
+                    group__project=OuterRef('pk'),
+                    user__id=value,
+                    type='co_supervisor'
+                )
+            )
+        )
 
     class Meta:
         model = Project
-        fields = ["state_name", "college", "department", "supervisor", "year","university"]
+        fields = ["state_name", "college", "department", "supervisor", "co_supervisor", "year", "university", "tools", "field"]
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -151,15 +175,26 @@ class ProjectViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="filter-options")
     def filter_options(self, request):
         try:
+            universities = University.objects.values("uid", "uname_ar")
+            university_list = [{"id": u["uid"], "name": u["uname_ar"]} for u in universities]
+
             colleges = College.objects.values("cid", "name_ar")
             college_list = [{"id": c["cid"], "name": c["name_ar"]} for c in colleges]
 
             active_supervisors = User.objects.filter(
-                groupsupervisors__isnull=False
+                groupsupervisors__type='supervisor'
             ).distinct().values("id", "name")
             supervisor_list = [
                 {"id": s["id"], "name": s["name"] or "Unnamed Supervisor"}
                 for s in active_supervisors
+            ]
+
+            active_co_supervisors = User.objects.filter(
+                groupsupervisors__type='co_supervisor'
+            ).distinct().values("id", "name")
+            co_supervisor_list = [
+                {"id": s["id"], "name": s["name"] or "Unnamed Co-Supervisor"}
+                for s in active_co_supervisors
             ]
 
             years_qs = Project.objects.values_list(
@@ -171,11 +206,27 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 "name", flat=True
             ).distinct()
 
+            # Get distinct tools
+            tools_qs = Project.objects.values_list(
+                "tools", flat=True
+            ).distinct().exclude(tools__isnull=True).exclude(tools__exact='')
+            tools = [str(t) for t in tools_qs if t is not None and t.strip()]
+
+            # Get distinct fields
+            fields_qs = Project.objects.values_list(
+                "field", flat=True
+            ).distinct().exclude(field__isnull=True).exclude(field__exact='')
+            fields = [str(f) for f in fields_qs if f is not None and f.strip()]
+
             return Response({
+                "universities": university_list,
                 "colleges": college_list,
                 "supervisors": supervisor_list,
+                "co_supervisors": co_supervisor_list,
                 "years": years,
                 "states": list(states),
+                "tools": tools,
+                "fields": fields,
             })
         except Exception as e:
             return Response(
