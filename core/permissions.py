@@ -141,6 +141,7 @@ ROLES_PERMISSIONS = {
         'view_reports',
         'view_notifications',
         'create_department',
+        'delete_project',
     ],
     
     'External Company': [
