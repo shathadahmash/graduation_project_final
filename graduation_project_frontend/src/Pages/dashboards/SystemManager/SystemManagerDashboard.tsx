@@ -70,7 +70,7 @@ const SystemManagerDashboard: React.FC = () => {
   const [showManagementContent, setShowManagementContent] = useState(false);
   const [activeReport, setActiveReport] = useState<string | null>(null);
   const [showImportProjects, setShowImportProjects] = useState(false);
-
+  const [showImportModal, setShowImportModal] = useState(false);
   /* ==========================
      Fetch Data
   ========================== */
@@ -425,13 +425,33 @@ const SystemManagerDashboard: React.FC = () => {
       }
 
       // Tertiary check: linked group college
-      if (linkedGroup && (linkedGroup.college || linkedGroup.college_id)) {
-        const groupCollegeId = linkedGroup.college || linkedGroup.college_id;
-        if (Number(groupCollegeId) === Number(systemManagerCollegeId)) {
-          console.log('Project matched by group college:', project.project_id || project.id, systemManagerCollegeId);
-          return true;
-        }
+      // if (linkedGroup && (linkedGroup.college || linkedGroup.college_id)) {
+      //   const groupCollegeId = linkedGroup.college || linkedGroup.college_id;
+      //   if (Number(groupCollegeId) === Number(systemManagerCollegeId)) {
+      //     console.log('Project matched by group college:', project.project_id || project.id, systemManagerCollegeId);
+      //     return true;
+      //   }
+      // }
+      // Tertiary check: check group linked to this project
+    const projectGroup = groups.find((g: any) => {
+      const gp = typeof g.project === 'number' || typeof g.project === 'string'
+        ? g.project
+        : g.project?.project_id || g.project?.id;
+
+      return String(gp) === String(project.project_id || project.id);
+    });
+
+    if (projectGroup && (projectGroup.college || projectGroup.college_id)) {
+      const groupCollegeId =
+        typeof projectGroup.college === 'object'
+          ? projectGroup.college.id || projectGroup.college.cid
+          : projectGroup.college || projectGroup.college_id;
+
+      if (Number(groupCollegeId) === Number(systemManagerCollegeId)) {
+        console.log('Project matched by group college:', project.project_id || project.id, systemManagerCollegeId);
+        return true;
       }
+    }
 
       return false;
     });
@@ -853,6 +873,14 @@ const SystemManagerDashboard: React.FC = () => {
               </div>
 
               {/* Stats Cards Grid */}
+              onClick={() => {
+                  if (card.id === 'projects') {
+                    setShowImportModal(true); // Show modal instead of going directly
+                  } else {
+                    setActiveCardPanel(card.title);
+                    setShowManagementContent(true);
+                  }
+                }}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {dashboardCards.map((card) => (
                   <div
@@ -864,6 +892,9 @@ const SystemManagerDashboard: React.FC = () => {
                     }}
                     className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all cursor-pointer group"
                   >
+                   
+
+                    
                     <div className="flex flex-col items-center text-center">
                       <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${card.gradient} text-white flex items-center justify-center mb-4 shadow-md`}>
                         {React.cloneElement(card.icon as React.ReactElement, { size: 24 })}
@@ -1103,6 +1134,46 @@ const SystemManagerDashboard: React.FC = () => {
                   <p className="text-slate-500 max-w-md mx-auto">تخصيص إعدادات النظام، التنبيهات، والخيارات العامة.</p>
                 </div>
               )}
+            </div>
+          )}
+          {/* Import Projects Modal */}
+{/* Import Modal */}
+          {showImportModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="bg-white rounded-2xl p-8 w-80 shadow-2xl relative">
+                <h3 className="text-lg font-black text-slate-800 mb-4 text-center">اختر نوع الاستيراد</h3>
+
+                <div className="flex flex-col gap-4">
+                  {/* Full Import */}
+                  <button
+                    onClick={() => {
+                      setShowImportModal(false);
+                      navigate('/sysmanager-import-projects'); // FULL import page
+                    }}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl font-semibold transition-colors"
+                  >
+                    الذهاب إلى صفحة الاستيراد
+                  </button>
+
+                  {/* Single Row Import */}
+                  <button
+                    onClick={() => {
+                      setShowImportModal(false);
+                      navigate('/sysmanager-import-single-project'); // SINGLE row import page
+                    }}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl font-semibold transition-colors"
+                  >
+                    استيراد صف واحد
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => setShowImportModal(false)}
+                  className="absolute top-3 right-3 text-slate-500 hover:text-slate-800"
+                >
+                  <FiX size={20} />
+                </button>
+              </div>
             </div>
           )}
         </main>
