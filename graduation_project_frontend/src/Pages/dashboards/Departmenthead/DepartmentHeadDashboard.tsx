@@ -47,16 +47,46 @@ const DepartmentHeadDashboard: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [fetchedUsers, fetchedProjects, fetchedGroups, fetchedAffiliations, fetchedDepartments] =
-          await Promise.all([
-            userService.getAllUsers().catch(err => { console.error('Error fetching users:', err); return []; }),
-            projectService.getProject().catch(err => { console.error('Error fetching projects:', err); return []; }),
-            groupService.getGroups().catch(err => { console.error('Error fetching groups:', err); return []; }),
-            userService.getAffiliations().catch(err => { console.error('Error fetching affiliations:', err); return []; }),
-            fetchTableFields('departments').catch(err => { console.error('Error fetching departments:', err); return []; })
-          ]);
+        const [
+  fetchedStudents,
+  fetchedProjects,
+  fetchedGroups,
+  fetchedAffiliations,
+  fetchedDepartments
+] = await Promise.all([
+  fetchTableFields('students').catch(err => {
+    console.error('Error fetching students:', err);
+    return [];
+  }),
 
-        setUsers(Array.isArray(fetchedUsers) ? fetchedUsers : []);
+  projectService.getProject().catch(err => {
+    console.error('Error fetching projects:', err);
+    return [];
+  }),
+
+  groupService.getGroups().catch(err => {
+    console.error('Error fetching groups:', err);
+    return [];
+  }),
+
+  fetchTableFields('affiliations').catch(err => {
+    console.error('Error fetching affiliations:', err);
+    return [];
+  }),
+
+  fetchTableFields('departments').catch(err => {
+    console.error('Error fetching departments:', err);
+    return [];
+  })
+]);
+
+setUsers(Array.isArray(fetchedStudents) ? fetchedStudents : []);
+setProjects(Array.isArray(fetchedProjects) ? fetchedProjects : []);
+setGroups(Array.isArray(fetchedGroups) ? fetchedGroups : []);
+setAffiliations(Array.isArray(fetchedAffiliations) ? fetchedAffiliations : []);
+setDepartments(Array.isArray(fetchedDepartments) ? fetchedDepartments : []);
+
+        setUsers(Array.isArray(fetchedStudents) ? fetchedStudents : []);
         setProjects(Array.isArray(fetchedProjects) ? fetchedProjects : []);
         setGroups(Array.isArray(fetchedGroups) ? fetchedGroups : []);
         setAffiliations(Array.isArray(fetchedAffiliations) ? fetchedAffiliations : []);
@@ -109,23 +139,22 @@ const DepartmentHeadDashboard: React.FC = () => {
   console.log('Department Head Dashboard - groups sample:', groups.slice(0, 3));
 
   const filteredStudents = useMemo(() => {
-    
-    if (!departmentHeadDepartmentId) return [];
-    const result = users.filter((user: any) => {
-      if (!user || !user.roles || !Array.isArray(user.roles)) return false;
+  if (!departmentHeadDepartmentId || !users.length || !affiliations.length) return [];
 
-      const userAffiliation = affiliations.find((aff: any) => aff && aff.user_id === user.id);
-      if (!userAffiliation || !userAffiliation.department_id) return false;
+  const result = users.filter((u: any) => {
+    if (!u?.roles) return false;
 
-      const hasStudentRole = user.roles.some((role: any) =>
-        role && role.type && role.type.toLowerCase() === 'student'
-      );
-      return hasStudentRole && userAffiliation.department_id === departmentHeadDepartmentId;
-    });
-    console.log('Department Head Dashboard - filteredStudents count:', result.length);
-    return result;
-  }, [users, affiliations, departmentHeadDepartmentId]);
-  
+    const aff = affiliations.find((a: any) => a.user_id === u.id);
+
+    const isStudent = u.roles.some(
+      (r: any) => r?.type?.toLowerCase() === "student"
+    );
+
+    return isStudent && aff?.department_id === departmentHeadDepartmentId;
+  });
+
+  return result;
+}, [users, affiliations, departmentHeadDepartmentId]);
 
   const filteredProjects = useMemo(() => {
     if (!departmentHeadDepartmentId) return [];

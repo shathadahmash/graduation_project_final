@@ -1,4 +1,5 @@
-from rest_framework import viewsets, status, permissions 
+from core import models
+from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -208,28 +209,60 @@ def respond_to_group_request(request, approval_id):
     except Exception as e:
         return Response({"error": str(e)}, status=500)
 
-
-# =============================================================================
-# Student ViewSet
-# =============================================================================
-class StudentViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Student.objects.all().select_related(
-        'user', 'program', 'department', 'college', 'university'
-    ).prefetch_related(
-        'enrollment_periods',
-        'user__group_members__group',
-        'user__progress_records'
-    )
+class StudentViewSet(viewsets.ModelViewSet):
     serializer_class = StudentSerializer
-    permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        user = self.request.user
 
-# =============================================================================
-# External Company ViewSet
-# =============================================================================
+        if user.is_superuser:  # superuser يرى كل الطلاب
+            return Student.objects.all()
+
+        # فلترة المستخدم العادي حسب الكلية والقسم
+        affiliation = AcademicAffiliation.objects.filter(user=user).first()
+        if affiliation and affiliation.department and affiliation.college:
+            return Student.objects.filter(
+                department=affiliation.department,
+                college=affiliation.college
+            )
+        return Student.objects.none()
+
 class ExternalCompanyViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = User.objects.filter(
-        userroles__role__type__icontains='External'
-    )
+    queryset = User.objects.filter(userroles__role__type__icontains='External')
     serializer_class = ExternalCompanySerializer
     permission_classes = [IsAuthenticated]
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def students_by_department(request):
+    user = request.user
+
+    # 1. تحقق أن المستخدم مرتبط بقسم
+    affiliation = AcademicAffiliation.objects.filter(user=user).first()
+    if not affiliation or not affiliation.department:
+        return Response({"error": "لا يوجد قسم مرتبط بالمستخدم"}, status=400)
+
+    department = affiliation.department
+
+    # 2. جلب دور الطلاب
+    student_role = Role.objects.filter(type__icontains="Student").first()
+    if not student_role:
+        return Response({"error": "لا يوجد دور Student معرف"}, status=500)
+
+    # 3. جلب الطلاب في القسم
+    students = User.objects.filter(
+        userroles__role=student_role,
+        academicaffiliation__department=department
+    ).distinct()
+
+    # 4. تحويل البيانات للـ JSON باستخدام Serializer
+    serializer = UserSerializer(students, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+def students_by_department(request):
+    dept_id = request.query_params.get('department_id')
+    if not dept_id:
+        return Response({"error": "department_id required"}, status=400)
+    students = Student.objects.filter(department_id=dept_id)
+    serializer = StudentSerializer(students, many=True)
+    return Response(serializer.data)

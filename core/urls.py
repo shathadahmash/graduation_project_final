@@ -30,8 +30,11 @@ from core.views import (
     CollegeViewSet,
     DepartmentViewSet,
     BranchViewSet,
+    StudentViewSet
+    
     # added for college programs endpoint
     # (defined in location_views.py)
+
     
 )
 from core.views.groups import GroupProgramViewSet
@@ -61,6 +64,7 @@ router.register(r'colleges', CollegeViewSet, basename='colleges')
 router.register(r'departments', DepartmentViewSet, basename='departments')
 router.register(r'branches', BranchViewSet, basename='branches')
 router.register(r'university-colleges', universitycollegeviewset, basename='university-colleges')
+router.register(r'students', StudentViewSet, basename='students')
 
 urlpatterns = [
     path('colleges/<int:college_id>/departments/', CollegeDepartmentsView.as_view(), name='college-departments'),
