@@ -9,6 +9,8 @@ from django.views.decorators.csrf import csrf_exempt
 from .views.import_views import import_users_validate, import_users_commit
 #till here
 from .views.import_projects import import_projects_validate, import_projects_commit
+from .views import students_by_department
+
 
 
 from core.views import (
@@ -29,6 +31,7 @@ from core.views import (
     CollegeViewSet,
     DepartmentViewSet,
     BranchViewSet,
+    StudentViewSet
     
     # added for college programs endpoint
     # (defined in location_views.py)
@@ -62,6 +65,7 @@ router.register(r'colleges', CollegeViewSet, basename='colleges')
 router.register(r'departments', DepartmentViewSet, basename='departments')
 router.register(r'branches', BranchViewSet, basename='branches')
 router.register(r'university-colleges', universitycollegeviewset, basename='university-colleges')
+router.register(r'students', StudentViewSet, basename='students')
 
 urlpatterns = [
     path('colleges/<int:college_id>/departments/', CollegeDepartmentsView.as_view(), name='college-departments'),
@@ -96,4 +100,5 @@ urlpatterns = [
     # project imports
     path('system/import/projects/validate/', import_projects_validate, name='import-projects-validate'),
     path('system/import/projects/commit/', import_projects_commit, name='import-projects-commit'),
+    path('students-by-department/', students_by_department, name='students-by-department'),
 ]

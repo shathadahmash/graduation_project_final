@@ -1,46 +1,35 @@
-import axios from 'axios';
+import api from './api';
 
 export interface Branch {
-  id: number;
+  ubid: number; // المعرف الصحيح للفروع
   branch_name: string;
   university?: number | null;
-  college?: number | null;
-  department?: number | null;
-  program?: number | null;
+  city_detail?: { bname_ar: string };
+  university_detail?: { uname_ar: string };
 }
 
 export const branchService = {
   async getBranches(params?: any) {
     try {
-      const resp = await axios.get('/api/branches/', { params });
+      const resp = await api.get('/branches/', { params });
       return resp.data;
-      
     } catch (error) {
       console.error('[branchService] getBranches error', error);
       return [];
     }
   },
-  async getBranchById(id: number) {
+  async addBranch(data: any) {
     try {
-      const resp = await axios.get(`/api/branches/${id}/`);
-      return resp.data;
-    } catch (error) {
-      console.error('[branchService] getBranchById error', error);
-      throw error;
-    }
-  },
-  async addBranch(data: Omit<Branch, 'id'>) {
-    try {
-      const resp = await axios.post('/api/branches/', data);
+      const resp = await api.post('/branches/', data);
       return resp.data;
     } catch (error) {
       console.error('[branchService] addBranch error', error);
       throw error;
     }
   },
-  async updateBranch(id: number, data: Partial<Omit<Branch, 'id'>>) {
+  async updateBranch(id: number, data: any) {
     try {
-      const resp = await axios.put(`/api/branches/${id}/`, data);
+      const resp = await api.put(`/branches/${id}/`, data);
       return resp.data;
     } catch (error) {
       console.error('[branchService] updateBranch error', error);
@@ -49,7 +38,7 @@ export const branchService = {
   },
   async deleteBranch(id: number) {
     try {
-      await axios.delete(`/api/branches/${id}/`);
+      await api.delete(`/branches/${id}/`);
       return true;
     } catch (error) {
       console.error('[branchService] deleteBranch error', error);

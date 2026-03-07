@@ -1,154 +1,224 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { branchService, Branch } from '../../../services/branchService';
+import { branchService } from '../../../services/branchService';
+import { universityService } from '../../../services/universityService';
 
 const Branches: React.FC = () => {
-  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [universities, setUniversities] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
-  // New states for search and filters
   const [search, setSearch] = useState('');
-  const [filterCity, setFilterCity] = useState('');
-  const [filterUniversity, setFilterUniversity] = useState('');
+  
+  const [showModal, setShowModal] = useState(false);
+  const [editingBranch, setEditingBranch] = useState<any | null>(null);
+  const [form, setForm] = useState({ 
+    university: '', 
+    city: '' 
+  });
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const data = await branchService.getBranches();
-        setBranches(Array.isArray(data) ? data : []);
-      } catch (e) {
-        console.error(e);
-        alert('فشل جلب البيانات');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
-  const handleDelete = async (id: number) => {
-    if (!confirm('هل أنت متأكد من الحذف؟')) return;
+  const loadInitialData = async () => {
+    setLoading(true);
     try {
-      await branchService.deleteBranch(id);
-      setBranches(prev => prev.filter(b => b.ubid !== id));
+      const [branchesData, universitiesData] = await Promise.all([
+        branchService.getBranches(),
+        universityService.getUniversities()
+      ]);
+      setBranches(Array.isArray(branchesData) ? branchesData : []);
+      setUniversities(Array.isArray(universitiesData) ? universitiesData : []);
     } catch (e) {
-      console.error(e);
-      alert('فشل الحذف');
+      console.error("Error loading data:", e);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Filtered branches using search & filters
-  const filteredBranches = useMemo(() => {
-    return branches.filter(b => {
-      const matchesSearch = b.city_detail?.bname_ar?.toLowerCase().includes(search.toLowerCase()) ||
-                            b.university_detail?.uname_ar?.toLowerCase().includes(search.toLowerCase());
-      const matchesCity = filterCity ? b.city_detail?.bname_ar === filterCity : true;
-      const matchesUniversity = filterUniversity ? b.university_detail?.uname_ar === filterUniversity : true;
-      return matchesSearch && matchesCity && matchesUniversity;
-    });
-  }, [branches, search, filterCity, filterUniversity]);
+  useEffect(() => {
+    loadInitialData();
+  }, []);
 
-  // Helper arrays for filter dropdowns
-  const cityOptions = Array.from(new Set(branches.map(b => b.city_detail?.bname_ar).filter(Boolean)));
-  const universityOptions = Array.from(new Set(branches.map(b => b.university_detail?.uname_ar).filter(Boolean)));
+  const openCreate = () => {
+    setEditingBranch(null);
+    setForm({ university: '', city: '' });
+    setShowModal(true);
+  };
+
+  const openEdit = (b: any) => {
+    setEditingBranch(b);
+    // تعبئة النموذج بالمعرفات الحالية
+    setForm({ 
+      university: b.university || b.university_detail?.uid || '',
+      city: b.city || b.city_detail?.id || '' // نستخدم المعرف الرقمي للمدينة
+    });
+    setShowModal(true);
+  };
+
+  const handleSave = async () => {
+    // التحقق من اختيار الجامعة والمدينة فقط
+    if (!form.university || !form.city) {
+      alert("يرجى اختيار الجامعة والمدينة");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload = {
+        university: Number(form.university),
+        city: Number(form.city)
+      };
+
+      if (editingBranch) {
+        await branchService.updateBranch(editingBranch.ubid, payload);
+        alert('تم التحديث بنجاح');
+      } else {
+        await branchService.addBranch(payload);
+        alert('تمت الإضافة بنجاح');
+      }
+      setShowModal(false);
+      loadInitialData(); 
+    } catch (e) {
+      console.error("Save error:", e);
+      alert('فشل الحفظ، يرجى التأكد من اختيار القيم بشكل صحيح');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!id || !confirm('هل أنت متأكد من الحذف؟')) return;
+    setLoading(true);
+    try {
+      await branchService.deleteBranch(id);
+      setBranches(prev => prev.filter(b => b.ubid !== id));
+      alert('تم الحذف بنجاح');
+    } catch (e) {
+      alert('فشل الحذف');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // استخراج خيارات المدن الفريدة (بمعرفاتها وأسمائها) من البيانات المتاحة
+  const cityOptions = useMemo(() => {
+    const citiesMap = new Map();
+    branches.forEach(b => {
+      if (b.city_detail) {
+        citiesMap.set(b.city_detail.id || b.city, b.city_detail.bname_ar);
+      }
+    });
+    return Array.from(citiesMap.entries()).map(([id, name]) => ({ id, name }));
+  }, [branches]);
+
+  const filteredBranches = useMemo(() => {
+    const query = search.toLowerCase().trim();
+    return branches.filter(b => {
+      const cityName = (b.city_detail?.bname_ar || '').toLowerCase();
+      const uniName = (b.university_detail?.uname_ar || '').toLowerCase();
+      return cityName.includes(query) || uniName.includes(query);
+    });
+  }, [branches, search]);
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
-      <h2 className="text-2xl font-bold mb-4">الفروع</h2>
-
-      {/* Search & Filters */}
-      <div className="flex flex-wrap gap-4 mb-6">
-        <div>
-          <label className="block mb-1 font-medium">بحث:</label>
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="ابحث عن الفرع..."
-            className="border border-gray-300 rounded px-3 py-1"
-          />
-        </div>
-
-        <div>
-          <label className="block mb-1 font-medium">المدينة:</label>
-          <select
-            value={filterCity}
-            onChange={e => setFilterCity(e.target.value)}
-            className="border border-gray-300 rounded px-3 py-1"
-          >
-            <option value="">الكل</option>
-            {cityOptions.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-
-        <div>
-          <label className="block mb-1 font-medium">الجامعة:</label>
-          <select
-            value={filterUniversity}
-            onChange={e => setFilterUniversity(e.target.value)}
-            className="border border-gray-300 rounded px-3 py-1"
-          >
-            <option value="">الكل</option>
-            {universityOptions.map(u => <option key={u} value={u}>{u}</option>)}
-          </select>
-        </div>
+    <div className="bg-white p-6 rounded-lg shadow text-right" dir="rtl">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">إدارة الفروع</h2>
+        <button onClick={openCreate} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition shadow-sm">+ إضافة فرع جديد</button>
       </div>
 
-      {loading ? (
-        <div className="text-center text-gray-500 py-6">جاري التحميل...</div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-black text-right">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="border border-black px-4 py-2">ID</th>
-                <th className="border border-black px-4 py-2">المدينة</th>
-                <th className="border border-black px-4 py-2">الجامعة</th>
-                <th className="border border-black px-4 py-2">الإجراءات</th>
-              </tr>
-            </thead>
+      <div className="mb-6">
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="بحث باسم المدينة أو الجامعة..."
+          className="border border-gray-300 rounded-lg px-4 py-2 w-full max-w-md focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+        />
+      </div>
 
-            <tbody>
-              {filteredBranches.length > 0 ? (
-                filteredBranches.map((b, idx) => (
-                  <tr
-                    key={b.ubid}
-                    className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
-                  >
-                    <td className="border border-black px-4 py-2">{b.ubid}</td>
-                    <td className="border border-black px-4 py-2">{b.city_detail?.bname_ar ?? '-'}</td>
-                    <td className="border border-black px-4 py-2">{b.university_detail?.uname_ar ?? '-'}</td>
-                    <td className="border border-black px-4 py-2 flex gap-2 justify-center">
-                      <button className="px-3 py-1 text-yellow-700 border border-yellow-700 rounded hover:bg-yellow-100">
-                        تعديل
-                      </button>
-                      <button
-                        className="px-3 py-1 text-rose-700 border border-rose-700 rounded hover:bg-rose-100"
-                        onClick={() => handleDelete(b.ubid)}
-                      >
-                        حذف
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={4} className="border border-black py-6 text-center text-gray-400">
-                    لا توجد فروع
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      {loading && <div className="text-blue-600 mb-2 font-bold animate-pulse">جاري المعالجة...</div>}
+
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse border border-black">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="border border-black px-4 py-2">ID</th>
+              <th className="border border-black px-4 py-2">المدينة</th>
+              <th className="border border-black px-4 py-2">الجامعة</th>
+              <th className="border border-black px-4 py-2">الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredBranches.map((b, idx) => (
+              <tr key={b.ubid || idx} className="hover:bg-gray-50 transition">
+                <td className="border border-black px-4 py-2">{b.ubid}</td>
+                <td className="border border-black px-4 py-2 font-medium">{b.city_detail?.bname_ar || '-'}</td>
+                <td className="border border-black px-4 py-2">{b.university_detail?.uname_ar || '-'}</td>
+                <td className="border border-black px-4 py-2 flex gap-2 justify-center">
+                  <button onClick={() => openEdit(b)} className="px-3 py-1 text-yellow-700 border border-yellow-700 rounded hover:bg-yellow-50">تعديل</button>
+                  <button onClick={() => handleDelete(b.ubid)} className="px-3 py-1 text-rose-700 border border-rose-700 rounded hover:bg-rose-50">حذف</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md p-6 rounded-xl shadow-2xl">
+            <h3 className="font-bold mb-6 text-xl border-b pb-2">
+              {editingBranch ? 'تعديل بيانات الفرع' : 'إضافة فرع جديد'}
+            </h3>
+            
+            <div className="space-y-5 text-right">
+              {/* اختيار الجامعة */}
+              <div>
+                <label className="block mb-1 font-medium text-gray-700">الجامعة:</label>
+                <select 
+                  className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={form.university}
+                  onChange={e => setForm({ ...form, university: e.target.value })}
+                >
+                  <option value="">اختر الجامعة</option>
+                  {universities.map(u => (
+                    <option key={u.uid} value={u.uid}>{u.uname_ar}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* اختيار المدينة */}
+              <div>
+                <label className="block mb-1 font-medium text-gray-700">المدينة:</label>
+                <select 
+                  className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={form.city}
+                  onChange={e => setForm({ ...form, city: e.target.value })}
+                >
+                  <option value="">اختر المدينة</option>
+                  {cityOptions.map(city => (
+                    <option key={city.id} value={city.id}>{city.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-8 flex justify-end gap-3">
+              <button 
+                onClick={() => setShowModal(false)} 
+                className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              >
+                إلغاء
+              </button>
+              <button 
+                onClick={handleSave} 
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 shadow-md transition"
+              >
+                {editingBranch ? 'حفظ التغييرات' : 'إضافة الفرع'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 };
-
-/// City name → branch.city_detail?.bname_ar
-
-// University name → branch.university_detail?.uname_ar
-
-// So when the user types anything in the search box, the table will show branches where either the city or the university name includes the search term (case-insensitive).
 
 export default Branches;
