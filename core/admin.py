@@ -132,6 +132,16 @@ class CollegeAdmin(admin.ModelAdmin):
     autocomplete_fields = ('branch',)
     inlines = [CollegeProgressPatternInline]
 
+    def get_search_results(self, request, queryset, search_term):
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+
+        university_id = request.GET.get('university')
+
+        if university_id:
+            queryset = queryset.filter(branch__university_id=university_id)
+
+        return queryset, use_distinct
+
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
     list_display = ('department_id', 'name', 'college')
@@ -139,6 +149,16 @@ class DepartmentAdmin(admin.ModelAdmin):
     search_fields = ('name', 'college__name_ar')
     autocomplete_fields = ('college',)
     inlines = [DepartmentProgressPatternInline]
+
+    def get_search_results(self, request, queryset, search_term):
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+
+        college_id = request.GET.get('college')
+
+        if college_id:
+            queryset = queryset.filter(college_id=college_id)
+
+        return queryset, use_distinct
 
 @admin.register(ProgressStage)
 class ProgressStageAdmin(admin.ModelAdmin):
@@ -350,23 +370,13 @@ class AcademicAffiliationAdmin(admin.ModelAdmin):
     list_display = ('affiliation_id', 'user', 'university', 'college', 'department', 'start_date', 'end_date')
     list_filter = ('university', 'college', 'department', 'start_date', 'end_date')
     search_fields = (
-        'user__username', 'university__uname_ar', 'college__name_ar', 'department__name'
+        'user__username',
+        'university__uname_ar',
+        'college__name_ar',
+        'department__name'
     )
     autocomplete_fields = ('user', 'university', 'college', 'department')
     date_hierarchy = 'start_date'
-
-@admin.register(GroupMembers)
-class GroupMembersAdmin(admin.ModelAdmin):
-    list_display = ('user', 'group')
-    list_filter = ('group',)
-    search_fields = ('user__username', 'group__project__title')
-    autocomplete_fields = ('user', 'group')
-
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == 'user':
-            from .models import User
-            kwargs['queryset'] = User.objects.filter(userroles__role__type__iexact='student').distinct()
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 @admin.register(GroupSupervisors)
 class GroupSupervisorsAdmin(admin.ModelAdmin):

@@ -20,7 +20,7 @@ export const branchService = {
   },
   async addBranch(data: any) {
     try {
-      const resp = await api.post('/branches/', data);
+      const resp = await api.post('/branches/', data)
       return resp.data;
     } catch (error) {
       console.error('[branchService] addBranch error', error);

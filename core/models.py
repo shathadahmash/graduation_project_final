@@ -1,5 +1,6 @@
 from django.db import models, transaction
 from django.contrib.auth.models import AbstractUser
+from django.forms import ValidationError
 from django.utils import timezone
 from datetime import datetime, timedelta
 from django.conf import settings
@@ -606,9 +607,9 @@ class Notification(models.Model):
 class AcademicAffiliation(models.Model):
     affiliation_id = models.AutoField(primary_key=True)
     user = models.ForeignKey('User', on_delete=models.CASCADE)
-    university = models.ForeignKey(University, on_delete=models.CASCADE)
-    college = models.ForeignKey(College, on_delete=models.CASCADE, blank=True, null=True)
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, blank=True, null=True)
+    university = models.ForeignKey('University', on_delete=models.CASCADE)
+    college = models.ForeignKey('College', on_delete=models.CASCADE, blank=True, null=True)
+    department = models.ForeignKey('Department', on_delete=models.CASCADE, blank=True, null=True)
     start_date = models.DateField()
     end_date = models.DateField(blank=True, null=True)
 
@@ -618,6 +619,38 @@ class AcademicAffiliation(models.Model):
     class Meta:
         unique_together = ('user', 'university', 'start_date')
         verbose_name_plural = "Academic Affiliations"
+
+    def clean(self):
+        """
+        Enforce integrity:
+        1. College must belong to a branch of the selected university.
+        2. Department must belong to the selected college.
+        """
+        errors = {}
+
+        if self.college:
+            if self.college.branch.university != self.university:
+                errors['college'] = ValidationError(
+                    "Selected college does not belong to the chosen university."
+                )
+
+        if self.department:
+            if not self.college:
+                errors['department'] = ValidationError(
+                    "Department cannot be assigned without a college."
+                )
+            elif self.department.college != self.college:
+                errors['department'] = ValidationError(
+                    "Selected department does not belong to the chosen college."
+                )
+
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        # Always validate before saving
+        self.clean()
+        super().save(*args, **kwargs)
 
 class GroupMembers(models.Model):
     user = models.ForeignKey('User', on_delete=models.CASCADE)
