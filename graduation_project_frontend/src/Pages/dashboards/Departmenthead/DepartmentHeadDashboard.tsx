@@ -352,39 +352,39 @@ setDepartments(Array.isArray(fetchedDepartments) ? fetchedDepartments : []);
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-[#F8FAFC] items-center justify-center" dir="rtl">
+      <div className="flex h-screen bg-white items-center justify-center" dir="rtl">
         <div className="text-center">
-          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4 mx-auto">
+          <div className="w-16 h-16 bg-[#0E4C92] rounded-full flex items-center justify-center mb-4 mx-auto">
             <FiActivity size={32} className="text-white animate-spin" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">جاري التحميل...</h2>
-          <p className="text-slate-500">يتم تحميل بيانات لوحة رئيس القسم</p>
+          <h2 className="text-xl font-bold text-[#0E4C92] mb-2">جاري التحميل...</h2>
+          <p className="text-gray-600">يتم تحميل بيانات لوحة رئيس القسم</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC]" dir="rtl">
+    <div className="flex h-screen bg-white" dir="rtl">
       {/* Sidebar Overlay */}
       <div className={`fixed inset-0 bg-black/50 z-50 transition-opacity ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsSidebarOpen(false)} />
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 right-0 w-80 bg-[#0F172A] text-white z-[60] transition-transform duration-300 ease-out shadow-2xl ${
+        className={`fixed inset-y-0 right-0 w-80 bg-white text-[#0E4C92] z-[60] transition-transform duration-300 ease-out shadow-lg border-l border-gray-200 ${
           isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="p-6 flex items-center justify-between border-b border-slate-800">
+        <div className="p-6 flex items-center justify-between border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <div className="w-10 h-10 bg-[#0E4C92] rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
               <FiActivity size={22} className="text-white" />
             </div>
-            <span className="font-black text-lg tracking-tight">لوحة رئيس القسم</span>
+            <span className="font-black text-lg tracking-tight text-[#0E4C92]">لوحة رئيس القسم</span>
           </div>
           <button
             onClick={() => setIsSidebarOpen(false)}
-            className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <FiX size={20} />
           </button>
@@ -417,11 +417,11 @@ setDepartments(Array.isArray(fetchedDepartments) ? fetchedDepartments : []);
               }}
               className={`w-full flex items-center gap-4 p-4 rounded-xl transition-colors group ${
                 activeTab === tab.id
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  ? 'bg-[#0E4C92] text-white'
+                  : 'text-gray-700 hover:bg-[#0E4C92]/10 hover:text-[#0E4C92]'
               }`}
             >
-              <span className={`${activeTab === tab.id ? 'text-white' : 'group-hover:text-white'}`}>
+              <span className={`${activeTab === tab.id ? 'text-white' : 'group-hover:text-[#0E4C92]'}`}>
                 {tab.icon}
               </span>
               <span className="font-bold text-sm">{tab.label}</span>
@@ -431,9 +431,9 @@ setDepartments(Array.isArray(fetchedDepartments) ? fetchedDepartments : []);
         </nav>
 
         <div className="absolute bottom-8 left-0 right-0 px-6">
-          <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">رئيس القسم الحالي</p>
-            <p className="text-sm font-bold text-white">{user?.name || 'رئيس القسم'}</p>
+          <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200">
+            <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">رئيس القسم الحالي</p>
+            <p className="text-sm font-bold text-[#0E4C92]">{user?.name || 'رئيس القسم'}</p>
           </div>
         </div>
       </aside>
@@ -441,21 +441,59 @@ setDepartments(Array.isArray(fetchedDepartments) ? fetchedDepartments : []);
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-blue-600 text-white p-4 shadow-lg">
+        <header className="bg-white text-[#0E4C92] p-4 shadow-lg border-b border-gray-200">
           <div className="flex items-center justify-between">
+            {/* Left Side - Menu Button & Title */}
             <div className="flex items-center gap-4">
-              <button onClick={() => setIsSidebarOpen(true)} className="p-2 hover:bg-blue-700 rounded-lg transition-all">
+              <button onClick={() => setIsSidebarOpen(true)} className="p-2 hover:bg-gray-100 rounded-lg transition-all text-[#0E4C92]">
                 <FiMenu size={24} />
               </button>
               <div className="flex items-center gap-2">
-                <FiActivity size={20} />
-                <span className="font-bold text-lg">لوحة رئيس القسم</span>
+                <FiActivity size={20} className="text-[#0E4C92]" />
+                <span className="font-bold text-lg text-[#0E4C92]">لوحة رئيس القسم</span>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+
+            {/* Center - Navigation Buttons */}
+            <div className="hidden lg:flex gap-4 absolute left-1/2 transform -translate-x-1/2">
+              {[
+                { id: 'home', label: 'الرئيسية' },
+                { id: 'users', label: 'المستخدمون', cardPanel: 'الطلاب' },
+                { id: 'projects', label: 'المشاريع', cardPanel: 'المشاريع' },
+                { id: 'groups', label: 'المجموعات', cardPanel: 'المجموعات' },
+                { id: 'approvals', label: 'الموافقات', cardPanel: 'الموافقات' },
+                { id: 'settings', label: 'الإعدادات' },
+              ].map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    if (item.id === 'home') {
+                      setActiveTab('home');
+                      setActiveCardPanel(null);
+                    } else if (item.cardPanel) {
+                      setActiveTab('home');
+                      setActiveCardPanel(item.cardPanel);
+                    } else {
+                      setActiveTab(item.id as any);
+                      setActiveCardPanel(null);
+                    }
+                    setShowManagementContent(false);
+                    setActiveReport(null);
+                  }}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all transform hover:scale-105 text-[#0E4C92] hover:bg-[#0E4C92]/10 ${
+                    activeTab === item.id ? 'bg-[#0E4C92] text-white shadow-md' : ''
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Right Side - Notification Button */}
+            <div className="flex items-center">
               <button
                 onClick={() => setIsNotifPanelOpen(true)}
-                className="relative p-2 hover:bg-blue-700 rounded-lg transition-all"
+                className="relative p-2 hover:bg-gray-100 rounded-lg transition-all text-[#0E4C92]"
               >
                 <FiBell size={20} />
                 {notifications.length > 0 && (
@@ -464,39 +502,6 @@ setDepartments(Array.isArray(fetchedDepartments) ? fetchedDepartments : []);
                   </span>
                 )}
               </button>
-              <div className="hidden lg:flex gap-4">
-                {[
-                  { id: 'home', label: 'الرئيسية' },
-                  { id: 'users', label: 'المستخدمون', cardPanel: 'الطلاب' },
-                  { id: 'projects', label: 'المشاريع', cardPanel: 'المشاريع' },
-                  { id: 'groups', label: 'المجموعات', cardPanel: 'المجموعات' },
-                  { id: 'approvals', label: 'الموافقات', cardPanel: 'الموافقات' },
-                  { id: 'settings', label: 'الإعدادات' },
-                ].map(item => (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      if (item.id === 'home') {
-                        setActiveTab('home');
-                        setActiveCardPanel(null);
-                      } else if (item.cardPanel) {
-                        setActiveTab('home');
-                        setActiveCardPanel(item.cardPanel);
-                      } else {
-                        setActiveTab(item.id as any);
-                        setActiveCardPanel(null);
-                      }
-                      setShowManagementContent(false);
-                      setActiveReport(null);
-                    }}
-                    className={`px-4 py-2 rounded-lg font-semibold transition-all transform hover:scale-105 ${
-                      activeTab === item.id ? 'bg-white text-blue-600 shadow-md' : 'hover:bg-blue-700'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
         </header>
@@ -509,15 +514,15 @@ setDepartments(Array.isArray(fetchedDepartments) ? fetchedDepartments : []);
               <div className="relative bg-gradient-to-r from-[#0E4C92] to-[#0E4C92]  rounded-3xl p-10 text-white overflow-hidden shadow-lg">
                 <div className="relative z-10">
                   <h1 className="text-3xl font-black mb-3 flex items-center gap-2">
-                    مرحباً بك مجدداً، رئيس القسم 👋
+                    مرحباً بك مجدداً، رئيس القسم {user?.name || 'المحترم'}!
                   </h1>
                   <p className="text-blue-100 text-base max-w-2xl leading-relaxed mb-4">
                     إليك نظرة سريعة على حالة القسم اليوم. يمكنك إدارة الطلاب، المشرفين، والمجموعات من خلال البطاقات أدناه.
                   </p>
-                  <div className="flex items-center gap-4 text-blue-200">
+                  <div className="flex items-center gap-4 text-[#0E4C92]/70">
                     <FiUsers className="text-xl" />
                     <span className="font-medium">{user?.name}</span>
-                    <span className="text-blue-300">•</span>
+                    <span className="text-[#0E4C92]/50">•</span>
                     <span>رئيس {departments.find(d => d.id === departmentHeadDepartmentId)?.name || 'القسم'}</span>
                   </div>
                 </div>
@@ -529,17 +534,17 @@ setDepartments(Array.isArray(fetchedDepartments) ? fetchedDepartments : []);
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                 {dashboardCards.map((card, i) => (
                   <div key={i} onClick={() => { setActiveCardPanel(card.title); setShowManagementContent(false); setActiveReport(null); }}
-                    className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all cursor-pointer group">
+                    className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-all cursor-pointer group">
                     <div className="flex flex-col items-center text-center">
-                      <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${card.gradient} text-white flex items-center justify-center mb-4 shadow-md`}>
+                      <div className={`w-14 h-14 rounded-xl bg-[#0E4C92] text-white flex items-center justify-center mb-4 shadow-md`}>
                         {React.cloneElement(card.icon as React.ReactElement, { size: 24 })}
                       </div>
-                      <p className="text-slate-400 text-xs font-medium mb-1">{card.title}</p>
+                      <p className="text-gray-600 text-xs font-medium mb-1">{card.title}</p>
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="bg-blue-50 text-blue-600 px-3 py-0.5 rounded-full text-[10px] font-bold">نظرة</span>
-                        <h3 className="text-2xl font-black text-slate-900">{card.value}</h3>
+                        <span className="bg-[#0E4C92]/10 text-[#0E4C92] px-3 py-0.5 rounded-full text-[10px] font-bold">نظرة</span>
+                        <h3 className="text-2xl font-black text-[#0E4C92]">{card.value}</h3>
                       </div>
-                      <p className="text-slate-400 text-[10px]">{card.description}</p>
+                      <p className="text-gray-500 text-[10px]">{card.description}</p>
                     </div>
                   </div>
                 ))}
@@ -551,29 +556,29 @@ setDepartments(Array.isArray(fetchedDepartments) ? fetchedDepartments : []);
           {activeCardPanel && (
             <div className="relative mt-8">
               <div className="absolute inset-0 overflow-hidden rounded-3xl">
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-50/30 to-indigo-50/30 rounded-3xl"></div>
-                <div className="absolute top-[-50px] left-[-50px] w-32 h-32 bg-blue-200/20 rounded-full blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-[-30px] right-[-30px] w-24 h-24 bg-indigo-200/20 rounded-full blur-2xl animate-pulse delay-1000"></div>
-                <div className="absolute top-[20px] right-[20px] w-16 h-16 bg-cyan-200/20 rounded-full blur-xl animate-pulse delay-500"></div>
+                <div className="absolute top-0 left-0 w-full h-full bg-[#0E4C92]/5 rounded-3xl"></div>
+                <div className="absolute top-[-50px] left-[-50px] w-32 h-32 bg-[#0E4C92]/10 rounded-full blur-2xl animate-pulse"></div>
+                <div className="absolute bottom-[-30px] right-[-30px] w-24 h-24 bg-[#0E4C92]/10 rounded-full blur-xl animate-pulse delay-1000"></div>
+                <div className="absolute top-[20px] right-[20px] w-16 h-16 bg-[#0E4C92]/10 rounded-full blur-xl animate-pulse delay-500"></div>
               </div>
 
-              <div className="relative bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 overflow-hidden">
+              <div className="relative bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-200 overflow-hidden">
                 {/* Header with back button */}
-                <div className="relative p-8 border-b border-slate-100/50 bg-gradient-to-r from-white to-blue-50/30">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5"></div>
+                <div className="relative p-8 border-b border-gray-200 bg-gradient-to-r from-white to-[#0E4C92]/5">
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#0E4C92]/5 to-white"></div>
                   <div className="relative flex items-center justify-between">
                     <button
                       onClick={() => setActiveCardPanel(null)}
-                      className="group flex items-center gap-3 px-4 py-2 bg-white/60 hover:bg-white rounded-xl transition-all duration-300 shadow-sm hover:shadow-md border border-slate-200/50"
+                      className="group flex items-center gap-3 px-4 py-2 bg-white/60 hover:bg-white rounded-xl transition-all duration-300 shadow-sm hover:shadow-md border border-gray-200"
                     >
-                      <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <div className="w-8 h-8 bg-[#0E4C92] rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                         <FiChevronLeft size={16} className="text-white" />
                       </div>
-                      <span className="font-semibold text-slate-700">العودة</span>
+                      <span className="font-semibold text-gray-700">العودة</span>
                     </button>
                     <div className="text-center">
-                      <h3 className="text-2xl font-black text-slate-800 mb-1">{activeCardPanel}</h3>
-                      <p className="text-slate-500 text-sm">اختر نوع العملية المطلوبة</p>
+                      <h3 className="text-2xl font-black text-[#0E4C92] mb-1">{activeCardPanel}</h3>
+                      <p className="text-gray-600 text-sm">اختر نوع العملية المطلوبة</p>
                     </div>
                     <div className="w-20"></div> {/* Spacer for centering */}
                   </div>
@@ -585,38 +590,38 @@ setDepartments(Array.isArray(fetchedDepartments) ? fetchedDepartments : []);
                     {/* Management Card */}
                     <div
                       onClick={() => setShowManagementContent(true)}
-                      className="group relative bg-white rounded-2xl p-8 shadow-lg border border-slate-100 hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden transform hover:-translate-y-2"
+                      className="group relative bg-white rounded-2xl p-8 shadow-lg border border-gray-200 hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden transform hover:-translate-y-2"
                     >
                       {/* Card background gradient on hover */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-indigo-500/0 group-hover:from-blue-500/5 group-hover:to-indigo-500/5 transition-all duration-500 rounded-2xl"></div>
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#0E4C92]/0 to-[#0E4C92]/0 group-hover:from-[#0E4C92]/5 group-hover:to-[#0E4C92]/5 transition-all duration-500 rounded-2xl"></div>
 
                       {/* Animated wave effect */}
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-blue-100/30 rounded-full blur-xl group-hover:bg-blue-200/40 transition-all duration-700 transform group-hover:scale-150"></div>
-                      <div className="absolute bottom-0 left-0 w-16 h-16 bg-indigo-100/30 rounded-full blur-lg group-hover:bg-indigo-200/40 transition-all duration-700 delay-200 transform group-hover:scale-125"></div>
+                      <div className="absolute top-0 right-0 w-20 h-20 bg-[#0E4C92]/10 rounded-full blur-xl group-hover:bg-[#0E4C92]/20 transition-all duration-700 transform group-hover:scale-150"></div>
+                      <div className="absolute bottom-0 left-0 w-16 h-16 bg-[#0E4C92]/10 rounded-full blur-lg group-hover:bg-[#0E4C92]/20 transition-all duration-700 delay-200 transform group-hover:scale-125"></div>
 
                       <div className="relative z-10">
                         {/* Icon */}
-                        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300 transform group-hover:scale-110 group-hover:rotate-3">
+                        <div className="w-16 h-16 bg-[#0E4C92] rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300 transform group-hover:scale-110 group-hover:rotate-3">
                           <FiDatabase size={28} className="text-white" />
                         </div>
 
                         {/* Title */}
-                        <h4 className="text-xl font-black text-slate-800 mb-3 group-hover:text-blue-700 transition-colors">
+                        <h4 className="text-xl font-black text-gray-800 mb-3 group-hover:text-[#0E4C92] transition-colors">
                           إدارة {activeCardPanel}
                         </h4>
 
                         {/* Description */}
-                        <p className="text-slate-600 text-sm leading-relaxed mb-6">
+                        <p className="text-gray-600 text-sm leading-relaxed mb-6">
                           عرض وإدارة جميع {activeCardPanel.toLowerCase()} في القسم، إضافة، تعديل، وحذف البيانات مع إمكانية البحث والتصفية المتقدمة.
                         </p>
 
                         {/* Action indicator */}
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                          <span className="text-xs font-semibold text-[#0E4C92] bg-[#0E4C92]/10 px-3 py-1 rounded-full">
                             إدارة كاملة
                           </span>
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                            <FiChevronLeft size={14} className="text-blue-600" />
+                          <div className="w-8 h-8 bg-[#0E4C92]/10 rounded-full flex items-center justify-center group-hover:bg-[#0E4C92]/20 transition-colors">
+                            <FiChevronLeft size={14} className="text-[#0E4C92]" />
                           </div>
                         </div>
                       </div>
@@ -631,38 +636,38 @@ setDepartments(Array.isArray(fetchedDepartments) ? fetchedDepartments : []);
                         else if (activeCardPanel === 'المجموعات') setActiveReport('groups');
                         else if (activeCardPanel === 'المشاريع') setActiveReport('projects');
                       }}
-                      className="group relative bg-white rounded-2xl p-8 shadow-lg border border-slate-100 hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden transform hover:-translate-y-2"
+                      className="group relative bg-white rounded-2xl p-8 shadow-lg border border-gray-200 hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden transform hover:-translate-y-2"
                     >
                       {/* Card background gradient on hover */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/0 to-blue-500/0 group-hover:from-indigo-500/5 group-hover:to-blue-500/5 transition-all duration-500 rounded-2xl"></div>
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#0E4C92]/0 to-[#0E4C92]/0 group-hover:from-[#0E4C92]/5 group-hover:to-[#0E4C92]/5 transition-all duration-500 rounded-2xl"></div>
 
                       {/* Animated wave effect */}
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-100/30 rounded-full blur-xl group-hover:bg-indigo-200/40 transition-all duration-700 transform group-hover:scale-150"></div>
-                      <div className="absolute bottom-0 left-0 w-16 h-16 bg-blue-100/30 rounded-full blur-lg group-hover:bg-blue-200/40 transition-all duration-700 delay-200 transform group-hover:scale-125"></div>
+                      <div className="absolute top-0 right-0 w-20 h-20 bg-[#0E4C92]/10 rounded-full blur-xl group-hover:bg-[#0E4C92]/20 transition-all duration-700 transform group-hover:scale-150"></div>
+                      <div className="absolute bottom-0 left-0 w-16 h-16 bg-[#0E4C92]/10 rounded-full blur-lg group-hover:bg-[#0E4C92]/20 transition-all duration-700 delay-200 transform group-hover:scale-125"></div>
 
                       <div className="relative z-10">
                         {/* Icon */}
-                        <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300 transform group-hover:scale-110 group-hover:-rotate-3">
+                        <div className="w-16 h-16 bg-[#0E4C92] rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300 transform group-hover:scale-110 group-hover:-rotate-3">
                           <FiPieChart size={28} className="text-white" />
                         </div>
 
                         {/* Title */}
-                        <h4 className="text-xl font-black text-slate-800 mb-3 group-hover:text-indigo-700 transition-colors">
+                        <h4 className="text-xl font-black text-gray-800 mb-3 group-hover:text-[#0E4C92] transition-colors">
                           التقارير والإحصائيات
                         </h4>
 
                         {/* Description */}
-                        <p className="text-slate-600 text-sm leading-relaxed mb-6">
+                        <p className="text-gray-600 text-sm leading-relaxed mb-6">
                           عرض التقارير التفصيلية والإحصائيات المتقدمة لـ {activeCardPanel.toLowerCase()} مع إمكانية التصدير والطباعة.
                         </p>
 
                         {/* Action indicator */}
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
+                          <span className="text-xs font-semibold text-[#0E4C92] bg-[#0E4C92]/10 px-3 py-1 rounded-full">
                             تقارير متقدمة
                           </span>
-                          <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
-                            <FiChevronLeft size={14} className="text-indigo-600" />
+                          <div className="w-8 h-8 bg-[#0E4C92]/10 rounded-full flex items-center justify-center group-hover:bg-[#0E4C92]/20 transition-colors">
+                            <FiChevronLeft size={14} className="text-[#0E4C92]" />
                           </div>
                         </div>
                       </div>
@@ -690,13 +695,13 @@ setDepartments(Array.isArray(fetchedDepartments) ? fetchedDepartments : []);
   } catch (error) {
     console.error('Error in DepartmentHeadDashboard:', error);
     return (
-      <div className="flex h-screen bg-red-50 items-center justify-center" dir="rtl">
-        <div className="text-center p-8 bg-white rounded-lg shadow-lg">
-          <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mb-4 mx-auto">
+      <div className="flex h-screen bg-white items-center justify-center" dir="rtl">
+        <div className="text-center p-8 bg-white rounded-lg shadow-lg border border-gray-200">
+          <div className="w-16 h-16 bg-[#0E4C92] rounded-full flex items-center justify-center mb-4 mx-auto">
             <FiX size={32} className="text-white" />
           </div>
-          <h2 className="text-xl font-bold text-red-800 mb-2">خطأ في لوحة رئيس القسم</h2>
-          <p className="text-red-600 mb-4">حدث خطأ أثناء تحميل الصفحة</p>
+          <h2 className="text-xl font-bold text-[#0E4C92] mb-2">خطأ في لوحة رئيس القسم</h2>
+          <p className="text-gray-600 mb-4">حدث خطأ أثناء تحميل الصفحة</p>
           <details className="text-left">
             <summary className="cursor-pointer text-sm text-gray-600">تفاصيل الخطأ</summary>
             <pre className="text-xs text-gray-800 mt-2 p-2 bg-gray-100 rounded overflow-auto max-w-md">

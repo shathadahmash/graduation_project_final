@@ -2,7 +2,8 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
-
+from django.utils.html import format_html
+from django.forms import ClearableFileInput
 from .models import (
     City, University, Branch, College, Department,
     ProgressStage, ProgressSubStage, ProgressPattern, PatternStageAssignment, PatternSubStageAssignment,
@@ -113,9 +114,23 @@ class CityAdmin(admin.ModelAdmin):
 
 @admin.register(University)
 class UniversityAdmin(admin.ModelAdmin):
-    list_display = ('uid', 'uname_ar', 'uname_en', 'type')
+    list_display = ('uid', 'uname_ar', 'uname_en', 'type', 'image_preview')
     search_fields = ('uname_ar', 'uname_en', 'type')
     list_filter = ('type',)
+    fields = ('uname_ar', 'uname_en', 'type', 'image')  # include image in admin form
+
+    # Custom upload widget
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == 'image':
+            kwargs['widget'] = ClearableFileInput(attrs={'class': 'file-upload'})
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+    # Show thumbnail preview in list_display
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" style="height:50px;" />', obj.image.url)
+        return '-'
+    image_preview.short_description = 'Logo'
 
 @admin.register(Branch)
 class BranchAdmin(admin.ModelAdmin):
@@ -124,13 +139,31 @@ class BranchAdmin(admin.ModelAdmin):
     search_fields = ('university__uname_ar', 'city__bname_ar', 'location', 'address', 'contact')
     autocomplete_fields = ('university', 'city')
 
+
 @admin.register(College)
 class CollegeAdmin(admin.ModelAdmin):
-    list_display = ('cid', 'name_ar', 'name_en', 'branch')
+    list_display = ('cid', 'name_ar', 'name_en', 'branch', 'image_preview')
     list_filter = ('branch__university', 'branch__city')
     search_fields = ('name_ar', 'name_en', 'branch__university__uname_ar', 'branch__city__bname_ar')
     autocomplete_fields = ('branch',)
     inlines = [CollegeProgressPatternInline]
+
+    # Include image in the admin form
+    fields = ('name_ar', 'name_en', 'branch', 'image')
+
+    # Customize file upload widget
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == 'image':
+            kwargs['widget'] = ClearableFileInput(attrs={'class': 'file-upload'})
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+    # Show image preview in list_display
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" style="height:50px;" />', obj.image.url)
+        return '-'
+    image_preview.short_description = 'Logo'
+
 
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
@@ -274,25 +307,61 @@ class ProjectStateAdmin(admin.ModelAdmin):
     list_display = ('ProjectStateId', 'name')
     search_fields = ('name',)
 
+
+
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
     list_display = (
-        'project_id', 'title', 'state', 'created_by', 'start_date', 'end_date', 'field', 'tools'
+        'project_id', 'title', 'project_type', 'state', 'created_by', 
+        'start_date', 'end_date', 'field', 'tools', 'logo_preview', 'documentation_link'
     )
-    list_filter = ('state', 'created_by', 'start_date', 'end_date', 'groups__program_groups__program__department__college__branch__university')
-    search_fields = ('title', 'description', 'created_by__username', 'state__name', 'groups__program_groups__program__department__college__branch__university__uname_ar')
+    list_filter = (
+        'project_type',
+        'state', 
+        'created_by', 
+        'start_date', 
+        'end_date', 
+        'groups__program_groups__program__department__college__branch__university'
+    )
+    search_fields = (
+        'title', 
+        'description', 
+        'created_by__username', 
+        'state__name', 
+        'groups__program_groups__program__department__college__branch__university__uname_ar'
+    )
     autocomplete_fields = ('created_by', 'state')
     fieldsets = (
         (None, {
-            'fields': ('title', 'description', 'state', 'created_by')
+            'fields': ('title', 'description', 'state', 'created_by', 'project_type')
         }),
         (_('Project Timeline'), {
             'fields': ('start_date', 'end_date')
         }),
         (_('Additional Info'), {
-            'fields': ('field', 'tools', 'Logo', 'Documentation_Path'),
+            'fields': ('field', 'tools', 'logo', 'documentation'),
         }),
     )
+
+    # Upload buttons
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name in ['logo', 'documentation']:
+            kwargs['widget'] = ClearableFileInput(attrs={'class': 'file-upload'})
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+    # Show preview for logo
+    def logo_preview(self, obj):
+        if obj.logo:
+            return format_html('<img src="{}" style="height:50px;" />', obj.logo.url)
+        return '-'
+    logo_preview.short_description = 'Logo'
+
+    # Show link for documentation
+    def documentation_link(self, obj):
+        if obj.documentation:
+            return format_html('<a href="{}" target="_blank">View</a>', obj.documentation.url)
+        return '-'
+    documentation_link.short_description = 'Documentation'
 
     @admin.display(description='University')
     def university_name(self, obj):
