@@ -433,7 +433,6 @@ class Project(models.Model):
         blank=False,
         null=False
     )
-    
 
     state  = models.ForeignKey(
         'ProjectState',
