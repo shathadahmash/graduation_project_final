@@ -1,19 +1,32 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 function Navbar() {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
 
+  // تأثير عند التمرير لتغيير شفافية النافبار
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 50) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const scrollToSection = (sectionId) => {
-    // إذا كنا في الصفحة الرئيسية، تمرير إلى القسم
     if (window.location.pathname === '/') {
       const element = document.getElementById(sectionId);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' });
       }
     } else {
-      // إذا كنا في صفحة أخرى، ننتقل إلى الصفحة الرئيسية مع تمرير القسم
       navigate(`/?section=${sectionId}`);
     }
     setOpen(false);
@@ -34,18 +47,11 @@ function Navbar() {
 
   return (
     <div dir="rtl" className="w-full font-['Cairo',sans-serif]">
-
-      {/* TOP BLUE BAR - أكاديمية وأنيقة */}
-      <div className="text-center py-3 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] text-white text-sm tracking-wide border-b border-white/10">
-        <span className="relative inline-block">
-          جميع مشاريع التخرج اليمنية في مكان واحد
-          <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-white/30 rounded-full mx-auto w-12"></span>
-        </span>
-      </div>
-
-      {/* NAVBAR */}
-      <nav className="bg-white/90 backdrop-blur-sm border-b border-[#0B2B4F]/10 px-6 md:px-16 flex items-center justify-between h-[80px] relative sticky top-0 z-50">
-
+      
+      {/* NAVBAR - ثابت في الأعلى */}
+      <nav className={`fixed top-0 left-0 w-full bg-white/90 backdrop-blur-sm border-b border-[#0B2B4F]/10 px-6 md:px-16 flex items-center justify-between h-[80px] z-50 transition-all duration-300 ${
+        scrolled ? 'shadow-lg bg-white/95' : ''
+      }`}>
         {/* RIGHT — LOGO - يودي للرئيسية */}
         <div className="text-right group cursor-pointer" onClick={() => handleNavigation('/')}>
           <img 
@@ -109,7 +115,6 @@ function Navbar() {
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] group-hover:w-full transition-all duration-300"></span>
           </li>
           
-          {/* تم استبدال "الخدمات" بـ "الجامعات" */}
           <li className="relative group">
             <button 
               onClick={() => handleNavigation('/', 'universities')}
@@ -120,7 +125,6 @@ function Navbar() {
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] group-hover:w-full transition-all duration-300"></span>
           </li>
           
-          {/* تم استبدال "تواصل معنا" بـ "البحث عن مشاريع" */}
           <li className="relative group">
             <button 
               onClick={() => handleNavigation('/search')}
@@ -166,7 +170,7 @@ function Navbar() {
 
       {/* MOBILE MENU - بنفس التصميم مع التحديثات */}
       {open && (
-        <div className="md:hidden bg-white border-t border-[#0B2B4F]/10 shadow-lg px-6 py-6 space-y-4 text-right animate-slideDown">
+        <div className="fixed top-[80px] left-0 w-full md:hidden bg-white border-t border-[#0B2B4F]/10 shadow-lg px-6 py-6 space-y-4 text-right animate-slideDown z-40">
           
           {/* الشعار في الموبايل */}
           <div className="flex justify-center mb-4">
@@ -271,6 +275,9 @@ function Navbar() {
           </p>
         </div>
       )}
+
+      {/* تعويض المساحة التي أخذها النافبار الثابت */}
+      <div className="h-[80px]"></div>
     </div>
   );
 }
