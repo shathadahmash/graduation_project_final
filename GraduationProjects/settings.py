@@ -7,7 +7,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # all uploaded files go here
 SECRET_KEY = 'django-insecure--q@f3psho5s*_0)nc$5px%hb&11*4!p8p*=bee!e54(udg9bxv'
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["graduation-projects.ycithe.net"]
 
 # -------------------------
 # INSTALLED APPS
@@ -117,11 +117,11 @@ ASGI_APPLICATION = 'GraduationProjects.asgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'graduationprojects_db',
-        'USER': 'root',
-        'PASSWORD': '',
+        'NAME': 'graduation_projects',
+        'USER': 'fgps',
+        'PASSWORD': '9Q8$w^Lueny!r@m9&we4n',
         'HOST': 'localhost',
-        'PORT': '3307',
+        'PORT': '3308',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         },
