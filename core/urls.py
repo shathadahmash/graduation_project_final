@@ -86,7 +86,6 @@ urlpatterns = [
 
     # Endpoint to set CSRF cookie for SPA clients
     path('csrf/', get_csrf_token, name='get-csrf'),
-    path("chaining/", include("smart_selects.urls")),
     # Custom Approval Actions
     path('approvals/<int:pk>/approve/', ApprovalRequestViewSet.as_view({'post': 'approve'}), name='approval-approve'),
     path('approvals/<int:pk>/reject/', ApprovalRequestViewSet.as_view({'post': 'reject'}), name='approval-reject'),
