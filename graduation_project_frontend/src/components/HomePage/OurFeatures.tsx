@@ -1,29 +1,129 @@
-import React from "react";
+import React, { useState } from "react";
 
 const features = [
-  { title: "لوحات تحكم تفاعلية", desc: "إحصائيات وإدارة فعّالة عبر لوحات التحكم والتقارير.", icon: "/f1.png" },
-  { title: "أتمتة تكوين المجموعات", desc: "نظام ذكي لإنشاء مجموعات الطلاب بشكل تلقائي.", icon: "/f2.png" },
-  { title: "سلاسل موافقة ذكية", desc: "إدارة وموافقة المشاريع عبر مسارات اعتماد لكل قسم.", icon: "/f3.png" },
-  { title: "أرشيف بحث متقدم", desc: "أرشيف بحث متقدم للوصول السريع لمشاريع السنوات السابقة.", icon: "/f4.png" },
+  { 
+    title: "لوحات تحكم تفاعلية", 
+    desc: "إحصائيات وإدارة فعّالة عبر لوحات التحكم والتقارير الذكية مع تحليلات آنية.", 
+    icon: "/f1.png",
+    stats: "تحليلات آنية"
+  },
+  { 
+    title: "أتمتة تكوين المجموعات", 
+    desc: "نظام ذكي لإنشاء مجموعات الطلاب بشكل تلقائي بناءً على التخصصات والمهارات.", 
+    icon: "/f2.png",
+    stats: "توزيع ذكي"
+  },
+  { 
+    title: "سلاسل موافقة ذكية", 
+    desc: "إدارة وموافقة المشاريع عبر مسارات اعتماد لكل قسم مع إشعارات آلية.", 
+    icon: "/f3.png",
+    stats: "اعتماد آلي"
+  },
+  { 
+    title: "أرشيف بحث متقدم", 
+    desc: "أرشيف بحث متقدم للوصول السريع لمشاريع السنوات السابقة مع فلترة ذكية.", 
+    icon: "/f4.png",
+    stats: "أكثر من ١٠٠٠ مشروع"
+  },
 ];
 
 export default function OurFeatures() {
+  const [activeFeature, setActiveFeature] = useState(null);
+
   return (
-    <section className="py-20 bg-white">
-      <h2 className="text-3xl font-bold text-center mb-12">مميزاتنا</h2>
-
-      <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 px-6">
-
-        {features.map((f, i) => (
-          <div key={i} className="bg-[#0E4C92] text-white p-8 rounded-xl shadow-lg">
-            <div className="flex items-center gap-4">
-              <img src={f.icon} alt="" className="w-12 h-12" />
-              <h3 className="text-xl font-bold">{f.title}</h3>
-            </div>
-            <p className="mt-4 leading-7">{f.desc}</p>
+    <section className="py-20 bg-[#F8FAFC] relative overflow-hidden">
+      {/* عناصر خلفية أكاديمية */}
+      <div className="absolute inset-0">
+        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-[#0B2B4F]/20 to-transparent"></div>
+      </div>
+      
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+        
+        {/* عنوان أكاديمي */}
+        <div className="text-center mb-16">
+          <div className="relative inline-block">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#0B2B4F] relative z-10">
+              مميزاتنا
+            </h2>
+            <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] rounded-full"></div>
           </div>
-        ))}
+          <p className="text-[#4A5568] mt-4 max-w-2xl mx-auto">
+            نقدم حلولاً متكاملة لإدارة مشاريع التخرج بتقنيات ذكية ومعايير أكاديمية دقيقة
+          </p>
+        </div>
 
+        {/* شبكة المميزات */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+          {features.map((feature, index) => (
+            <div 
+              key={index} 
+              className="group relative bg-white rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden"
+              onMouseEnter={() => setActiveFeature(index)}
+              onMouseLeave={() => setActiveFeature(null)}
+            >
+              {/* خلفية متدرجة عند التحويم */}
+              <div className={`absolute inset-0 bg-gradient-to-br from-[#0B2B4F] to-[#1E4A7A] opacity-0 group-hover:opacity-100 transition-all duration-500`}></div>
+              
+              {/* المحتوى */}
+              <div className="relative z-10 p-8">
+                {/* رأس البطاقة */}
+                <div className="flex items-start gap-4 mb-4">
+                  {/* أيقونة بتصميم جديد */}
+                  <div className={`w-14 h-14 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                    activeFeature === index 
+                      ? 'bg-white/20' 
+                      : 'bg-gradient-to-br from-[#0B2B4F]/10 to-[#1E4A7A]/10'
+                  }`}>
+                    <img 
+                      src={feature.icon} 
+                      alt="" 
+                      className={`w-8 h-8 transition-all duration-300 ${
+                        activeFeature === index ? 'filter brightness-0 invert' : ''
+                      }`}
+                    />
+                  </div>
+                  
+                  {/* العنوان */}
+                  <div className="flex-1">
+                    <h3 className={`text-xl font-bold transition-all duration-300 ${
+                      activeFeature === index ? 'text-white' : 'text-[#0B2B4F]'
+                    }`}>
+                      {feature.title}
+                    </h3>
+                    
+                    {/* إحصائية صغيرة */}
+                    <span className={`text-sm inline-block mt-1 px-3 py-1 rounded-full transition-all duration-300 ${
+                      activeFeature === index 
+                        ? 'bg-white/20 text-white' 
+                        : 'bg-[#0B2B4F]/5 text-[#4A5568]'
+                    }`}>
+                      {feature.stats}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* الوصف */}
+                <p className={`leading-relaxed transition-all duration-300 ${
+                  activeFeature === index ? 'text-white/90' : 'text-[#2C3E50]'
+                }`}>
+                  {feature.desc}
+                </p>
+                
+                {/* خط سفلي متحرك */}
+                <div className={`absolute bottom-0 left-0 h-1 bg-gradient-to-r from-white to-[#1E4A7A] transition-all duration-300 ${
+                  activeFeature === index ? 'w-full' : 'w-0'
+                }`}></div>
+              </div>
+              
+              {/* أيقونة صغيرة في الزاوية */}
+              <div className={`absolute top-4 left-4 w-20 h-20 border border-white/10 rounded-full transition-all duration-500 ${
+                activeFeature === index ? 'opacity-20 scale-150' : 'opacity-0'
+              }`}></div>
+            </div>
+          ))}
+        </div>
+
+       
       </div>
     </section>
   );

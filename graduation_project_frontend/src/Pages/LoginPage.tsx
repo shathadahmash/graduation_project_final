@@ -14,9 +14,9 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   useEffect(() => {
-    // Trigger animations after component mounts
     setIsVisible(true);
   }, []);
 
@@ -26,21 +26,15 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // 1. إرسال طلب تسجيل الدخول
       const response = await api.post("auth/login/", { username, password });
-
       console.log("FULL LOGIN RESPONSE =", response.data);
 
       const { access, user } = response.data;
 
-      // 2. التحقق من وجود التوكن وبيانات المستخدم (بدون تخمين)
       if (!access || !user) {
         throw new Error("لم يتم استلام بيانات تسجيل الدخول كاملة من الخادم");
       }
 
-      // 3. حفظ التوكن سيقوم به useStore.login (يتعامل مع localStorage و Axios)
-
-      // 4. تحويل بيانات المستخدم لتطابق هيكلية الـ Store (Normalized User)
       const normalizedUser = {
         id: user.id,
         username: user.username,
@@ -54,15 +48,11 @@ const LoginPage: React.FC = () => {
 
       console.log("USER =", user);
       console.log("ROLES =", user.roles);
-      // 5. تنفيذ دالة الـ login لتحديث الحالة العالمية في التطبيق
-      // login expects (user, roles[], token)
+      
       login(normalizedUser, normalizedUser.roles || [], access);
 
-      // 6. استخدام دالة navigateToDashboard المخصصة لديك للتوجيه
-      // نمرر أول دور موجود في قائمة الأدوار
-     const primaryRole =
-  normalizedUser.roles[0]?.role__type ?? "";
-console.log("PRIMARY ROLE =", primaryRole);
+      const primaryRole = normalizedUser.roles[0]?.role__type ?? "";
+      console.log("PRIMARY ROLE =", primaryRole);
 
       if (primaryRole) {
         navigateToDashboard(primaryRole);
@@ -79,12 +69,11 @@ console.log("PRIMARY ROLE =", primaryRole);
   };
 
   const navigateToDashboard = (role: string) => {
-    if (!role) return navigate("HomePage");
+    if (!role) return navigate("/");
     const normalized = role.toLowerCase().trim();
 
-  // ...existing code...
     const routePairs: [string, string][] = [
-      ["student", "./dashboard/StudentDashboard"],
+      ["student", "/dashboard/student"],
       ["co-supervisor", "/dashboard/co-supervisor"],
       ["supervisor", "/dashboard/supervisor"],
       ["department head", "/dashboard/department-head"],
@@ -99,122 +88,201 @@ console.log("PRIMARY ROLE =", primaryRole);
       const re = new RegExp(`\\b${key.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\b`, "i");
       if (re.test(normalized)) return navigate(path);
     }
-// ...existing code...
 
-
-    return navigate("homepage");
+    return navigate("/");
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#F8FAFC] p-4" dir="rtl">
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-100 rounded-full mix-blend-multiply filter blur-xl opacity-30"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-50 rounded-full mix-blend-multiply filter blur-xl opacity-20"></div>
+    <div className="min-h-screen w-full flex items-center justify-center bg-[#F8FAFC] p-4 relative overflow-hidden" dir="rtl">
+      
+      {/* عناصر خلفية أكاديمية */}
+      <div className="absolute inset-0">
+        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-[#0B2B4F]/20 to-transparent"></div>
+        <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-[#0B2B4F]/20 to-transparent"></div>
       </div>
+      
+      {/* عناصر زخرفية خلفية */}
+      <div className="absolute top-20 right-20 w-64 h-64 border-2 border-[#0B2B4F]/5 rounded-full"></div>
+      <div className="absolute bottom-20 left-20 w-96 h-96 border-2 border-[#1E4A7A]/5 rounded-full"></div>
+      
+      {/* نقاط زخرفية صغيرة */}
+      <div className="absolute top-40 left-1/4 w-2 h-2 bg-[#0B2B4F]/10 rounded-full"></div>
+      <div className="absolute bottom-40 right-1/3 w-3 h-3 bg-[#1E4A7A]/10 rounded-full"></div>
 
-      <div className="w-full max-w-lg bg-white text-slate-800 rounded-3xl shadow-lg p-10 relative z-10 border border-slate-100">
+      <div className={`w-full max-w-md transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+        
+        {/* شريط علوي أكاديمي */}
+        <div className="w-16 h-1 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] rounded-full mx-auto mb-6"></div>
 
-        {/* Header Section */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 text-white rounded-xl mb-4 shadow-md">
-            <FiLock className="w-8 h-8" />
-          </div>
-          <h1 className="text-3xl font-bold text-slate-800 mb-2">
-            تسجيل الدخول
-          </h1>
-          <p className="text-slate-500 text-sm leading-relaxed">
-            أدخل بيانات حسابك للمتابعة في النظام
-          </p>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border-r-4 border-red-500 rounded-lg p-4 mb-6 flex gap-3 text-red-700">
-            <FiAlertCircle size={20} className="flex-shrink-0 mt-0.5" />
-            <p className="text-sm leading-relaxed">{error}</p>
-          </div>
-        )}
-
-        {/* Login Form */}
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          {/* Username Field */}
-          <div className="group">
-            <label className="block text-right text-slate-600 mb-2 font-medium">
-              اسم المستخدم
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <FiUser className="w-5 h-5 text-slate-400" />
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-[#0B2B4F]/5">
+          
+          {/* Header Section - تصميم أكاديمي */}
+          <div className="bg-gradient-to-l from-[#0B2B4F] to-[#1E4A7A] p-8 text-white text-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-white/5"></div>
+            <div className="relative z-10">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 rounded-2xl mb-4 backdrop-blur-sm border border-white/20">
+                <FiLock className="w-10 h-10 text-white" />
               </div>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full pr-10 pl-4 py-3 border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-50 text-right transition-all duration-300 bg-white text-slate-800 placeholder-slate-400"
-                placeholder="أدخل اسم المستخدم"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          {/* Password Field */}
-          <div className="group">
-            <label className="block text-right text-slate-600 mb-2 font-medium">
-              كلمة المرور
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <FiLock className="w-5 h-5 text-slate-400" />
-              </div>
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pr-10 pl-12 py-3 border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-50 text-right transition-all duration-300 bg-white text-slate-800 placeholder-slate-400"
-                placeholder="أدخل كلمة المرور"
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 hover:text-blue-500 transition-colors disabled:opacity-50"
-                disabled={isLoading}
-              >
-                {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-blue-800 disabled:opacity-60 transform transition-all duration-300 hover:scale-105 hover:shadow-lg disabled:transform-none disabled:shadow-none flex items-center justify-center gap-2"
-          >
-            {isLoading ? (
-              <>
-                <FiLoader className="w-5 h-5 animate-spin" />
-                جاري التسجيل...
-              </>
-            ) : (
-              <>
-                <FiLock className="w-5 h-5" />
+              <h1 className="text-2xl md:text-3xl font-bold mb-2">
                 تسجيل الدخول
-              </>
-            )}
-          </button>
-        </form>
+              </h1>
+              <p className="text-white/80 text-sm">
+                البوابة الموحدة لإدارة مشاريع التخرج
+              </p>
+            </div>
+            
+            {/* عناصر زخرفية */}
+            <div className="absolute top-0 left-0 w-20 h-20 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
+            <div className="absolute bottom-0 right-0 w-32 h-32 bg-white/5 rounded-full translate-x-1/2 translate-y-1/2"></div>
+          </div>
 
-        {/* Footer */}
-        <div className="mt-8 text-center space-y-2">
-          <p className="text-sm text-slate-500">
-            الدعم الفني: <span className="text-blue-600 hover:opacity-80 transition-colors">support@gpms.edu.ye</span>
-          </p>
-          <p className="text-xs text-slate-400">
-            © 2025 البوابة الموحدة لمشاريع التخرج
-          </p>
+          <div className="p-8">
+            {/* Error Message - تصميم أنيق */}
+            {error && (
+              <div className="bg-red-50 border-r-4 border-red-500 rounded-lg p-4 mb-6 flex gap-3 text-red-700 animate-pulse">
+                <FiAlertCircle size={20} className="flex-shrink-0 mt-0.5" />
+                <p className="text-sm leading-relaxed">{error}</p>
+              </div>
+            )}
+
+            {/* Login Form */}
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              
+              {/* Username Field - تصميم أكاديمي */}
+              <div>
+                <label className="block text-right text-[#2C3E50] mb-2 text-sm font-medium">
+                  اسم المستخدم
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                    <FiUser className={`w-5 h-5 transition-colors duration-300 ${
+                      focusedField === 'username' ? 'text-[#0B2B4F]' : 'text-[#A0AEC0]'
+                    }`} />
+                  </div>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    onFocus={() => setFocusedField('username')}
+                    onBlur={() => setFocusedField(null)}
+                    className={`w-full pr-12 pl-4 py-3 border rounded-xl text-right transition-all duration-300 outline-none ${
+                      focusedField === 'username' 
+                        ? 'border-[#0B2B4F] ring-1 ring-[#0B2B4F]/20' 
+                        : 'border-gray-200 hover:border-[#0B2B4F]/30'
+                    }`}
+                    placeholder="أدخل اسم المستخدم"
+                    disabled={isLoading}
+                  />
+                  {focusedField === 'username' && (
+                    <span className="absolute -top-2 right-12 text-xs bg-white px-2 text-[#0B2B4F]">
+                      اسم المستخدم
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Password Field - تصميم أكاديمي */}
+              <div>
+                <label className="block text-right text-[#2C3E50] mb-2 text-sm font-medium">
+                  كلمة المرور
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                    <FiLock className={`w-5 h-5 transition-colors duration-300 ${
+                      focusedField === 'password' ? 'text-[#0B2B4F]' : 'text-[#A0AEC0]'
+                    }`} />
+                  </div>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onFocus={() => setFocusedField('password')}
+                    onBlur={() => setFocusedField(null)}
+                    className={`w-full pr-12 pl-12 py-3 border rounded-xl text-right transition-all duration-300 outline-none ${
+                      focusedField === 'password' 
+                        ? 'border-[#0B2B4F] ring-1 ring-[#0B2B4F]/20' 
+                        : 'border-gray-200 hover:border-[#0B2B4F]/30'
+                    }`}
+                    placeholder="أدخل كلمة المرور"
+                    disabled={isLoading}
+                  />
+                  {focusedField === 'password' && (
+                    <span className="absolute -top-2 right-12 text-xs bg-white px-2 text-[#0B2B4F]">
+                      كلمة المرور
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 left-0 pl-4 flex items-center text-[#A0AEC0] hover:text-[#0B2B4F] transition-colors disabled:opacity-50"
+                    disabled={isLoading}
+                  >
+                    {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Forgot Password Link */}
+              <div className="text-left">
+                <a 
+                  href="#" 
+                  className="text-sm text-[#1E4A7A] hover:text-[#0B2B4F] transition-colors duration-300 border-b border-[#1E4A7A]/20 hover:border-[#0B2B4F] pb-0.5"
+                >
+                  نسيت كلمة المرور؟
+                </a>
+              </div>
+
+              {/* Submit Button - تصميم أكاديمي */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="group relative w-full py-3.5 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] text-white font-medium rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:transform-none"
+              >
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  {isLoading ? (
+                    <>
+                      <FiLoader className="w-5 h-5 animate-spin" />
+                      جاري تسجيل الدخول...
+                    </>
+                  ) : (
+                    <>
+                      <FiLock className="w-5 h-5" />
+                      تسجيل الدخول
+                    </>
+                  )}
+                </span>
+                {/* تأثير وهج متحرك */}
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></span>
+              </button>
+
+              {/* Register Link */}
+              <div className="text-center pt-4">
+                <p className="text-sm text-[#4A5568]">
+                  ليس لديك حساب؟{' '}
+                  <a 
+                    href="/register" 
+                    className="text-[#0B2B4F] font-medium hover:text-[#1E4A7A] transition-colors duration-300 border-b border-[#0B2B4F]/20 hover:border-[#0B2B4F]"
+                  >
+                    إنشاء حساب جديد
+                  </a>
+                </p>
+              </div>
+            </form>
+          </div>
+
+          {/* Footer - تصميم أكاديمي */}
+          <div className="bg-[#F8FAFC] px-8 py-4 border-t border-[#0B2B4F]/5">
+            <div className="flex justify-between items-center text-xs text-[#718096]">
+              <p>© 2025 البوابة الموحدة</p>
+              <p>
+                الدعم الفني: <span className="text-[#0B2B4F]">support@gpms.edu.ye</span>
+              </p>
+            </div>
+          </div>
         </div>
+
+        {/* شريط سفلي */}
+        <div className="w-16 h-1 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] rounded-full mx-auto mt-6"></div>
       </div>
     </div>
   );
