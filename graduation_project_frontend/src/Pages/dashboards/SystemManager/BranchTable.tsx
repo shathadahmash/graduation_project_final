@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { branchService } from '../../../services/branchService';
 import { universityService } from '../../../services/universityService';
+import { cityService } from '../../../services/cityService';
 
 const Branches: React.FC = () => {
   const [branches, setBranches] = useState<any[]>([]);
   const [universities, setUniversities] = useState<any[]>([]);
+  const [cities, setCities] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   
@@ -18,12 +20,14 @@ const Branches: React.FC = () => {
   const loadInitialData = async () => {
     setLoading(true);
     try {
-      const [branchesData, universitiesData] = await Promise.all([
+      const [branchesData, universitiesData, citiesData] = await Promise.all([
         branchService.getBranches(),
-        universityService.getUniversities()
+        universityService.getUniversities(),
+        cityService.getCities()
       ]);
       setBranches(Array.isArray(branchesData) ? branchesData : []);
       setUniversities(Array.isArray(universitiesData) ? universitiesData : []);
+      setCities(Array.isArray(citiesData) ? citiesData : []);
     } catch (e) {
       console.error("Error loading data:", e);
     } finally {
@@ -43,16 +47,14 @@ const Branches: React.FC = () => {
 
   const openEdit = (b: any) => {
     setEditingBranch(b);
-    // تعبئة النموذج بالمعرفات الحالية
     setForm({ 
       university: b.university || b.university_detail?.uid || '',
-      city: b.city || b.city_detail?.id || '' // نستخدم المعرف الرقمي للمدينة
+      city: b.city || b.city_detail?.bid || ''
     });
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    // التحقق من اختيار الجامعة والمدينة فقط
     if (!form.university || !form.city) {
       alert("يرجى اختيار الجامعة والمدينة");
       return;
@@ -95,17 +97,6 @@ const Branches: React.FC = () => {
       setLoading(false);
     }
   };
-
-  // استخراج خيارات المدن الفريدة (بمعرفاتها وأسمائها) من البيانات المتاحة
-  const cityOptions = useMemo(() => {
-    const citiesMap = new Map();
-    branches.forEach(b => {
-      if (b.city_detail) {
-        citiesMap.set(b.city_detail.id || b.city, b.city_detail.bname_ar);
-      }
-    });
-    return Array.from(citiesMap.entries()).map(([id, name]) => ({ id, name }));
-  }, [branches]);
 
   const filteredBranches = useMemo(() => {
     const query = search.toLowerCase().trim();
@@ -193,8 +184,8 @@ const Branches: React.FC = () => {
                   onChange={e => setForm({ ...form, city: e.target.value })}
                 >
                   <option value="">اختر المدينة</option>
-                  {cityOptions.map(city => (
-                    <option key={city.id} value={city.id}>{city.name}</option>
+                  {cities.map(city => (
+                    <option key={city.bid} value={city.bid}>{city.bname_ar}</option>
                   ))}
                 </select>
               </div>

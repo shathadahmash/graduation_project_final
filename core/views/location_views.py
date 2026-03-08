@@ -6,8 +6,8 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework import viewsets
-from core.models import Branch, College, Department, University
-from core.serializers.location import BranchSerializer, CollegeSerializer, DepartmentSerializer, UniversitySerializer
+from core.models import Branch, College, Department, University,City
+from core.serializers.location import BranchSerializer, CollegeSerializer, DepartmentSerializer, UniversitySerializer,CitySerializer
 
 from core.models import Program,University,Department,College
 from core.serializers.location import ProgramSerializer
@@ -130,7 +130,17 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
+
+
+class CityViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    List and retrieve cities
+    """
+    queryset = City.objects.all()
+    serializer_class = CitySerializer
+
+
+
 class BranchViewSet(viewsets.ModelViewSet):
     """Simple CRUD for Branch used by frontend list/create."""  
     queryset = Branch.objects.all()

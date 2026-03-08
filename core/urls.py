@@ -30,8 +30,8 @@ from core.views import (
     CollegeViewSet,
     DepartmentViewSet,
     BranchViewSet,
-    StudentViewSet
-    
+    StudentViewSet,
+    CityViewSet
     # added for college programs endpoint
     # (defined in location_views.py)
 
@@ -65,7 +65,7 @@ router.register(r'departments', DepartmentViewSet, basename='departments')
 router.register(r'branches', BranchViewSet, basename='branches')
 router.register(r'university-colleges', universitycollegeviewset, basename='university-colleges')
 router.register(r'students', StudentViewSet, basename='students')
-
+router.register(r'cities', CityViewSet, basename='cities')
 urlpatterns = [
     path('colleges/<int:college_id>/departments/', CollegeDepartmentsView.as_view(), name='college-departments'),
     path('approvals/<int:approval_id>/approve/', respond_to_group_request, name='approval-approve'),
@@ -74,7 +74,7 @@ urlpatterns = [
     # API Endpoints
     path('', include(router.urls)),   # ✅ هنا يشمل كل الـ routes بما فيها supervisor/groups
     path('colleges/<int:college_id>/programs/', CollegeProgramsView.as_view(), name='college-programs'),
-
+    path('City/', CityViewSet.as_view({'get': 'list'}), name='city-list'),
     #this is for import
     path('system/import/users/validate/', import_users_validate, name='import-users-validate'),
     path('system/import/users/commit/', import_users_commit, name='import-users-commit'),
@@ -86,7 +86,7 @@ urlpatterns = [
 
     # Endpoint to set CSRF cookie for SPA clients
     path('csrf/', get_csrf_token, name='get-csrf'),
-
+    path("chaining/", include("smart_selects.urls")),
     # Custom Approval Actions
     path('approvals/<int:pk>/approve/', ApprovalRequestViewSet.as_view({'post': 'approve'}), name='approval-approve'),
     path('approvals/<int:pk>/reject/', ApprovalRequestViewSet.as_view({'post': 'reject'}), name='approval-reject'),
