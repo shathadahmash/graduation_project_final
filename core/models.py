@@ -1,3 +1,4 @@
+import os
 from django.db import models, transaction
 from django.contrib.auth.models import AbstractUser
 from django.forms import ValidationError
@@ -26,11 +27,27 @@ class City(models.Model):
 # ============================================================================== 
 # 2. النماذج الأساسية للموقع الجغرافي
 # ==============================================================================
+def university_image_path(instance, filename):
+    """
+    Save image as MEDIA_ROOT/university_images/{safe_name}.{ext}
+    where safe_name is derived from the Arabic university name
+    """
+    ext = filename.split('.')[-1]  # keep original extension
+    safe_name = "".join(c if c.isalnum() else "_" for c in instance.uname_ar)
+    return os.path.join('university_images', f"{safe_name}.{ext}")
+
 class University(models.Model):
     uid = models.AutoField(primary_key=True)
     uname_ar = models.CharField(max_length=255)
     uname_en = models.CharField(max_length=255, blank=True, null=True)
     type = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Image field with custom upload path
+    image = models.ImageField(
+        upload_to=university_image_path,
+        blank=True,
+        null=True
+    )
 
     def __str__(self):
         return self.uname_ar
@@ -54,19 +71,27 @@ class Branch(models.Model):
         unique_together = ('university', 'city')
 
 
+def college_image_path(instance, filename):
+    # get extension
+    ext = filename.split('.')[-1]  # preserve original extension
+    safe_name = "".join(c if c.isalnum() else "_" for c in instance.name_ar)
+    return f"college_images/{safe_name}.{ext}"  # relative to MEDIA_ROOT
+
 class College(models.Model):
     cid = models.AutoField(primary_key=True)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     name_ar = models.CharField(max_length=255)
     name_en = models.CharField(max_length=255, blank=True, null=True)
 
-    # Many-to-many relationship handled via CollegeProgressPattern intermediate table
+    image = models.ImageField(upload_to=college_image_path, blank=True, null=True)
 
     def __str__(self):
         return f"{self.name_ar} - {self.branch}"
 
     class Meta:
         verbose_name_plural = "Colleges"
+
+
 
 class Department(models.Model):
     department_id = models.AutoField(primary_key=True)
