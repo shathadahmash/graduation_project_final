@@ -4,7 +4,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import AboutSystem from "../components/HomePage/AboutSystem";
 import OurFeatures from "../components/HomePage/OurFeatures";
-import SearchProject from "../components/HomePage/ProjectSearch";
 
 import Users from "../components/user/Users";
 import Universities from "../components/uni_college_department_branch/Universities";

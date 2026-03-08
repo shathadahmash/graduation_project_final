@@ -128,7 +128,7 @@ function Navbar() {
           {/* تم تعديل المسار هنا إلى /search بدلاً من /search-project */}
           <li className="relative group">
             <button 
-              onClick={() => handleNavigation('/SearchProject')}
+              onClick={() => handleNavigation('/ProjectSearch')}
               className="hover:text-[#0B2B4F] transition-colors duration-300 py-2 block"
             >
               البحث عن مشاريع
@@ -233,7 +233,7 @@ function Navbar() {
             {/* تم تعديل المسار هنا أيضاً */}
             <li className="group">
               <button 
-                onClick={() => handleNavigation('/SearchProject')}
+                onClick={() => handleNavigation('/ProjectSearch')}
                 className="flex items-center justify-between py-2 border-b border-[#0B2B4F]/10 hover:border-[#0B2B4F] transition-colors duration-300 w-full"
               >
                 <span className="text-[#0B2B4F] group-hover:translate-x-2 transition-transform duration-300">←</span>
