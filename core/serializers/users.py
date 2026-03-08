@@ -5,7 +5,60 @@ from core.models import (
     AcademicAffiliation, Student, StudentEnrollmentPeriod
 )
 
+ROLE_CONFLICTS = {
+  'Student': [
+    'Supervisor',
+    'CO-Supervisor',
+    'Department Head',
+    'Dean',
+    'Admin',
+    'System Manager',
+    'University President',
+    'External Company',
+    'Ministry'
+  ],
 
+  'Supervisor': [
+    'Student',
+    'External Company',
+    'Ministry'
+  ],
+
+  'CO-Supervisor': [
+    'Student',
+    'External Company',
+    'Ministry'
+  ],
+
+  'Department Head': [
+    'Student',
+    'External Company',
+    'Ministry'
+  ],
+
+  'Dean': [
+    'Student',
+    'External Company',
+    'Ministry'
+  ],
+
+  'External Company': [
+    'Student',
+    'Supervisor',
+    'CO-Supervisor',
+    'Department Head',
+    'Dean',
+    'University President'
+  ],
+
+  'Ministry': [
+    'Student',
+    'Supervisor',
+    'CO-Supervisor',
+    'Department Head',
+    'Dean'
+  ]
+}
 # ----------------------------
 # User Serializer
 # ----------------------------
@@ -46,8 +99,30 @@ class UserSerializer(serializers.ModelSerializer):
             return []
         return StaffSerializer(staffs.all(), many=True, read_only=True).data
 
+    # ----------------------------
+    # VALIDATE ROLE CONFLICTS
+    # ----------------------------
+    def validate_write_roles(self, role_ids):
+        roles = Role.objects.filter(role_ID__in=role_ids)
+        role_types = [r.type for r in roles]
+
+        for r1 in role_types:
+            for r2 in role_types:
+                if r1 == r2:
+                    continue
+                if r2 in ROLE_CONFLICTS.get(r1, []):
+                    raise serializers.ValidationError(
+                        f"Role conflict: '{r1}' cannot be combined with '{r2}'."
+                    )
+        return role_ids
+
+    # ----------------------------
+    # CREATE USER
+    # ----------------------------
     def create(self, validated_data):
         roles_data = validated_data.pop('write_roles', [])
+        # validate roles for conflicts
+        self.validate_write_roles(roles_data)
 
         # Auto-generate username if missing
         if not validated_data.get('username'):
@@ -73,21 +148,22 @@ class UserSerializer(serializers.ModelSerializer):
                 UserRoles.objects.get_or_create(user=user, role=role)
         return user
 
+    # ----------------------------
+    # UPDATE USER
+    # ----------------------------
     def update(self, instance, validated_data):
         roles_data = validated_data.pop('write_roles', None)
+        # validate roles for conflicts
+        if roles_data is not None:
+            self.validate_write_roles(roles_data)
 
         # Update fields directly from validated_data
         for attr in ['first_name', 'last_name', 'email', 'phone', 'gender', 'username', 'CID']:
             if attr in validated_data:
                 value = validated_data[attr]
 
-                # Special handling for email: allow null
-                if attr == 'email':
-                    if value == '' or value is None:
-                        value = None
-                    elif isinstance(value, str):
-                        value = value.strip()
-                elif attr == 'CID':
+                # Special handling for email & CID
+                if attr in ['email', 'CID']:
                     if value == '' or value is None:
                         value = None
                     elif isinstance(value, str):

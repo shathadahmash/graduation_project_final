@@ -211,7 +211,7 @@ const UsersTable: React.FC = () => {
 
       const username = editingUser
         ? form.username
-        : (first_name + last_name).toLowerCase() || "user";
+        : (first_name + "_" + last_name).toLowerCase() || "user";
 
       const payload: any = {
 
