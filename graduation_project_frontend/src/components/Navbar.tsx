@@ -125,9 +125,10 @@ function Navbar() {
             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] group-hover:w-full transition-all duration-300"></span>
           </li>
           
+          {/* تم تعديل المسار هنا إلى /search بدلاً من /search-project */}
           <li className="relative group">
             <button 
-              onClick={() => handleNavigation('/search')}
+              onClick={() => handleNavigation('/SearchProject')}
               className="hover:text-[#0B2B4F] transition-colors duration-300 py-2 block"
             >
               البحث عن مشاريع
@@ -229,9 +230,10 @@ function Navbar() {
                 <span className="group-hover:text-[#0B2B4F] transition-colors duration-300">الجامعات</span>
               </button>
             </li>
+            {/* تم تعديل المسار هنا أيضاً */}
             <li className="group">
               <button 
-                onClick={() => handleNavigation('/search')}
+                onClick={() => handleNavigation('/SearchProject')}
                 className="flex items-center justify-between py-2 border-b border-[#0B2B4F]/10 hover:border-[#0B2B4F] transition-colors duration-300 w-full"
               >
                 <span className="text-[#0B2B4F] group-hover:translate-x-2 transition-transform duration-300">←</span>
