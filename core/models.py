@@ -399,20 +399,59 @@ class ExternalCompany(models.Model):
         return self.name
 
 
+
+
+def project_logo_path(instance, filename):
+    """
+    Save project logos to MEDIA_ROOT/projects_logos/
+    Example: MEDIA_ROOT/projects_logos/{project_title}.{ext}
+    """
+    safe_title = "".join(c if c.isalnum() else "_" for c in instance.title)
+    ext = filename.split('.')[-1]  # keep original extension
+    return f'projects_logos/{safe_title}.{ext}'  # relative to MEDIA_ROOT
+
+def project_documentation_path(instance, filename):
+    """
+    Save project documentation to MEDIA_ROOT/projects_documentation/
+    Example: MEDIA_ROOT/projects_documentation/{project_title}.{ext}
+    """
+    safe_title = "".join(c if c.isalnum() else "_" for c in instance.title)
+    ext = filename.split('.')[-1]
+    return f'projects_documentation/{safe_title}.{ext}'
+
 class Project(models.Model):
-    # STATE_CHOICES = [('Completed','مكتمل'),('Incomplete','غير مكتمل'),('Reserved','محجوز'),('Accepted','مقبول'),('Rejected','مرفوض'),('Pending','معلق')]
+    PROJECT_TYPE_CHOICES = [
+        ('Governmental', 'حكومي'),
+        ('External', 'شركات خارجية'),
+        ('Proposed', 'مقترح'),
+    ]
+
+    project_type = models.CharField(
+        max_length=20,
+        choices=PROJECT_TYPE_CHOICES,
+        default='Proposed',  # optional
+        blank=False,
+        null=False
+    )
+    
+
     state  = models.ForeignKey(
-        ProjectState,
+        'ProjectState',
         on_delete=models.PROTECT,
         related_name='projects',
     )
-    field = models.TextField( blank=True, null=True)
+    field = models.TextField(blank=True, null=True)
     tools = models.TextField(blank=True, null=True)
     project_id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=500)
     description = models.TextField()
-    created_by = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_projects')
-    # adding the year and removing start_date and end_date to simplify filtering and sorting by year
+    created_by = models.ForeignKey(
+        'User', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='created_projects'
+    )
     start_date = models.IntegerField(("Start Year"), null=True, blank=True)
     end_date = models.IntegerField(("End Year"), null=True, blank=True)
     external_company = models.ForeignKey(
@@ -420,15 +459,23 @@ class Project(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='projects')
-    Logo = models.TextField("Logo", blank=True, null=True)
-    Documentation_Path = models.TextField("Documentation Path", blank=True, null=True)
+        related_name='projects'
+    )
+
+    # Image fields
+    logo = models.ImageField(
+        upload_to=project_logo_path,
+        blank=True,
+        null=True
+    )
+    documentation = models.FileField(
+        upload_to=project_documentation_path,
+        blank=True,
+        null=True
+    )
+
     def __str__(self):
         return self.title
-
-    class Meta:
-        verbose_name_plural = "Projects"
-    
 
 # ===========================
 # موديل الطالب
