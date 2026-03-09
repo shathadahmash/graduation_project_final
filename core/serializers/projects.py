@@ -24,7 +24,6 @@ class ProjectSerializer(serializers.ModelSerializer):
     state_name = serializers.SerializerMethodField()
     university_name = serializers.SerializerMethodField()
 
-    # New fields: return full URLs for logo and documentation
     logo_url = serializers.SerializerMethodField()
     documentation_url = serializers.SerializerMethodField()
 
@@ -51,6 +50,27 @@ class ProjectSerializer(serializers.ModelSerializer):
             'university_name',
         ]
 
+    # --- Custom Validations ---
+    def validate(self, data):
+        # 1. Check end_date > start_date
+        start = data.get('start_date')
+        end = data.get('end_date')
+        if start and end and end <= start:
+            raise serializers.ValidationError({
+                "end_date": "سنة النهاية يجب أن تكون أكبر من سنة البداية"
+            })
+        
+        # 2. Check duplicate project title
+        title = data.get('title')
+        project_id = self.instance.project_id if self.instance else None
+        if Project.objects.filter(title=title).exclude(project_id=project_id).exists():
+            raise serializers.ValidationError({
+                "title": "تم تكرار اسم المشروع"
+            })
+
+        return data
+
+    # --- SerializerMethodFields ---
     def get_supervisor_name(self, obj):
         for grp in getattr(obj, 'groups', []).all():
             for gs in getattr(grp, 'groupsupervisors_set', []).all():
@@ -69,34 +89,26 @@ class ProjectSerializer(serializers.ModelSerializer):
         for grp in getattr(obj, 'groups', []).all():
             for pg in getattr(grp, 'program_groups', []).all():
                 prog = getattr(pg, 'program', None)
-                if not prog:
-                    continue
+                if not prog: continue
                 dept = getattr(prog, 'department', None)
-                if not dept:
-                    continue
+                if not dept: continue
                 college = getattr(dept, 'college', None)
-                if college:
-                    return college.name_ar
+                if college: return college.name_ar
         return None
 
     def get_university_name(self, obj):
         for grp in getattr(obj, 'groups', []).all():
             for pg in getattr(grp, 'program_groups', []).all():
                 prog = getattr(pg, 'program', None)
-                if not prog:
-                    continue
+                if not prog: continue
                 dept = getattr(prog, 'department', None)
-                if not dept:
-                    continue
+                if not dept: continue
                 college = getattr(dept, 'college', None)
-                if not college:
-                    continue
+                if not college: continue
                 branch = getattr(college, 'branch', None)
-                if not branch:
-                    continue
+                if not branch: continue
                 uni = getattr(branch, 'university', None)
-                if uni:
-                    return uni.uname_ar
+                if uni: return uni.uname_ar
         return None
 
     def get_state_name(self, obj):

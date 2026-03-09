@@ -463,3 +463,4 @@ def dropdown_data(request):
         "supervisors": [{"id": sp.id, "name": sp.name} for sp in supervisors],
         "assistants": [{"id": a.id, "name": a.name} for a in assistants],
     })
+
