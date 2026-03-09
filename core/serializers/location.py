@@ -19,9 +19,17 @@ class CitySerializer(serializers.ModelSerializer):
 
 
 class UniversitySerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = University
-        fields = ['uid', 'uname_ar', 'uname_en', 'type']
+        fields = ['uid', 'uname_ar', 'uname_en', 'type', 'image']
+
+    def get_image(self, obj):
+        request = self.context.get('request')
+        if obj.image and request:
+            return request.build_absolute_uri(obj.image.url)
+        return None
 
 
 class BranchSerializer(serializers.ModelSerializer):
@@ -40,12 +48,24 @@ class BranchSerializer(serializers.ModelSerializer):
 
 class CollegeSerializer(serializers.ModelSerializer):
     branch_detail = BranchSerializer(source='branch', read_only=True)
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = College
         fields = [
-            'cid', 'name_ar', 'name_en', 'branch', 'branch_detail'
+            'cid',
+            'name_ar',
+            'name_en',
+            'branch',
+            'branch_detail',
+            'image'
         ]
+
+    def get_image(self, obj):
+        request = self.context.get('request')
+        if obj.image and request:
+            return request.build_absolute_uri(obj.image.url)
+        return None
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
