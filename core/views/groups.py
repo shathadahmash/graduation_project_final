@@ -58,7 +58,7 @@ class GroupViewSet(viewsets.ModelViewSet):
             return Group.objects.all()
 
         if PermissionManager.is_supervisor(user):
-            return Group.objects.filter(groupsupervisors__user=user).distinct()
+            return Group.objects.filter(groupsupervisors_set__user=user).distinct()
 
         if PermissionManager.is_student(user):
             return Group.objects.filter(groupmembers__user=user).distinct()
