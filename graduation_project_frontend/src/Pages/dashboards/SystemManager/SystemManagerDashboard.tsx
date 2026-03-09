@@ -856,7 +856,7 @@ const SystemManagerDashboard: React.FC = () => {
               <div className="relative bg-gradient-to-r from-[#0E4C92] to-[#0E4C92] rounded-3xl p-10 text-white overflow-hidden shadow-lg">
                 <div className="relative z-10">
                   <h1 className="text-3xl font-black mb-3 flex items-center gap-2">
-                    مرحباً بك مجدداً، مدير النظام 👋
+                    مرحباً بك مجدداً، مدير النظام 
                   </h1>
                   <p className="text-slate-100 text-base max-w-2xl leading-relaxed mb-4">
                     إليك نظرة سريعة على حالة النظام اليوم. يمكنك إدارة المستخدمين، المشاريع، والمجموعات من خلال البطاقات أدناه.
