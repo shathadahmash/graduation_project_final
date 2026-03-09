@@ -55,22 +55,15 @@ module.exports = {
           '100%': { backgroundPosition: 'calc(200px + 100%) 0' },
         },
       },
-    },
-  },
-  plugins: [],
-}
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    "./src/**/*.{js,jsx,ts,tsx}",
-  ],
-  theme: {
-    extend: {
       fontFamily: {
-        'sans': ['Cairo', 'sans-serif'],
-        'ciro': ['Cairo', 'sans-serif'],
+       
+        // استخدم Cairo كخط رئيسي مع خطوط احتياطية
+        'sans': ['Cairo', 'Tahoma', 'Arial', 'sans-serif'],
+        'arabic': ['Cairo', 'Tahoma', 'Arial', 'sans-serif'],
+        'ciro': ['Cairo', 'Tahoma', 'Arial', 'sans-serif'], // للتوافق مع الكود القديم
       },
     },
   },
   plugins: [],
 }
+

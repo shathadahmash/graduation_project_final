@@ -32,18 +32,19 @@ function Navbar() {
     setOpen(false);
   };
 
-  const handleNavigation = (path, sectionId = null) => {
-    if (path === '/') {
-      if (sectionId) {
-        scrollToSection(sectionId);
-      } else {
-        navigate('/');
-      }
+ const handleNavigation = (path, sectionId = null) => {
+  if (path === '/') {
+    if (sectionId) {
+      scrollToSection(sectionId);
     } else {
-      navigate(path);
+      navigate('/');
     }
-    setOpen(false);
-  };
+  } else {
+    // هنا نستخدم navigate مباشرة للانتقال إلى أي صفحة أخرى
+    navigate(path);
+  }
+  setOpen(false);
+};
 
   return (
     <div dir="rtl" className="w-full font-['Cairo',sans-serif]">
