@@ -1,8 +1,9 @@
 from pathlib import Path
 from datetime import timedelta
-
+import os
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # all uploaded files go here
 SECRET_KEY = 'django-insecure--q@f3psho5s*_0)nc$5px%hb&11*4!p8p*=bee!e54(udg9bxv'
 DEBUG = True
 

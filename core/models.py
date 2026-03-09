@@ -1,3 +1,4 @@
+import os
 from django.db import models, transaction
 from django.contrib.auth.models import AbstractUser
 from django.forms import ValidationError
@@ -26,11 +27,27 @@ class City(models.Model):
 # ============================================================================== 
 # 2. النماذج الأساسية للموقع الجغرافي
 # ==============================================================================
+def university_image_path(instance, filename):
+    """
+    Save image as MEDIA_ROOT/university_images/{safe_name}.{ext}
+    where safe_name is derived from the Arabic university name
+    """
+    ext = filename.split('.')[-1]  # keep original extension
+    safe_name = "".join(c if c.isalnum() else "_" for c in instance.uname_ar)
+    return os.path.join('university_images', f"{safe_name}.{ext}")
+
 class University(models.Model):
     uid = models.AutoField(primary_key=True)
     uname_ar = models.CharField(max_length=255)
     uname_en = models.CharField(max_length=255, blank=True, null=True)
     type = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Image field with custom upload path
+    image = models.ImageField(
+        upload_to=university_image_path,
+        blank=True,
+        null=True
+    )
 
     def __str__(self):
         return self.uname_ar
@@ -54,19 +71,27 @@ class Branch(models.Model):
         unique_together = ('university', 'city')
 
 
+def college_image_path(instance, filename):
+    # get extension
+    ext = filename.split('.')[-1]  # preserve original extension
+    safe_name = "".join(c if c.isalnum() else "_" for c in instance.name_ar)
+    return f"college_images/{safe_name}.{ext}"  # relative to MEDIA_ROOT
+
 class College(models.Model):
     cid = models.AutoField(primary_key=True)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     name_ar = models.CharField(max_length=255)
     name_en = models.CharField(max_length=255, blank=True, null=True)
 
-    # Many-to-many relationship handled via CollegeProgressPattern intermediate table
+    image = models.ImageField(upload_to=college_image_path, blank=True, null=True)
 
     def __str__(self):
         return f"{self.name_ar} - {self.branch}"
 
     class Meta:
         verbose_name_plural = "Colleges"
+
+
 
 class Department(models.Model):
     department_id = models.AutoField(primary_key=True)
@@ -374,20 +399,58 @@ class ExternalCompany(models.Model):
         return self.name
 
 
+
+
+def project_logo_path(instance, filename):
+    """
+    Save project logos to MEDIA_ROOT/projects_logos/
+    Example: MEDIA_ROOT/projects_logos/{project_title}.{ext}
+    """
+    safe_title = "".join(c if c.isalnum() else "_" for c in instance.title)
+    ext = filename.split('.')[-1]  # keep original extension
+    return f'projects_logos/{safe_title}.{ext}'  # relative to MEDIA_ROOT
+
+def project_documentation_path(instance, filename):
+    """
+    Save project documentation to MEDIA_ROOT/projects_documentation/
+    Example: MEDIA_ROOT/projects_documentation/{project_title}.{ext}
+    """
+    safe_title = "".join(c if c.isalnum() else "_" for c in instance.title)
+    ext = filename.split('.')[-1]
+    return f'projects_documentation/{safe_title}.{ext}'
+
 class Project(models.Model):
-    # STATE_CHOICES = [('Completed','مكتمل'),('Incomplete','غير مكتمل'),('Reserved','محجوز'),('Accepted','مقبول'),('Rejected','مرفوض'),('Pending','معلق')]
+    PROJECT_TYPE_CHOICES = [
+        ('Governmental', 'حكومي'),
+        ('External', 'شركات خارجية'),
+        ('Proposed', 'مقترح'),
+    ]
+
+    project_type = models.CharField(
+        max_length=20,
+        choices=PROJECT_TYPE_CHOICES,
+        default='Proposed',  # optional
+        blank=False,
+        null=False
+    )
+
     state  = models.ForeignKey(
-        ProjectState,
+        'ProjectState',
         on_delete=models.PROTECT,
         related_name='projects',
     )
-    field = models.TextField( blank=True, null=True)
+    field = models.TextField(blank=True, null=True)
     tools = models.TextField(blank=True, null=True)
     project_id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=500)
     description = models.TextField()
-    created_by = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_projects')
-    # adding the year and removing start_date and end_date to simplify filtering and sorting by year
+    created_by = models.ForeignKey(
+        'User', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='created_projects'
+    )
     start_date = models.IntegerField(("Start Year"), null=True, blank=True)
     end_date = models.IntegerField(("End Year"), null=True, blank=True)
     external_company = models.ForeignKey(
@@ -395,15 +458,23 @@ class Project(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='projects')
-    Logo = models.TextField("Logo", blank=True, null=True)
-    Documentation_Path = models.TextField("Documentation Path", blank=True, null=True)
+        related_name='projects'
+    )
+
+    # Image fields
+    logo = models.ImageField(
+        upload_to=project_logo_path,
+        blank=True,
+        null=True
+    )
+    documentation = models.FileField(
+        upload_to=project_documentation_path,
+        blank=True,
+        null=True
+    )
+
     def __str__(self):
         return self.title
-
-    class Meta:
-        verbose_name_plural = "Projects"
-    
 
 # ===========================
 # موديل الطالب
