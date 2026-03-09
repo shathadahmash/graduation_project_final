@@ -160,6 +160,7 @@ export const groupService = {
   async getMyGroup(): Promise<any> {
     try {
       const response = await api.get('/groups/my-group/');
+      console.log('My group response:', response.data);
       return response.data;
     } catch (error: any) {
       // إذا كان السيرفر يعيد 404 فهذا يعني لا توجد مجموعة، وهو أمر طبيعي
