@@ -3,17 +3,17 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "../store/useStore";
 
 // Dashboards
-import SupervisorDashboard from "../pages/dashboards/Supervisor/SupervisorDashboard";
-import CoSupervisorDashboard from "../pages/dashboards/Co-Supervisor/CoSupervisorDashboard";
-import DepartmentHeadDashboard from "../Pages/dashboards/Departmenthead/DepartmentHeadDashboard";
-import DeanDashboard from "../Pages/dashboards/dean/DeanDashboard";
-import UniversityPresidentDashboard from "../pages/dashboards/UniversityPresidentDashboard";
-import SystemManagerDashboard from "../Pages/dashboards/SystemManager/SystemManagerDashboard";
-import MinistryDashboard from "../Pages/dashboards/ministry/MinistryDashboard";
-import ExternalCompanyDashboard from "../pages/dashboards/ExternalCompanyDashboard";
-import StudentDashboard from "../Pages/dashboards/StudentDashboard";
+import SupervisorDashboard from "../pages/dashboards/Supervisor/SupervisorDashboard.tsx";
+import CoSupervisorDashboard from "../pages/dashboards/Co-Supervisor/CoSupervisorDashboard.tsx";
+import DepartmentHeadDashboard from "../Pages/dashboards/Departmenthead/DepartmentHeadDashboard.tsx";
+import DeanDashboard from "../Pages/dashboards/dean/DeanDashboard.tsx";
+import UniversityPresidentDashboard from "../pages/dashboards/UniversityPresidentDashboard.tsx";
+import SystemManagerDashboard from "../Pages/dashboards/SystemManager/SystemManagerDashboard.tsx";
+import MinistryDashboard from "../Pages/dashboards/ministry/MinistryDashboard.tsx";
+import ExternalCompanyDashboard from "../pages/dashboards/ExternalCompanyDashboard.tsx";
+import StudentDashboard from "../Pages/dashboards/StudentDashboard.tsx";
 
-import SysManagerImportProjects from "../Pages/dashboards/SystemManager/sysManagerImportProjects";
+import SysManagerImportProjects from "../Pages/dashboards/SystemManager/sysManagerImportProjects.tsx";
 
 const DashboardRouter: React.FC = () => {
   const { user } = useAuthStore();

@@ -282,23 +282,18 @@ export const projectService = {
     }
   },
   // Add this inside projectService
-  async getUniversityProjects(universityId: number, params?: any): Promise<Project[]> {
-    try {
-      // Assuming your API endpoint is something like /projects/?university_id=<id>
-      const response = await api.get('/projects/', {
-        params: { university_id: universityId, ...params },
-      });
+ async getUniversityProjects(universityId: number) {
+  try {
+    const response = await api.get('/projects/', {
+      params: { university: universityId }  // <-- filter by university
+    });
+    return (response.data as any[]).map(mapBackendProject);
+  } catch (error) {
+    console.error('[projectService] getUniversityProjects failed', error);
+    return [];
+  }
+},
 
-      console.log('[projectService] getUniversityProjects response:', response.data);
-
-      // Map raw data to Project interface
-      return (response.data as any[]).map(mapBackendProject);
-    } catch (error: any) {
-      console.error('[projectService] getUniversityProjects failed:', error?.response?.data ?? error);
-      return [];
-    }
-  },
-  
   async getProjectsWithGroups(fields?: string[]) {
     const req = [
       {

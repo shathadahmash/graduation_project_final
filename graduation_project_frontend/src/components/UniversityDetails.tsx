@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { data, Link, useParams } from "react-router-dom";
-import api, { API_ENDPOINTS } from "../services/api";
-import { projectService } from "../services/projectService"; // <-- import your project service
+import api, { API_ENDPOINTS } from "../services/api.ts";
+import { projectService } from "../services/projectService.ts"; // <-- import your project service
 
 interface Program {
   id: number;
@@ -361,7 +361,7 @@ const UniversityDetails: React.FC = () => {
     <div className="flex flex-wrap justify-center gap-6">
       {projects.map((proj) => (
         <div
-          key={proj.id}
+          key={proj.project_id}
           className="w-72 bg-white rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 p-4 text-center cursor-pointer"
         >
           {proj.image && (
