@@ -3,7 +3,7 @@ import { useNotifications } from "../../../hooks/useNotifications";
 import { useAuthStore, useNotificationsStore } from "../../../store/useStore";
 
 // sidebar موجود (لا نعدله)
-import SupervisorSidebar from "../supervisor/SupervisorSidebar";
+import SupervisorSidebar from "../Supervisor/SupervisorSidebar";
 
 // components (تصميم فقط)
 import SupervisorHeader, { SupervisorTab } from "./co-supervisorHeader";
