@@ -19,7 +19,7 @@ class CitySerializer(serializers.ModelSerializer):
 
 
 class UniversitySerializer(serializers.ModelSerializer):
-    image = serializers.SerializerMethodField()
+    image = serializers.ImageField(use_url=True) 
 
     class Meta:
         model = University
@@ -30,6 +30,11 @@ class UniversitySerializer(serializers.ModelSerializer):
         if obj.image and request:
             return request.build_absolute_uri(obj.image.url)
         return None
+    
+    def get_logo_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            return request.build_absolute_uri(obj.image.url)
 
 
 class BranchSerializer(serializers.ModelSerializer):

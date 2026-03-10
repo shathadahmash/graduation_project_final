@@ -44,7 +44,7 @@ const TeamStatusPage: React.FC<TeamStatusPageProps> = ({ myGroup, onNavigateToAd
                     رقم الطلب: #{group.id || group.group_id || 'غير متوفر'}
                   </span>
                   <h3 className="text-lg font-black text-blue-800">
-                    فريق: {`المجموعة  ${group.group_detail?.title ||  'المشروع غير محدد بعد'}`}
+                    فريق: {` ${group.group_detail?.title ||  'المشروع غير محدد بعد'}`}
                   </h3>
                 </div>
 
