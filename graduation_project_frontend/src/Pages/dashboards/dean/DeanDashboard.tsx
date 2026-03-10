@@ -4,9 +4,9 @@ import {
   FiFileText, FiUsers, FiLayers, FiMenu, FiX, FiHome,
   FiChevronRight, FiActivity, FiSettings, FiChevronLeft, FiPieChart, FiDatabase
 } from 'react-icons/fi';
-import { userService } from '../../../services/userService';
-import { projectService } from '../../../services/projectService';
-import { groupService } from '../../../services/groupService';
+import { userService } from '../../../services/userService.ts';
+import { projectService } from '../../../services/projectService.ts';
+import { groupService } from '../../../services/groupService.ts';
 import { fetchTableFields } from '../../../services/bulkService';
 import ProjectSearch from '../ProjectSearch';
 import NotificationsPanel from '../../../components/notifications/NotificationsPanel';

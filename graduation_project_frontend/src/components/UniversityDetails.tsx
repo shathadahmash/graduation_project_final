@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { data, Link, useParams } from "react-router-dom";
-import api, { API_ENDPOINTS } from "../services/api";
+import api, { API_ENDPOINTS } from "../services/api.ts";
+import { projectService } from "../services/projectService.ts"; // <-- import your project service
 
 interface Program {
   id: number;
@@ -31,11 +32,23 @@ interface University {
   colleges: College[];
 }
 
+interface Project {
+  id: number;
+  title: string;
+  description: string;
+  logo?: string;
+}
+
 const UniversityDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [university, setUniversity] = useState<University | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // University projects state
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(true);
+
+  // Fetch university details
   useEffect(() => {
     const fetchUniversity = async () => {
       try {
@@ -55,6 +68,7 @@ const UniversityDetails: React.FC = () => {
               id: c.cid,
               name: c.name_ar || c.name_en || "اسم الكلية",
               open: false,
+              logo: c.image || data.university.image || "/default-college-logo.png",
               departments: (c.departments || []).map((d: any) => ({
                 id: d.department_id,
                 name: d.name || d.department_name,
@@ -74,8 +88,8 @@ const UniversityDetails: React.FC = () => {
             data.university.type === "Government"
               ? "حكومية"
               : data.university.type === "Private"
-                ? "أهلية"
-                : data.university.type || "جامعة",
+              ? "أهلية"
+              : data.university.type || "جامعة",
           location: data.branches[0]?.city_detail?.bname_ar || "اليمن",
           logo: data.university.image || "/default-uni-logo.png",
           description: data.university.description || "لا يوجد وصف متاح.",
@@ -91,6 +105,25 @@ const UniversityDetails: React.FC = () => {
 
     fetchUniversity();
   }, [id]);
+
+  // Fetch university projects using projectService
+  useEffect(() => {
+    const fetchProjects = async () => {
+      setProjectsLoading(true);
+      try {
+        const fetchedProjects = await projectService.getUniversityProjects(parseInt(id));
+        setProjects(fetchedProjects);
+      } catch (error) {
+        console.error("Error fetching university projects", error);
+        setProjects([]);
+      } finally {
+        setProjectsLoading(false);
+      }
+    };
+    fetchProjects();
+  }, [id]);
+
+  // ... rest of your component (header, colleges, etc.)
 
   if (loading) {
     return (
@@ -167,27 +200,16 @@ const UniversityDetails: React.FC = () => {
         </div>
       </header>
 
-      {/* Hero */}
       <div className="max-w-7xl mx-auto px-6 py-14 flex flex-col md:flex-row gap-10 items-center">
 
-        {/* <img
-          src={`http://127.0.0.1:8000${university.logo
-            .split("/")
-            .map(segment => encodeURIComponent(segment))
-            .join("/")}`}
+        <img
+          src={university.logo}
           alt={university.name}
-          className="w-56 h-56 object-contain rounded-full border-4 border-[#31257D]/30 shadow-lg"
-        /> */}
-
-          <img
-                      src={university.logo}
-                      alt={university.name}
-                      className="w-full h-full object-contain p-2 relative z-10 transition-all duration-300 group-hover:scale-105"
-                      onError={(e) => {
-                        e.currentTarget.src = '/default-uni-logo.png';
-                      }}
-                    />
-                 
+          className="w-64 h-80 md:w-80 md:h-96 object-cover shadow-lg transition-all duration-300"
+          onError={(e) => {
+            e.currentTarget.src = '/default-uni-logo.png';
+          }}
+        />
 
         <div className="space-y-4">
           <h1 className="text-5xl font-bold text-[#31257D]">
@@ -198,7 +220,7 @@ const UniversityDetails: React.FC = () => {
             {university.type} • {university.location}
           </p>
 
-          <p className="bg-white shadow-sm border border-[#31257D]/5 rounded-xl p-6 text-gray-600">
+          <p className="bg-white shadow-sm rounded-xl p-6 text-gray-600">
             {university.description}
           </p>
         </div>
@@ -215,17 +237,20 @@ const UniversityDetails: React.FC = () => {
             <div key={college.id} className="w-80">
 
               {/* College Card */}
-              <div className="group bg-white rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 p-6 text-center border border-[#31257D]/5 relative overflow-hidden">
+              <div className="group bg-white rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 p-6 text-center relative overflow-hidden">
+
                 <div className="absolute inset-0 bg-gradient-to-br from-[#31257D] to-[#4937BF] opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
 
                 <div className="relative z-10">
                   {/* Logo */}
-                  <div className="relative mb-4 w-24 h-24 mx-auto">
-                    <div className="absolute inset-0 rounded-full bg-[#31257D]/5 group-hover:bg-white/20 transition-all duration-300"></div>
+                  <div className="relative mb-4 w-full h-56 md:h-64 mx-auto">
                     <img
-                      src="/default-college-logo.png"
+                      src={college.logo}
                       alt={college.name}
-                      className="w-full h-full object-contain p-2 relative z-10 transition-all duration-300 group-hover:scale-105"
+                      className="w-full h-full object-cover shadow-lg transition-all duration-300"
+                      onError={(e) => {
+                        e.currentTarget.src = '/default-college-logo.png';
+                      }}
                     />
                   </div>
 
@@ -268,7 +293,7 @@ const UniversityDetails: React.FC = () => {
                   {college.departments.map((dept) => (
                     <div
                       key={dept.id}
-                      className="w-72 group relative bg-white rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 p-6 text-center border border-[#31257D]/5 overflow-hidden"
+                      className="w-72 group relative bg-white rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 p-6 text-center overflow-hidden"
                     >
                       {/* Gradient hover */}
                       <div className="absolute inset-0 bg-gradient-to-br from-[#31257D] to-[#4937BF] opacity-0 group-hover:opacity-30 transition-all duration-500"></div>
@@ -318,6 +343,53 @@ const UniversityDetails: React.FC = () => {
             </div>
           ))}
         </div>
+      </section>
+      {/* University Projects */}
+      {/* University Projects Section */}
+<section className="max-w-7xl mx-auto px-6 pb-20">
+  <h2 className="text-3xl font-bold text-[#31257D] text-center mb-12">
+    مشاريع الجامعة
+  </h2>
+
+  {projectsLoading ? (
+    <div className="flex justify-center items-center h-40">
+      <div className="w-12 h-12 border-4 border-[#31257D]/20 border-t-[#31257D] rounded-full animate-spin"></div>
+    </div>
+  ) : projects.length === 0 ? (
+    <p className="text-center text-gray-500">لا توجد مشاريع للجامعة حالياً.</p>
+  ) : (
+    <div className="flex flex-wrap justify-center gap-6">
+      {projects.map((proj) => (
+        <div
+          key={proj.project_id}
+          className="w-72 bg-white rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 p-4 text-center cursor-pointer"
+        >
+          {proj.image && (
+            <div className="w-full h-40 mb-4">
+              <img
+                src={proj.image}
+                alt={proj.title}
+                className="w-full h-full object-cover rounded-md"
+                onError={(e) => {
+                  e.currentTarget.src = '/default-uni-logo.png';
+                }}
+              />
+            </div>
+          )}
+
+          <h3 className="text-lg font-bold text-[#31257D] mb-2">{proj.title}</h3>
+          <p className="text-gray-600 text-sm mb-3">{proj.description}</p>
+
+          <Link
+            to={`/projects/${proj.id}`}
+            className="inline-block bg-[#31257D] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4937BF] transition-all duration-300"
+          >
+            عرض المشروع
+          </Link>
+        </div>
+      ))}
+    </div>
+  )}
       </section>
       <style>
         {`
