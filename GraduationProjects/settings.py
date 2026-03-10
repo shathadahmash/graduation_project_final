@@ -117,11 +117,11 @@ ASGI_APPLICATION = 'GraduationProjects.asgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'graduationprojects_db',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost',
-        'PORT': '3307',
+        'NAME': 'graduation_projects',
+        'USER': 'fgps',
+        'PASSWORD': '9Q8$w^Lueny!r@m9&we4n',
+        'HOST': 'ycithe.net',
+        'PORT': '3308',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         },
