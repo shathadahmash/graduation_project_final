@@ -24,6 +24,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     state_name = serializers.SerializerMethodField()
     university_name = serializers.SerializerMethodField()
 
+    # New fields: return full URLs for logo and documentation
     logo_url = serializers.SerializerMethodField()
     documentation_url = serializers.SerializerMethodField()
 
@@ -50,66 +51,54 @@ class ProjectSerializer(serializers.ModelSerializer):
             'university_name',
         ]
 
-    # --- Custom Validations ---
-    def validate(self, data):
-        # 1. Check end_date > start_date
-        start = data.get('start_date')
-        end = data.get('end_date')
-        if start and end and end <= start:
-            raise serializers.ValidationError({
-                "end_date": "سنة النهاية يجب أن تكون أكبر من سنة البداية"
-            })
-        
-        # 2. Check duplicate project title
-        title = data.get('title')
-        project_id = self.instance.project_id if self.instance else None
-        if Project.objects.filter(title=title).exclude(project_id=project_id).exists():
-            raise serializers.ValidationError({
-                "title": "تم تكرار اسم المشروع"
-            })
-
-        return data
-
-    # --- SerializerMethodFields ---
     def get_supervisor_name(self, obj):
-        for grp in getattr(obj, 'groups', []).all():
-            for gs in getattr(grp, 'groupsupervisors_set', []).all():
+        for grp in obj.groups.all():
+            for gs in grp.groupsupervisors.all():
                 if gs.type == 'supervisor' and gs.user:
                     return gs.user.name or gs.user.username
         return "لا يوجد مشرف"
 
     def get_co_supervisor_name(self, obj):
-        for grp in getattr(obj, 'groups', []).all():
-            for gs in getattr(grp, 'groupsupervisors_set', []).all():
-                if gs.type and gs.type.lower().startswith('co_supervisor') and gs.user:
+        for grp in obj.groups.all():
+            for gs in grp.groupsupervisors.all():
+                if gs.type == 'co_supervisor' and gs.user:
                     return gs.user.name or gs.user.username
         return None
 
     def get_college_name(self, obj):
-        for grp in getattr(obj, 'groups', []).all():
-            for pg in getattr(grp, 'program_groups', []).all():
-                prog = getattr(pg, 'program', None)
-                if not prog: continue
-                dept = getattr(prog, 'department', None)
-                if not dept: continue
-                college = getattr(dept, 'college', None)
-                if college: return college.name_ar
+        for grp in obj.groups.all():
+            for pg in grp.program_groups.all():
+                prog = pg.program
+                if not prog:
+                    continue
+                dept = prog.department
+                if not dept:
+                    continue
+                college = dept.college
+                if college:
+                    return college.name_ar
         return None
 
     def get_university_name(self, obj):
-        for grp in getattr(obj, 'groups', []).all():
-            for pg in getattr(grp, 'program_groups', []).all():
-                prog = getattr(pg, 'program', None)
-                if not prog: continue
-                dept = getattr(prog, 'department', None)
-                if not dept: continue
-                college = getattr(dept, 'college', None)
-                if not college: continue
-                branch = getattr(college, 'branch', None)
-                if not branch: continue
-                uni = getattr(branch, 'university', None)
-                if uni: return uni.uname_ar
+        for grp in obj.groups.all():
+            for pg in grp.program_groups.all():
+                prog = pg.program
+                if not prog:
+                    continue
+                dept = prog.department
+                if not dept:
+                    continue
+                college = dept.college
+                if not college:
+                    continue
+                branch = college.branch
+                if not branch:
+                    continue
+                uni = branch.university
+                if uni:
+                    return uni.uname_ar
         return None
+
 
     def get_state_name(self, obj):
         try:
