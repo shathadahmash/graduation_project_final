@@ -40,17 +40,21 @@ export default function Users() {
     <section className="py-20 bg-white relative overflow-hidden">
       {/* عناصر خلفية أكاديمية */}
       <div className="absolute inset-0 bg-[#F8FAFC]"></div>
-      <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-[#0B2B4F]/20 to-transparent"></div>
+      <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-[#31257D]/20 to-transparent"></div>
+      
+      {/* عناصر زخرفية خلفية */}
+      <div className="absolute top-40 right-20 w-64 h-64 border border-[#31257D]/5 rounded-full"></div>
+      <div className="absolute bottom-40 left-20 w-96 h-96 border border-[#4937BF]/5 rounded-full"></div>
       
       <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
         
         {/* عنوان أكاديمي */}
         <div className="text-center mb-12">
           <div className="relative inline-block">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#0B2B4F] relative z-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#31257D] relative z-10">
               المستفيدون
             </h2>
-            <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] rounded-full"></div>
+            <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-gradient-to-r from-[#31257D] to-[#4937BF] rounded-full"></div>
           </div>
           <p className="text-[#4A5568] mt-4 max-w-2xl mx-auto">
             نخدم جميع أطراف العملية التعليمية في الجامعات اليمنية
@@ -62,24 +66,24 @@ export default function Users() {
           {users.map((user, index) => (
             <div 
               key={index} 
-              className="group relative bg-white rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-[#0B2B4F]/5"
+              className="group relative bg-white rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-[#31257D]/5"
               onMouseEnter={() => setActiveUser(index)}
               onMouseLeave={() => setActiveUser(null)}
             >
               {/* خلفية متدرجة عند التحويم */}
-              <div className={`absolute inset-0 bg-gradient-to-br from-[#0B2B4F] to-[#1E4A7A] opacity-0 group-hover:opacity-100 transition-all duration-500`}></div>
+              <div className={`absolute inset-0 bg-gradient-to-br from-[#31257D] to-[#4937BF] opacity-0 group-hover:opacity-100 transition-all duration-500`}></div>
               
               {/* محتوى البطاقة - بدون أيقونات */}
               <div className="relative z-10 p-8">
                 {/* شريط علوي أكاديمي */}
-                <div className={`w-12 h-1 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] rounded-full mb-4 transition-all duration-300 ${
+                <div className={`w-12 h-1 bg-gradient-to-r from-[#31257D] to-[#4937BF] rounded-full mb-4 transition-all duration-300 ${
                   activeUser === index ? 'w-16' : 'group-hover:w-16'
                 }`}></div>
                 
                 {/* العنوان مع إحصائية */}
                 <div className="flex items-center justify-between mb-4">
                   <h3 className={`text-xl font-bold transition-all duration-300 ${
-                    activeUser === index ? 'text-white' : 'text-[#0B2B4F]'
+                    activeUser === index ? 'text-white' : 'text-[#31257D]'
                   }`}>
                     {user.title}
                   </h3>
@@ -88,7 +92,7 @@ export default function Users() {
                   <span className={`text-xs px-3 py-1 rounded-full transition-all duration-300 ${
                     activeUser === index 
                       ? 'bg-white/20 text-white border border-white/10' 
-                      : 'bg-[#0B2B4F]/5 text-[#4A5568] border border-[#0B2B4F]/10'
+                      : 'bg-[#31257D]/5 text-[#4A5568] border border-[#31257D]/10'
                   }`}>
                     {user.stats}
                   </span>
@@ -103,7 +107,7 @@ export default function Users() {
                 
                 {/* خط أفقي فاصل */}
                 <div className={`w-full h-px my-4 transition-all duration-300 ${
-                  activeUser === index ? 'bg-white/20' : 'bg-[#0B2B4F]/10'
+                  activeUser === index ? 'bg-white/20' : 'bg-[#31257D]/10'
                 }`}></div>
                 
                 {/* نص أكاديمي إضافي */}
@@ -114,7 +118,7 @@ export default function Users() {
                 </p>
                 
                 {/* خط سفلي متحرك */}
-                <div className={`absolute bottom-0 left-0 h-1 bg-gradient-to-r from-white to-[#1E4A7A] transition-all duration-300 ${
+                <div className={`absolute bottom-0 left-0 h-1 bg-gradient-to-r from-white to-[#4937BF] transition-all duration-300 ${
                   activeUser === index ? 'w-full' : 'w-0'
                 }`}></div>
               </div>
@@ -126,7 +130,7 @@ export default function Users() {
         <div className="mt-16 text-center">
           <a 
             href="#" 
-            className="group inline-flex items-center gap-3 text-[#0B2B4F] hover:text-[#1E4A7A] transition-colors duration-300 border-b border-[#0B2B4F]/20 hover:border-[#0B2B4F] pb-1"
+            className="group inline-flex items-center gap-3 text-[#31257D] hover:text-[#4937BF] transition-colors duration-300 border-b border-[#31257D]/20 hover:border-[#31257D] pb-1"
           >
             <span className="text-lg font-medium">عرض جميع المستفيدين</span>
             <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -135,21 +139,21 @@ export default function Users() {
           </a>
           
           {/* إحصائيات إجمالية */}
-          <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mt-8 pt-8 border-t border-[#0B2B4F]/10">
+          <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mt-8 pt-8 border-t border-[#31257D]/10">
             <div className="text-center group">
-              <div className="text-2xl font-bold text-[#0B2B4F] group-hover:text-[#1E4A7A] transition-colors">٦</div>
+              <div className="text-2xl font-bold text-[#31257D] group-hover:text-[#4937BF] transition-colors">٦</div>
               <div className="text-sm text-[#4A5568]">فئات المستفيدين</div>
-              <div className="w-0 group-hover:w-8 h-0.5 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] mx-auto mt-1 transition-all"></div>
+              <div className="w-0 group-hover:w-8 h-0.5 bg-gradient-to-r from-[#31257D] to-[#4937BF] mx-auto mt-1 transition-all"></div>
             </div>
             <div className="text-center group">
-              <div className="text-2xl font-bold text-[#0B2B4F] group-hover:text-[#1E4A7A] transition-colors">٢٥+</div>
+              <div className="text-2xl font-bold text-[#31257D] group-hover:text-[#4937BF] transition-colors">٢٥+</div>
               <div className="text-sm text-[#4A5568]">جامعة</div>
-              <div className="w-0 group-hover:w-8 h-0.5 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] mx-auto mt-1 transition-all"></div>
+              <div className="w-0 group-hover:w-8 h-0.5 bg-gradient-to-r from-[#31257D] to-[#4937BF] mx-auto mt-1 transition-all"></div>
             </div>
             <div className="text-center group">
-              <div className="text-2xl font-bold text-[#0B2B4F] group-hover:text-[#1E4A7A] transition-colors">١٠٠٠+</div>
+              <div className="text-2xl font-bold text-[#31257D] group-hover:text-[#4937BF] transition-colors">١٠٠٠+</div>
               <div className="text-sm text-[#4A5568]">مستفيد نشط</div>
-              <div className="w-0 group-hover:w-8 h-0.5 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] mx-auto mt-1 transition-all"></div>
+              <div className="w-0 group-hover:w-8 h-0.5 bg-gradient-to-r from-[#31257D] to-[#4937BF] mx-auto mt-1 transition-all"></div>
             </div>
           </div>
         </div>

@@ -9,7 +9,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db.models import Q
 
-from core.models import (
+from core.models import (   
     User, Group, GroupMembers, GroupSupervisors,
     Project, GroupCreationRequest, GroupMemberApproval,
     NotificationLog, programgroup
@@ -45,8 +45,11 @@ class SupervisorGroupViewSet(viewsets.ReadOnlyModelViewSet):
             .distinct()
         )
 
-
+import logging
+logger = logging.getLogger(__name__)
 class GroupViewSet(viewsets.ModelViewSet):
+   
+
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     permission_classes = [IsAuthenticated]
@@ -136,14 +139,13 @@ class GroupViewSet(viewsets.ModelViewSet):
     # 2) Student creates GROUP CREATION REQUEST (pending)
     # ============================
     def create(self, request, *args, **kwargs):
-        """
-        إنشاء طلب مجموعة جديد بناءً على الحقول الفعلية في الموديل
-        (بدون group_name)
-        """
+      
+        print("DEBUG Incoming group data:", request.data)
+        logger.debug(f"Incoming group data: {request.data}")  # 👀 check payload
         dept_id = request.data.get('department_id')
         coll_id = request.data.get('college_id')
         note = request.data.get('note', "")
-
+    
         student_ids = request.data.get('student_ids', [])
         supervisor_ids = request.data.get('supervisor_ids', [])
         co_supervisor_ids = request.data.get('co_supervisor_ids', [])
@@ -286,7 +288,7 @@ class GroupViewSet(viewsets.ModelViewSet):
                     "group_id": group_obj.group_id,
 
                     # ✅ keep key for frontend; value is creator name
-                    "group_name": creator_name,
+                    # "display_name": creator_name,
 
                     "is_official_group": True,
                     "is_pending": False,
@@ -318,10 +320,6 @@ class GroupViewSet(viewsets.ModelViewSet):
                     data['is_pending'] = True
                     data['user_role_in_pending_request'] = 'creator' if request_obj.creator == user else 'invited'
 
-                    # Optional: ensure a friendly group_name in pending data too
-                    # (only if serializer doesn't provide it)
-                    if 'group_name' not in data or not data.get('group_name'):
-                        data['group_name'] = request_obj.creator.name or request_obj.creator.username
 
                 return Response(data_list)
 
@@ -387,10 +385,7 @@ class GroupViewSet(viewsets.ModelViewSet):
 
 @api_view(['POST'])
 def submit_group_creation_request(request):
-    """
-    Submit group creation request (legacy helper endpoint)
-    بدون group_name
-    """
+ 
     data = request.data
     user = request.user
 

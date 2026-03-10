@@ -7,21 +7,21 @@ export default function AboutSystem() {
       <div className="absolute inset-0 bg-[#F8FAFC]"></div>
       
       {/* خطوط أكاديمية */}
-      <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-[#0B2B4F]/20 to-transparent"></div>
+      <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-[#31257D]/20 to-transparent"></div>
       
       {/* عناصر زخرفية خلفية */}
-      <div className="absolute top-40 right-20 w-64 h-64 border border-[#0B2B4F]/5 rounded-full"></div>
-      <div className="absolute bottom-40 left-20 w-96 h-96 border border-[#1E4A7A]/5 rounded-full"></div>
+      <div className="absolute top-40 right-20 w-64 h-64 border border-[#31257D]/5 rounded-full"></div>
+      <div className="absolute bottom-40 left-20 w-96 h-96 border border-[#4937BF]/5 rounded-full"></div>
       
       <div className="max-w-5xl mx-auto px-6 lg:px-8 relative z-10">
         <div className="flex flex-col items-center text-center">
           
           {/* عنوان أكاديمي */}
           <div className="relative inline-block mb-8">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#0B2B4F] relative z-10">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#31257D] relative z-10">
               عن النظام
             </h2>
-            <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] rounded-full"></div>
+            <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-gradient-to-r from-[#31257D] to-[#4937BF] rounded-full"></div>
           </div>
           
           {/* نص أكاديمي رئيسي */}
@@ -50,17 +50,17 @@ export default function AboutSystem() {
             ].map((item, index) => (
               <div 
                 key={index} 
-                className="group bg-white rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 p-8 border border-[#0B2B4F]/5 relative overflow-hidden"
+                className="group bg-white rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 p-8 border border-[#31257D]/5 relative overflow-hidden"
               >
                 {/* خلفية متدرجة عند التحويم */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#0B2B4F] to-[#1E4A7A] opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-[#31257D] to-[#4937BF] opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
                 
                 {/* المحتوى */}
                 <div className="relative z-10">
                   {/* شريط علوي أكاديمي */}
-                  <div className={`w-12 h-1 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] rounded-full mb-4 transition-all duration-300 group-hover:w-16 group-hover:bg-white`}></div>
+                  <div className={`w-12 h-1 bg-gradient-to-r from-[#31257D] to-[#4937BF] rounded-full mb-4 transition-all duration-300 group-hover:w-16 group-hover:bg-white`}></div>
                   
-                  <h3 className="text-xl font-bold text-[#0B2B4F] group-hover:text-white transition-colors duration-300 mb-3">
+                  <h3 className="text-xl font-bold text-[#31257D] group-hover:text-white transition-colors duration-300 mb-3">
                     {item.title}
                   </h3>
                   <p className="text-sm text-[#4A5568] group-hover:text-white/90 transition-colors duration-300 leading-relaxed">
@@ -69,9 +69,9 @@ export default function AboutSystem() {
                   
                   {/* خط فاصل */}
                   <div className={`w-full h-px my-4 transition-all duration-300 ${
-                    index === 0 ? 'bg-[#0B2B4F]/10 group-hover:bg-white/20' : 
-                    index === 1 ? 'bg-[#1E4A7A]/10 group-hover:bg-white/20' : 
-                    'bg-[#0B2B4F]/10 group-hover:bg-white/20'
+                    index === 0 ? 'bg-[#31257D]/10 group-hover:bg-white/20' : 
+                    index === 1 ? 'bg-[#4937BF]/10 group-hover:bg-white/20' : 
+                    'bg-[#31257D]/10 group-hover:bg-white/20'
                   }`}></div>
                   
                   {/* نص أكاديمي إضافي */}
@@ -83,13 +83,13 @@ export default function AboutSystem() {
                 </div>
                 
                 {/* خط سفلي متحرك */}
-                <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-white to-[#1E4A7A] transition-all duration-300 w-0 group-hover:w-full"></div>
+                <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-white to-[#4937BF] transition-all duration-300 w-0 group-hover:w-full"></div>
               </div>
             ))}
           </div>
           
           {/* شريط سفلي بسيط */}
-          <div className="mt-16 w-24 h-1 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] rounded-full mx-auto"></div>
+          <div className="mt-16 w-24 h-1 bg-gradient-to-r from-[#31257D] to-[#4937BF] rounded-full mx-auto"></div>
         </div>
       </div>
     </section>

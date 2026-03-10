@@ -303,7 +303,7 @@ async updateGroup(
             'department',
           ],
       },
-      { table: 'groups', fields: ['group_id', 'group_name', 'project', 'department', 'program', 'academic_year'] },
+      { table: 'groups', fields: ['group_id', 'project', 'department', 'program', 'academic_year'] },
       { table: 'group_members', fields: ['id', 'user', 'group'] },
       { table: 'group_supervisors', fields: ['id', 'user', 'group', 'type'] },
       { table: 'users', fields: ['id', 'first_name', 'last_name', 'name'] },

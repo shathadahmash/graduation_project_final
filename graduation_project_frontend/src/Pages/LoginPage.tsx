@@ -97,27 +97,27 @@ const LoginPage: React.FC = () => {
       
       {/* عناصر خلفية أكاديمية */}
       <div className="absolute inset-0">
-        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-[#312583]/20 to-transparent"></div>
-        <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-[#312583]/20 to-transparent"></div>
+        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-[#31257D]/20 to-transparent"></div>
+        <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-[#31257D]/20 to-transparent"></div>
       </div>
       
       {/* عناصر زخرفية خلفية */}
-      <div className="absolute top-20 right-20 w-64 h-64 border-2 border-[#312583]/5 rounded-full"></div>
-      <div className="absolute bottom-20 left-20 w-96 h-96 border-2 border-[#312583]/5 rounded-full"></div>
+      <div className="absolute top-20 right-20 w-64 h-64 border-2 border-[#31257D]/5 rounded-full"></div>
+      <div className="absolute bottom-20 left-20 w-96 h-96 border-2 border-[#4937BF]/5 rounded-full"></div>
       
       {/* نقاط زخرفية صغيرة */}
-      <div className="absolute top-40 left-1/4 w-2 h-2 bg-[#312583]/10 rounded-full"></div>
-      <div className="absolute bottom-40 right-1/3 w-3 h-3 bg-[#312583]/10 rounded-full"></div>
+      <div className="absolute top-40 left-1/4 w-2 h-2 bg-[#31257D]/10 rounded-full"></div>
+      <div className="absolute bottom-40 right-1/3 w-3 h-3 bg-[#4937BF]/10 rounded-full"></div>
 
       <div className={`w-full max-w-md transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
         
         {/* شريط علوي أكاديمي */}
-        <div className="w-16 h-1 bg-gradient-to-r from-[#312583] to-[#312583] rounded-full mx-auto mb-6"></div>
+        <div className="w-16 h-1 bg-gradient-to-r from-[#31257D] to-[#4937BF] rounded-full mx-auto mb-6"></div>
 
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-[#0B2B4F]/5">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-[#31257D]/5">
           
           {/* Header Section - تصميم أكاديمي */}
-          <div className="bg-gradient-to-l from-[#312583] to-[#312583] p-8 text-white text-center relative overflow-hidden">
+          <div className="bg-gradient-to-l from-[#31257D] to-[#4937BF] p-8 text-white text-center relative overflow-hidden">
             <div className="absolute inset-0 bg-white/5"></div>
             <div className="relative z-10">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 rounded-2xl mb-4 backdrop-blur-sm border border-white/20">
@@ -156,7 +156,7 @@ const LoginPage: React.FC = () => {
                 <div className="relative">
                   <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                     <FiUser className={`w-5 h-5 transition-colors duration-300 ${
-                      focusedField === 'username' ? 'text-[#312583]' : 'text-[#A0AEC0]'
+                      focusedField === 'username' ? 'text-[#31257D]' : 'text-[#A0AEC0]'
                     }`} />
                   </div>
                   <input
@@ -167,14 +167,14 @@ const LoginPage: React.FC = () => {
                     onBlur={() => setFocusedField(null)}
                     className={`w-full pr-12 pl-4 py-3 border rounded-xl text-right transition-all duration-300 outline-none ${
                       focusedField === 'username' 
-                        ? 'border-[#312583] ring-1 ring-[#312583]/20' 
-                        : 'border-gray-200 hover:border-[#312583]/30'
+                        ? 'border-[#31257D] ring-1 ring-[#31257D]/20' 
+                        : 'border-gray-200 hover:border-[#31257D]/30'
                     }`}
                     placeholder="أدخل اسم المستخدم"
                     disabled={isLoading}
                   />
                   {focusedField === 'username' && (
-                    <span className="absolute -top-2 right-12 text-xs bg-white px-2 text-[#312583]">
+                    <span className="absolute -top-2 right-12 text-xs bg-white px-2 text-[#31257D]">
                       اسم المستخدم
                     </span>
                   )}
@@ -189,7 +189,7 @@ const LoginPage: React.FC = () => {
                 <div className="relative">
                   <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                     <FiLock className={`w-5 h-5 transition-colors duration-300 ${
-                      focusedField === 'password' ? 'text-[#312583]' : 'text-[#A0AEC0]'
+                      focusedField === 'password' ? 'text-[#31257D]' : 'text-[#A0AEC0]'
                     }`} />
                   </div>
                   <input
@@ -200,21 +200,21 @@ const LoginPage: React.FC = () => {
                     onBlur={() => setFocusedField(null)}
                     className={`w-full pr-12 pl-12 py-3 border rounded-xl text-right transition-all duration-300 outline-none ${
                       focusedField === 'password' 
-                        ? 'border-[#312583] ring-1 ring-[#312583]/20' 
-                        : 'border-gray-200 hover:border-[#312583]/30'
+                        ? 'border-[#31257D] ring-1 ring-[#31257D]/20' 
+                        : 'border-gray-200 hover:border-[#31257D]/30'
                     }`}
                     placeholder="أدخل كلمة المرور"
                     disabled={isLoading}
                   />
                   {focusedField === 'password' && (
-                    <span className="absolute -top-2 right-12 text-xs bg-white px-2 text-[#312583]">
+                    <span className="absolute -top-2 right-12 text-xs bg-white px-2 text-[#31257D]">
                       كلمة المرور
                     </span>
                   )}
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 left-0 pl-4 flex items-center text-[#A0AEC0] hover:text-[#312583] transition-colors disabled:opacity-50"
+                    className="absolute inset-y-0 left-0 pl-4 flex items-center text-[#A0AEC0] hover:text-[#31257D] transition-colors disabled:opacity-50"
                     disabled={isLoading}
                   >
                     {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
@@ -226,7 +226,7 @@ const LoginPage: React.FC = () => {
               <div className="text-left">
                 <a 
                   href="#" 
-                  className="text-sm text-[#312583] hover:text-[#312583] transition-colors duration-300 border-b border-[#312583]/20 hover:border-[#312583] pb-0.5"
+                  className="text-sm text-[#4937BF] hover:text-[#31257D] transition-colors duration-300 border-b border-[#4937BF]/20 hover:border-[#31257D] pb-0.5"
                 >
                   نسيت كلمة المرور؟
                 </a>
@@ -236,7 +236,7 @@ const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative w-full py-3.5 bg-gradient-to-r from-[#312583] to-[#312583] text-white font-medium rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:transform-none"
+                className="group relative w-full py-3.5 bg-gradient-to-r from-[#31257D] to-[#4937BF] text-white font-medium rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:transform-none"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   {isLoading ? (
@@ -261,7 +261,7 @@ const LoginPage: React.FC = () => {
                   ليس لديك حساب؟{' '}
                   <a 
                     href="/register" 
-                    className="text-[#312583] font-medium hover:text-[#312583] transition-colors duration-300 border-b border-[#312583]/20 hover:border-[#312583]"
+                    className="text-[#31257D] font-medium hover:text-[#4937BF] transition-colors duration-300 border-b border-[#31257D]/20 hover:border-[#31257D]"
                   >
                     إنشاء حساب جديد
                   </a>
@@ -271,18 +271,18 @@ const LoginPage: React.FC = () => {
           </div>
 
           {/* Footer - تصميم أكاديمي */}
-          <div className="bg-[#F8FAFC] px-8 py-4 border-t border-[#0B2B4F]/5">
+          <div className="bg-[#F8FAFC] px-8 py-4 border-t border-[#31257D]/5">
             <div className="flex justify-between items-center text-xs text-[#718096]">
               <p>© 2025 البوابة الموحدة</p>
               <p>
-                الدعم الفني: <span className="text-[#312583]">support@gpms.edu.ye</span>
+                الدعم الفني: <span className="text-[#31257D]">support@gpms.edu.ye</span>
               </p>
             </div>
           </div>
         </div>
 
         {/* شريط سفلي */}
-        <div className="w-16 h-1 bg-gradient-to-r from-[#312583] to-[#312583] rounded-full mx-auto mt-6"></div>
+        <div className="w-16 h-1 bg-gradient-to-r from-[#31257D] to-[#4937BF] rounded-full mx-auto mt-6"></div>
       </div>
     </div>
   );

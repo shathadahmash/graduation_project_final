@@ -82,7 +82,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         # Prefetch related objects used heavily in serializer to avoid N+1 queries
         qs = qs.prefetch_related(
-            'groups__groupsupervisors_set__user',
+            'groups__groupsupervisors__user',
             'groups__program_groups__program__department__college__branch__university'
         )
 
@@ -118,13 +118,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         if PermissionManager.is_supervisor(user):
             return qs.filter(
-                Exists(
-                    GroupSupervisors.objects.filter(
-                        group__project_id=OuterRef('pk'),
-                        user=user.pk,
-                        type='supervisor'
-                    )
-                )
+                groups__groupsupervisors__user=user,
+                groups__groupsupervisors__type='supervisor'
             ).distinct()
 
         # Allow dean to view projects belonging to their college(s)
@@ -476,4 +471,3 @@ def dropdown_data(request):
         "supervisors": [{"id": sp.id, "name": sp.name} for sp in supervisors],
         "assistants": [{"id": a.id, "name": a.name} for a in assistants],
     })
-

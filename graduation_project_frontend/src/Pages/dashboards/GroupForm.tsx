@@ -90,18 +90,6 @@ const GroupForm: React.FC<GroupFormProps> = ({ isOpen, onClose, onSuccess }) => 
     // التحقق الأولي
     //if (!groupName.trim()) return setError('يرجى تحديد اسم للمجموعة');
     if (selectedStudents.length < 2) return setError('يجب اختيار زميل واحد على الأقل للمجموعة');
-
-    // الـ Payload الجديد مطابق تماماً للـ GroupCreateSerializer المحدث
-    // const payload = {
-    //   group_name: groupName.trim(),
-    //   department_id: Number(userDepartmentId),
-    //   college_id: Number(userCollegeId),
-    //   // إرسال المصفوفات كمعرفات فقط
-    //   student_ids: selectedStudents.map(s => s.id),
-    //   supervisor_ids: selectedSupervisors.map(s => s.id),
-    //   co_supervisor_ids: selectedCoSupervisors.map(s => s.id),
-    //   // ملاحظة: تم استبعاد بيانات المشروع بناءً على التعديل الجديد
-    // };
         const payload = {
           department_id: Number(userDepartmentId),
           college_id: Number(userCollegeId),
