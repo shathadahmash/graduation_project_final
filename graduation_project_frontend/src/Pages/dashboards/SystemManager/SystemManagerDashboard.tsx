@@ -221,58 +221,14 @@ const SystemManagerDashboard: React.FC = () => {
      Helper Functions
   ========================== */
   const getSystemManagerCollegeId = (): number | null => {
-    if (!user?.id || !affiliations.length) return user?.college_id || null;
-
-    // Find system manager's affiliation
-    const smAffiliation = affiliations.find((aff: any) => String(aff.user_id) === String(user.id));
-    if (smAffiliation) {
-      // Handle different college field structures
-      if (typeof smAffiliation.college === 'number') {
-        return smAffiliation.college;
-      } else if (typeof smAffiliation.college === 'object' && smAffiliation.college) {
-        return smAffiliation.college.id || smAffiliation.college.cid;
-      } else if (smAffiliation.college_id) {
-        return smAffiliation.college_id;
-      }
-    }
-
-    // Try to get from department affiliation
-    const deptAffiliation = affiliations.find((aff: any) =>
-      String(aff.user_id) === String(user.id) && aff.department_id
-    );
-    if (deptAffiliation?.department_id) {
-      // Find the department and get its college
-      const department = departments.find((d: any) => String(d.department_id) === String(deptAffiliation.department_id));
-      if (department) {
-        // Handle department college field
-        if (typeof department.college === 'number') {
-          return department.college;
-        } else if (typeof department.college === 'object' && department.college) {
-          return department.college.id || department.college.cid;
-        } else if (department.college_id) {
-          return department.college_id;
-        }
-      }
-    }
-
-    // Fallback to user.college_id from auth store if no affiliation found
-    if (user?.college_id) {
-      return user.college_id;
-    }
-
+    if (!user) return null;
+    if (typeof user.college === 'number') return user.college;
+    if (typeof user.college === 'object' && user.college?.id) return user.college.id;
+    if (typeof user.college === 'object' && user.college?.cid) return user.college.cid;
     return null;
   };
 
-  /* ==========================
-     Filtered Data
-  ========================== */
-  const systemManagerCollegeId = useMemo(() => getSystemManagerCollegeId(), [affiliations, departments, user]);
-
-  console.log('System Manager Dashboard - systemManagerCollegeId:', systemManagerCollegeId);
-  console.log('System Manager Dashboard - affiliations sample:', affiliations.slice(0, 3));
-  console.log('System Manager Dashboard - users sample:', users.slice(0, 3));
-  console.log('System Manager Dashboard - projects sample:', projects.slice(0, 3));
-  console.log('System Manager Dashboard - groups sample:', groups.slice(0, 3));
+  const systemManagerCollegeId = useMemo(() => getSystemManagerCollegeId(), [user]);
 
   const filteredUsers = useMemo(() => {
     if (!systemManagerCollegeId) {
@@ -285,34 +241,22 @@ const SystemManagerDashboard: React.FC = () => {
     const result = users.filter((user: any) => {
       // Primary check: user.college_id
       if (user.college_id && Number(user.college_id) === Number(systemManagerCollegeId)) {
-        console.log('User matched by college_id:', user.id, user.name, user.college_id);
+        console.log('User matched by college_id:', user.user_id || user.id, user.college_id);
         return true;
       }
 
-      // Secondary check: affiliation college
-      const userAffiliation = affiliations.find((aff: any) => String(aff.user_id) === String(user.id));
-      if (userAffiliation) {
-        let userCollegeId = null;
-        if (typeof userAffiliation.college === 'number') {
-          userCollegeId = userAffiliation.college;
-        } else if (typeof userAffiliation.college === 'object' && userAffiliation.college) {
-          userCollegeId = userAffiliation.college.id || userAffiliation.college.cid;
-        } else if (userAffiliation.college_id) {
-          userCollegeId = userAffiliation.college_id;
-        }
-
-        if (userCollegeId && Number(userCollegeId) === Number(systemManagerCollegeId)) {
-          console.log('User matched by affiliation:', user.id, user.name, userCollegeId);
+      // Secondary check: user.college (object)
+      if (user.college && typeof user.college === 'object') {
+        const userCollegeId = user.college.id || user.college.cid;
+        if (Number(userCollegeId) === Number(systemManagerCollegeId)) {
+          console.log('User matched by college object:', user.user_id || user.id, userCollegeId);
           return true;
         }
       }
 
       // Tertiary check: department affiliation
-      const deptAffiliation = affiliations.find((aff: any) =>
-        String(aff.user_id) === String(user.id) && aff.department_id
-      );
-      if (deptAffiliation?.department_id) {
-        const department = departments.find((d: any) => String(d.department_id) === String(deptAffiliation.department_id));
+      if (user.department_id) {
+        const department = departments.find((d: any) => String(d.department_id) === String(user.department_id));
         if (department) {
           let deptCollegeId = null;
           if (typeof department.college === 'number') {
@@ -324,7 +268,7 @@ const SystemManagerDashboard: React.FC = () => {
           }
 
           if (deptCollegeId && Number(deptCollegeId) === Number(systemManagerCollegeId)) {
-            console.log('User matched by department:', user.id, user.name, deptCollegeId);
+            console.log('User matched by department college:', user.user_id || user.id, deptCollegeId);
             return true;
           }
         }
@@ -335,169 +279,158 @@ const SystemManagerDashboard: React.FC = () => {
 
     console.log('System Manager Dashboard - filteredUsers result:', result.length, 'from total:', users.length);
     return result;
-  }, [users, affiliations, departments, systemManagerCollegeId]);
+  }, [users, departments, systemManagerCollegeId]);
 
   const filteredProjects = useMemo(() => {
-    // Enrich projects using the group assigned to each project. This ensures
-    // supervisor/co_supervisor and department/college are resolved from the group
-    // when the project object itself lacks those fields.
-    const usersById = new Map<any, any>(users.map((u: any) => [u.id, u]));
-
-    const enriched = projects.map((project: any) => {
-      const pid = project.project_id || project.id || null;
-      // find group assigned to this project (group.project may be id or object)
-      const linkedGroup = groups.find((g: any) => {
-        if (!g) return false;
-        const gp = (typeof g.project === 'number' || typeof g.project === 'string') ? g.project : (g.project && (g.project.project_id || g.project.id));
-        return gp != null && pid != null && String(gp) === String(pid);
-      });
-
-      // Resolve supervisor
-      let supervisorId = project.supervisor || project.supervisor_id;
-      if (supervisorId && typeof supervisorId === 'object') {
-        supervisorId = supervisorId.id || supervisorId.user_id;
-      }
-      const supervisor = supervisorId ? usersById.get(supervisorId) : null;
-
-      // Resolve co_supervisor
-      let coSupervisorId = project.co_supervisor || project.co_supervisor_id;
-      if (coSupervisorId && typeof coSupervisorId === 'object') {
-        coSupervisorId = coSupervisorId.id || coSupervisorId.user_id;
-      }
-      const coSupervisor = coSupervisorId ? usersById.get(coSupervisorId) : null;
-
-      // Resolve department
-      let departmentId = project.department || project.department_id;
-      if (departmentId && typeof departmentId === 'object') {
-        departmentId = departmentId.id || departmentId.department_id;
-      }
-      const department = departmentId ? departments.find((d: any) => String(d.id || d.department_id) === String(departmentId)) : null;
-
-      // Resolve college
-      let collegeId = project.college || project.college_id;
-      if (collegeId && typeof collegeId === 'object') {
-        collegeId = collegeId.id || collegeId.cid;
-      }
-      if (!collegeId && linkedGroup) {
-        collegeId = linkedGroup.college || linkedGroup.college_id;
-        if (collegeId && typeof collegeId === 'object') {
-          collegeId = collegeId.id || collegeId.cid;
-        }
-      }
-      if (!collegeId && department) {
-        collegeId = department.college || department.college_id;
-        if (collegeId && typeof collegeId === 'object') {
-          collegeId = collegeId.id || collegeId.cid;
-        }
-      }
-      const college = collegeId ? colleges.find((c: any) => String(c.id || c.cid) === String(collegeId)) : null;
-
-      return {
-        ...project,
-        supervisor,
-        coSupervisor,
-        department,
-        college,
-      };
-    });
-
     if (!systemManagerCollegeId) {
       console.log('System Manager Dashboard - no college ID found, showing all projects');
-      return enriched;
+      return projects;
     }
 
     console.log('System Manager Dashboard - filtering projects for college:', systemManagerCollegeId);
 
-    const result = enriched.filter((project: any) => {
+    const result = projects.filter((project: any) => {
       // Primary check: project.college_id
-      if (project.college && Number(project.college.id || project.college.cid) === Number(systemManagerCollegeId)) {
-        console.log('Project matched by college:', project.project_id || project.id, systemManagerCollegeId);
+      if (project.college_id && Number(project.college_id) === Number(systemManagerCollegeId)) {
+        console.log('Project matched by college_id:', project.project_id || project.id, project.college_id);
         return true;
       }
 
-      // Secondary check: department college
-      if (project.department && project.department.college) {
-        const deptCollegeId = project.department.college.id || project.department.college.cid;
-        if (Number(deptCollegeId) === Number(systemManagerCollegeId)) {
-          console.log('Project matched by department college:', project.project_id || project.id, systemManagerCollegeId);
+      // Secondary check: project.college (object)
+      if (project.college && typeof project.college === 'object') {
+        const projectCollegeId = project.college.id || project.college.cid;
+        if (Number(projectCollegeId) === Number(systemManagerCollegeId)) {
+          console.log('Project matched by college object:', project.project_id || project.id, projectCollegeId);
           return true;
         }
       }
 
-      // Tertiary check: linked group college
-      // if (linkedGroup && (linkedGroup.college || linkedGroup.college_id)) {
-      //   const groupCollegeId = linkedGroup.college || linkedGroup.college_id;
-      //   if (Number(groupCollegeId) === Number(systemManagerCollegeId)) {
-      //     console.log('Project matched by group college:', project.project_id || project.id, systemManagerCollegeId);
-      //     return true;
-      //   }
-      // }
-      // Tertiary check: check group linked to this project
-    const projectGroup = groups.find((g: any) => {
-      const gp = typeof g.project === 'number' || typeof g.project === 'string'
-        ? g.project
-        : g.project?.project_id || g.project?.id;
-
-      return String(gp) === String(project.project_id || project.id);
+      return false;
     });
 
-    if (projectGroup && (projectGroup.college || projectGroup.college_id)) {
-      const groupCollegeId =
-        typeof projectGroup.college === 'object'
-          ? projectGroup.college.id || projectGroup.college.cid
-          : projectGroup.college || projectGroup.college_id;
+    console.log('System Manager Dashboard - filteredProjects result:', result.length, 'from total:', projects.length);
+    return result;
+  }, [projects, systemManagerCollegeId]);
 
-      if (Number(groupCollegeId) === Number(systemManagerCollegeId)) {
-        console.log('Project matched by group college:', project.project_id || project.id, systemManagerCollegeId);
+  const filteredColleges = useMemo(() => {
+    if (!systemManagerCollegeId) {
+      console.log('System Manager Dashboard - no college ID found, showing all colleges');
+      return colleges;
+    }
+
+    console.log('System Manager Dashboard - filtering colleges for college:', systemManagerCollegeId);
+
+    const result = colleges.filter((college: any) => {
+      // Primary check: college.college_id or college.id
+      const collegeId = college.college_id || college.id;
+      if (collegeId && Number(collegeId) === Number(systemManagerCollegeId)) {
+        console.log('College matched:', collegeId);
         return true;
       }
-    }
 
       return false;
     });
 
-    console.log('System Manager Dashboard - filteredProjects result:', result.length, 'from total:', enriched.length);
+    console.log('System Manager Dashboard - filteredColleges result:', result.length, 'from total:', colleges.length);
     return result;
-  }, [projects, groups, users, departments, colleges, systemManagerCollegeId]);
-
-  const filteredColleges = useMemo(() => {
-    if (!systemManagerCollegeId) return colleges;
-    return colleges.filter((c: any) => Number(c.id || c.cid) === Number(systemManagerCollegeId));
   }, [colleges, systemManagerCollegeId]);
 
   const filteredDepartments = useMemo(() => {
-    if (!systemManagerCollegeId) return departments;
-    return departments.filter((d: any) => {
-      const deptCollegeId = d.college || d.college_id;
-      if (deptCollegeId && typeof deptCollegeId === 'object') {
-        return Number(deptCollegeId.id || deptCollegeId.cid) === Number(systemManagerCollegeId);
+    if (!systemManagerCollegeId) {
+      console.log('System Manager Dashboard - no college ID found, showing all departments');
+      return departments;
+    }
+
+    console.log('System Manager Dashboard - filtering departments for college:', systemManagerCollegeId);
+
+    const result = departments.filter((department: any) => {
+      // Primary check: department.college_id
+      if (department.college_id && Number(department.college_id) === Number(systemManagerCollegeId)) {
+        console.log('Department matched by college_id:', department.department_id || department.id, department.college_id);
+        return true;
       }
-      return Number(deptCollegeId) === Number(systemManagerCollegeId);
+
+      // Secondary check: department.college (object)
+      if (department.college && typeof department.college === 'object') {
+        const deptCollegeId = department.college.id || department.college.cid;
+        if (Number(deptCollegeId) === Number(systemManagerCollegeId)) {
+          console.log('Department matched by college object:', department.department_id || department.id, deptCollegeId);
+          return true;
+        }
+      }
+
+      return false;
     });
+
+    console.log('System Manager Dashboard - filteredDepartments result:', result.length, 'from total:', departments.length);
+    return result;
   }, [departments, systemManagerCollegeId]);
 
-  const filteredUniversities = useMemo(() => universities, [universities]);
+  const filteredUniversities = useMemo(() => {
+    console.log('System Manager Dashboard - showing all universities');
+    return universities;
+  }, [universities]);
 
   const filteredPrograms = useMemo(() => {
-    if (!systemManagerCollegeId) return programs;
-    return programs.filter((p: any) => {
-      const progCollegeId = p.college || p.college_id;
-      if (progCollegeId && typeof progCollegeId === 'object') {
-        return Number(progCollegeId.id || progCollegeId.cid) === Number(systemManagerCollegeId);
+    if (!systemManagerCollegeId) {
+      console.log('System Manager Dashboard - no college ID found, showing all programs');
+      return programs;
+    }
+
+    console.log('System Manager Dashboard - filtering programs for college:', systemManagerCollegeId);
+
+    const result = programs.filter((program: any) => {
+      // Primary check: program.college_id
+      if (program.college_id && Number(program.college_id) === Number(systemManagerCollegeId)) {
+        console.log('Program matched by college_id:', program.program_id || program.id, program.college_id);
+        return true;
       }
-      return Number(progCollegeId) === Number(systemManagerCollegeId);
+
+      // Secondary check: program.college (object)
+      if (program.college && typeof program.college === 'object') {
+        const progCollegeId = program.college.id || program.college.cid;
+        if (Number(progCollegeId) === Number(systemManagerCollegeId)) {
+          console.log('Program matched by college object:', program.program_id || program.id, progCollegeId);
+          return true;
+        }
+      }
+
+      return false;
     });
+
+    console.log('System Manager Dashboard - filteredPrograms result:', result.length, 'from total:', programs.length);
+    return result;
   }, [programs, systemManagerCollegeId]);
 
   const filteredBranches = useMemo(() => {
-    if (!systemManagerCollegeId) return branches;
-    return branches.filter((b: any) => {
-      const branchCollegeId = b.college || b.college_id;
-      if (branchCollegeId && typeof branchCollegeId === 'object') {
-        return Number(branchCollegeId.id || branchCollegeId.cid) === Number(systemManagerCollegeId);
+    if (!systemManagerCollegeId) {
+      console.log('System Manager Dashboard - no college ID found, showing all branches');
+      return branches;
+    }
+
+    console.log('System Manager Dashboard - filtering branches for college:', systemManagerCollegeId);
+
+    const result = branches.filter((branch: any) => {
+      // Primary check: branch.college_id
+      if (branch.college_id && Number(branch.college_id) === Number(systemManagerCollegeId)) {
+        console.log('Branch matched by college_id:', branch.branch_id || branch.id, branch.college_id);
+        return true;
       }
-      return Number(branchCollegeId) === Number(systemManagerCollegeId);
+
+      // Secondary check: branch.college (object)
+      if (branch.college && typeof branch.college === 'object') {
+        const branchCollegeId = branch.college.id || branch.college.cid;
+        if (Number(branchCollegeId) === Number(systemManagerCollegeId)) {
+          console.log('Branch matched by college object:', branch.branch_id || branch.id, branchCollegeId);
+          return true;
+        }
+      }
+
+      return false;
     });
+
+    console.log('System Manager Dashboard - filteredBranches result:', result.length, 'from total:', branches.length);
+    return result;
   }, [branches, systemManagerCollegeId]);
 
   const filteredGroups = useMemo(() => {
@@ -582,7 +515,7 @@ const SystemManagerDashboard: React.FC = () => {
         title: 'المستخدمون',
         value: filteredUsers.length,
         icon: <FiUsers />,
-        gradient: 'from-blue-500 to-blue-700',
+        gradient: 'from-[#312583] to-[#4a3fa0]',
         description: 'إدارة حسابات المستخدمين وصلاحياتهم'
       },
       {
@@ -590,7 +523,7 @@ const SystemManagerDashboard: React.FC = () => {
         title: 'الأدوار',
         value: roles.length,
         icon: <FiDatabase />,
-        gradient: 'from-blue-500 to-blue-700',
+        gradient: 'from-[#312583] to-[#4a3fa0]',
         description: 'تحديد وتعديل أدوار النظام'
       },
       {
@@ -598,7 +531,7 @@ const SystemManagerDashboard: React.FC = () => {
         title: 'المشاريع',
         value: filteredProjects.length,
         icon: <FiLayers />,
-        gradient: 'from-blue-500 to-blue-700',
+        gradient: 'from-[#312583] to-[#4a3fa0]',
         description: 'متابعة مشاريع التخرج المقترحة'
       },
       {
@@ -606,7 +539,7 @@ const SystemManagerDashboard: React.FC = () => {
         title: 'المجموعات',
         value: filteredGroups.length,
         icon: <FiUsers />,
-        gradient: 'from-blue-500 to-blue-700',
+        gradient: 'from-[#312583] to-[#4a3fa0]',
         description: 'إدارة مجموعات الطلاب والفرق'
       },
       {
@@ -614,7 +547,7 @@ const SystemManagerDashboard: React.FC = () => {
         title: 'الجامعات',
         value: universities.length, // use the state directly
         icon: <FiCompass />,
-        gradient: 'from-blue-500 to-blue-700',
+        gradient: 'from-[#312583] to-[#4a3fa0]',
         description: 'إدارة الجامعات'
       },
       {
@@ -622,7 +555,7 @@ const SystemManagerDashboard: React.FC = () => {
         title: 'الكليات ',
         value: filteredColleges.length,
         icon: <FiHome />,
-        gradient: 'from-blue-500 to-blue-700',
+        gradient: 'from-[#312583] to-[#4a3fa0]',
         description: 'إدارة الكليات '
       },
       {
@@ -630,7 +563,7 @@ const SystemManagerDashboard: React.FC = () => {
         title: 'الأقسام',
         value: filteredDepartments.length,
         icon: <FiShield />,
-        gradient: 'from-blue-500 to-blue-700',
+        gradient: 'from-[#312583] to-[#4a3fa0]',
         description: 'إدارة الأقسام '
       },
       {
@@ -638,7 +571,7 @@ const SystemManagerDashboard: React.FC = () => {
         title: 'التخصصات',
         value: filteredPrograms.length,
         icon: <FiShield />,
-        gradient: 'from-blue-500 to-blue-700',
+        gradient: 'from-[#312583] to-[#4a3fa0]',
         description: 'إدارة الأقسام '
       },
       {
@@ -646,7 +579,7 @@ const SystemManagerDashboard: React.FC = () => {
         title: 'الفروع',
         value: filteredBranches.length,
         icon: <FiCompass />,
-        gradient: 'from-blue-500 to-blue-700',
+        gradient: 'from-[#312583] to-[#4a3fa0]',
         description: 'إدارة الفروع '
 
       },
@@ -701,7 +634,7 @@ const SystemManagerDashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC]" dir="rtl">
+    <div className="flex h-screen bg-gradient-to-br from-[#f5f3ff] to-[#f0ecff]" dir="rtl">
       {/* Sidebar Overlay */}
       <div
         className={`fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -711,19 +644,19 @@ const SystemManagerDashboard: React.FC = () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 right-0 w-80 bg-[#0F172A] text-white z-[60] transition-transform duration-300 ease-out shadow-2xl ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
+        className={`fixed inset-y-0 right-0 w-80 bg-gradient-to-b from-[#1a1a2e] to-[#0f0f1e] text-white z-[60] transition-transform duration-300 ease-out shadow-2xl ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
       >
-        <div className="p-6 flex items-center justify-between border-b border-slate-800">
+        <div className="p-6 flex items-center justify-between border-b border-[#312583]/30">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#312583] to-[#4a3fa0] rounded-xl flex items-center justify-center shadow-lg shadow-[#312583]/30">
               <FiActivity size={22} className="text-white" />
             </div>
             <span className="font-black text-lg tracking-tight">نظام الإدارة</span>
           </div>
           <button
             onClick={() => setIsSidebarOpen(false)}
-            className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-2 hover:bg-[#312583]/20 rounded-lg transition-colors"
           >
             <FiX size={20} />
           </button>
@@ -746,7 +679,7 @@ const SystemManagerDashboard: React.FC = () => {
                   setActiveCardPanel(null);
                 } else if (tab.cardPanel) {
                   setActiveTab('home');
-                  setActiveCardPanel((tab.cardPanel as string).trim());
+                  setActiveCardPanel(((tab as any).cardPanel as string).trim());
                 } else {
                   setActiveTab(tab.id as any);
                   setActiveCardPanel(null);
@@ -755,22 +688,22 @@ const SystemManagerDashboard: React.FC = () => {
                 setActiveReport(null);
                 setIsSidebarOpen(false);
               }}
-              className={`w-full flex items-center gap-4 p-4 rounded-xl transition-colors group ${activeTab === tab.id
-                ? 'bg-blue-600 text-white'
-                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200 group ${activeTab === tab.id
+                ? 'bg-gradient-to-r from-[#312583] to-[#4a3fa0] text-white shadow-lg shadow-[#312583]/20'
+                : 'text-slate-400 hover:bg-[#312583]/10 hover:text-white'
                 }`}
             >
-              <span className={`${activeTab === tab.id ? 'text-white' : 'group-hover:text-white'}`}>
+              <span className={`text-lg transition-transform ${activeTab === tab.id ? 'text-white scale-110' : 'group-hover:text-white group-hover:scale-105'}`}>
                 {tab.icon}
               </span>
-              <span className="font-medium text-sm">{tab.label}</span>
+              <span className="font-semibold text-sm">{tab.label}</span>
             </button>
           ))}
         </nav>
 
         <div className="absolute bottom-8 left-0 right-0 px-6">
-          <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50">
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">المسؤول الحالي</p>
+          <div className="bg-gradient-to-r from-[#312583]/20 to-[#4a3fa0]/10 p-4 rounded-2xl border border-[#312583]/30">
+            <p className="text-[10px] font-black text-[#312583] uppercase tracking-widest mb-1">المسؤول الحالي</p>
             <p className="text-sm font-bold text-white">مدير النظام</p>
           </div>
         </div>
@@ -779,23 +712,22 @@ const SystemManagerDashboard: React.FC = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        {/* Header (DESIGN ONLY - like DepartmentHead) */}
-        <header className="h-20 bg-white  border-b border-slate-100 px-6 lg:px-8 flex items-center justify-between sticky top-0 z-40">
+        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-[#312583]/10 px-6 lg:px-8 flex items-center justify-between sticky top-0 z-40 shadow-sm">
           {/* Left: menu + title */}
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl transition-all border border-slate-200"
+              className="p-2.5 bg-gradient-to-br from-[#312583]/10 to-[#4a3fa0]/10 hover:from-[#312583]/20 hover:to-[#4a3fa0]/20 text-[#312583] rounded-xl transition-all border border-[#312583]/20"
               aria-label="فتح القائمة"
             >
               <FiMenu size={20} />
             </button>
 
-            <h2 className="text-xl font-black text-slate-800">نظام الإدارة</h2>
+            <h2 className="text-xl font-black text-[#312583]">نظام الإدارة</h2>
           </div>
 
           {/* Center: tabs */}
-          <nav className="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-1">
+          <nav className="hidden lg:flex items-center gap-2 bg-white/50 border border-[#312583]/10 rounded-2xl p-1">
             {[
               { id: 'home', label: 'الرئيسية' },
               { id: 'users', label: 'المستخدمون', cardPanel: 'المستخدمون' },
@@ -822,11 +754,13 @@ const SystemManagerDashboard: React.FC = () => {
                     setShowManagementContent(false);
                     setActiveReport(null);
                   }}
-                  className={`px-5 py-2 rounded-xl text-sm font-black transition-all ${active
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                    : 'text-slate-600 hover:bg-white'
+                  className={`px-5 py-2 rounded-xl text-sm font-black transition-all duration-200 ${active
+                    ? 'bg-gradient-to-r from-[#312583] to-[#4a3fa0] text-white shadow-lg shadow-[#312583]/20'
+                    : 'text-slate-600 hover:bg-white hover:text-[#312583]'
                     }`}
-                />
+                >
+                  {item.label}
+                </button>
               );
             })}
           </nav>
@@ -835,12 +769,12 @@ const SystemManagerDashboard: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsNotifPanelOpen(!isNotifPanelOpen)}
-              className="relative p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl transition-all border border-slate-200"
+              className="relative p-2.5 bg-gradient-to-br from-[#312583]/10 to-[#4a3fa0]/10 hover:from-[#312583]/20 hover:to-[#4a3fa0]/20 text-[#312583] rounded-xl transition-all border border-[#312583]/20"
               aria-label="الإشعارات"
             >
               <FiBell size={20} />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                <span className="absolute top-1 right-1 w-5 h-5 bg-gradient-to-br from-red-500 to-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg">
                   {unreadCount}
                 </span>
               )}
@@ -853,34 +787,28 @@ const SystemManagerDashboard: React.FC = () => {
           {activeTab === 'home' && (
             <div className="p-6 space-y-6">
               {/* Welcome Banner */}
-              <div className="relative bg-gradient-to-r from-[#0E4C92] to-[#0E4C92] rounded-3xl p-10 text-white overflow-hidden shadow-lg">
+              <div className="relative bg-gradient-to-r from-[#312583] via-[#4a3fa0] to-[#5d4db8] rounded-3xl p-10 text-white overflow-hidden shadow-xl">
+                <div className="absolute inset-0 opacity-10">
+                  <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl"></div>
+                  <div className="absolute bottom-0 left-0 w-64 h-64 bg-white rounded-full blur-3xl"></div>
+                </div>
                 <div className="relative z-10">
-                  <h1 className="text-3xl font-black mb-3 flex items-center gap-2">
+                  <h1 className="text-4xl font-black mb-3 flex items-center gap-2">
                     مرحباً بك مجدداً، مدير النظام 
                   </h1>
-                  <p className="text-slate-100 text-base max-w-2xl leading-relaxed mb-4">
+                  <p className="text-white/90 text-base max-w-2xl leading-relaxed mb-4">
                     إليك نظرة سريعة على حالة النظام اليوم. يمكنك إدارة المستخدمين، المشاريع، والمجموعات من خلال البطاقات أدناه.
                   </p>
-                  <div className="flex items-center gap-4 text-slate-200">
+                  <div className="flex items-center gap-4 text-white/80">
                     <FiUsers className="text-xl" />
                     <span className="font-medium">{user?.name}</span>
-                    <span className="text-slate-300">•</span>
+                    <span className="text-white/60">•</span>
                     <span>مدير النظام العام</span>
                   </div>
                 </div>
-                <div className="absolute top-[-20px] left-[-20px] w-40 h-40 bg-white/10 rounded-full " />
-                <div className="absolute bottom-[-20px] right-[-20px] w-32 h-32 bg-white/5 rounded-full " />
               </div>
 
               {/* Stats Cards Grid */}
-              onClick={() => {
-                  if (card.id === 'projects') {
-                    setShowImportModal(true); // Show modal instead of going directly
-                  } else {
-                    setActiveCardPanel(card.title);
-                    setShowManagementContent(true);
-                  }
-                }}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {dashboardCards.map((card) => (
                   <div
@@ -890,21 +818,18 @@ const SystemManagerDashboard: React.FC = () => {
                       setShowManagementContent(true);
                       setActiveReport(null);
                     }}
-                    className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all cursor-pointer group"
+                    className="bg-white p-6 rounded-2xl shadow-md border border-[#312583]/10 hover:shadow-xl hover:border-[#312583]/30 transition-all duration-300 cursor-pointer group hover:-translate-y-1"
                   >
-                   
-
-                    
                     <div className="flex flex-col items-center text-center">
-                      <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${card.gradient} text-white flex items-center justify-center mb-4 shadow-md`}>
+                      <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${card.gradient} text-white flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300 transform group-hover:scale-110 group-hover:rotate-3`}>
                         {React.cloneElement(card.icon as React.ReactElement, { size: 24 })}
                       </div>
-                      <p className="text-slate-400 text-xs font-medium mb-1">{card.title}</p>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="bg-blue-50 text-blue-600 px-3 py-0.5 rounded-full text-[10px] font-bold">نظرة</span>
-                        <h3 className="text-2xl font-black text-slate-900">{card.value}</h3>
+                      <p className="text-slate-500 text-xs font-semibold mb-1 uppercase tracking-wide">{card.title}</p>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="bg-gradient-to-r from-[#312583]/10 to-[#4a3fa0]/10 text-[#312583] px-3 py-0.5 rounded-full text-[10px] font-bold">نظرة</span>
+                        <h3 className="text-3xl font-black text-[#312583]">{card.value}</h3>
                       </div>
-                      <p className="text-slate-400 text-[10px]">{card.description}</p>
+                      <p className="text-slate-400 text-[10px] leading-relaxed">{card.description}</p>
                     </div>
                   </div>
                 ))}
@@ -913,32 +838,31 @@ const SystemManagerDashboard: React.FC = () => {
           )}
           {/* Management Panel - Full screen when active */}
           {activeCardPanel && (
-            <div className="relative mt-8">
+            <div className="relative mt-8 p-6">
               {/* Animated background waves */}
               <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
-                {/* Reduced opacity decorative background to avoid hazy/blurry appearance */}
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-50/10 to-indigo-50/10 rounded-3xl"></div>
-                <div className="absolute top-[-50px] left-[-50px] w-32 h-32 bg-blue-200/10 rounded-full"></div>
-                <div className="absolute bottom-[-30px] right-[-30px] w-24 h-24 bg-indigo-200/10 rounded-full"></div>
-                <div className="absolute top-[20px] right-[20px] w-16 h-16 bg-cyan-200/10 rounded-full"></div>
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[#312583]/5 to-[#4a3fa0]/5 rounded-3xl"></div>
+                <div className="absolute top-[-50px] left-[-50px] w-32 h-32 bg-[#312583]/10 rounded-full blur-2xl"></div>
+                <div className="absolute bottom-[-30px] right-[-30px] w-24 h-24 bg-[#4a3fa0]/10 rounded-full blur-2xl"></div>
+                <div className="absolute top-[20px] right-[20px] w-16 h-16 bg-[#312583]/5 rounded-full blur-2xl"></div>
               </div>
 
-              <div className="relative  rounded-3xl shadow-xl border border-white/50 overflow-hidden">
+              <div className="relative rounded-3xl shadow-2xl border border-white/60 overflow-hidden bg-white">
                 {/* Header with back button */}
-                <div className="relative p-8 border-b border-slate-100/50 bg-gradient-to-r from-white to-blue-50/30">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5"></div>
+                <div className="relative p-8 border-b border-[#312583]/10 bg-gradient-to-r from-white to-[#312583]/5">
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#312583]/3 to-[#4a3fa0]/3"></div>
                   <div className="relative flex items-center justify-between">
                     <button
                       onClick={() => setActiveCardPanel(null)}
-                      className="group flex items-center gap-3 px-4 py-2 bg-white/60 hover:bg-white rounded-xl transition-all duration-300 shadow-sm hover:shadow-md border border-slate-200/50"
+                      className="group flex items-center gap-3 px-4 py-2 bg-white/80 hover:bg-white rounded-xl transition-all duration-300 shadow-sm hover:shadow-md border border-[#312583]/20"
                     >
-                      <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <div className="w-8 h-8 bg-gradient-to-br from-[#312583] to-[#4a3fa0] rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                         <FiChevronLeft size={16} className="text-white" />
                       </div>
-                      <span className="font-semibold text-slate-700">العودة</span>
+                      <span className="font-semibold text-[#312583]">العودة</span>
                     </button>
                     <div className="text-center">
-                      <h3 className="text-2xl font-black text-slate-800 mb-1">{activeCardPanel}</h3>
+                      <h3 className="text-2xl font-black text-[#312583] mb-1">{activeCardPanel}</h3>
                       <p className="text-slate-500 text-sm">اختر نوع العملية المطلوبة</p>
                     </div>
                     <div className="w-20"></div> {/* Spacer for centering */}
@@ -955,23 +879,23 @@ const SystemManagerDashboard: React.FC = () => {
                         setActiveReport(null);
                         setShowImportProjects(false);
                       }}
-                      className="group relative bg-white rounded-2xl p-8 shadow-lg border border-slate-100 hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden transform hover:-translate-y-2"
+                      className="group relative bg-white rounded-2xl p-8 shadow-lg border border-[#312583]/10 hover:shadow-2xl hover:border-[#312583]/30 transition-all duration-500 cursor-pointer overflow-hidden transform hover:-translate-y-2"
                     >
                       {/* Card background gradient on hover */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-indigo-500/0 group-hover:from-blue-500/5 group-hover:to-indigo-500/5 transition-all duration-500 rounded-2xl"></div>
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#312583]/0 to-[#4a3fa0]/0 group-hover:from-[#312583]/5 group-hover:to-[#4a3fa0]/5 transition-all duration-500 rounded-2xl"></div>
 
                       {/* Animated wave effect */}
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-blue-100/30 rounded-full group-hover:bg-blue-200/40 transition-all duration-700 transform group-hover:scale-150"></div>
-                      <div className="absolute bottom-0 left-0 w-16 h-16 bg-indigo-100/30 rounded-full  group-hover:bg-indigo-200/40 transition-all duration-700 delay-200 transform group-hover:scale-125"></div>
+                      <div className="absolute top-0 right-0 w-20 h-20 bg-[#312583]/10 rounded-full group-hover:bg-[#312583]/20 transition-all duration-700 transform group-hover:scale-150"></div>
+                      <div className="absolute bottom-0 left-0 w-16 h-16 bg-[#4a3fa0]/10 rounded-full group-hover:bg-[#4a3fa0]/20 transition-all duration-700 delay-200 transform group-hover:scale-125"></div>
 
                       <div className="relative z-10">
                         {/* Icon */}
-                        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300 transform group-hover:scale-110 group-hover:rotate-3">
+                        <div className="w-16 h-16 bg-gradient-to-br from-[#312583] to-[#4a3fa0] rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300 transform group-hover:scale-110 group-hover:rotate-3">
                           <FiDatabase size={28} className="text-white" />
                         </div>
 
                         {/* Title */}
-                        <h4 className="text-xl font-black text-slate-800 mb-3 group-hover:text-blue-700 transition-colors">
+                        <h4 className="text-xl font-black text-[#312583] mb-3 group-hover:text-[#4a3fa0] transition-colors">
                           إدارة {activeCardPanel}
                         </h4>
 
@@ -982,11 +906,11 @@ const SystemManagerDashboard: React.FC = () => {
 
                         {/* Action indicator */}
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                          <span className="text-xs font-semibold text-[#312583] bg-[#312583]/10 px-3 py-1 rounded-full">
                             إدارة كاملة
                           </span>
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                            <FiChevronLeft size={14} className="text-blue-600" />
+                          <div className="w-8 h-8 bg-[#312583]/10 rounded-full flex items-center justify-center group-hover:bg-[#312583]/20 transition-colors">
+                            <FiChevronLeft size={14} className="text-[#312583]" />
                           </div>
                         </div>
                       </div>
@@ -1001,23 +925,23 @@ const SystemManagerDashboard: React.FC = () => {
                         setShowManagementContent(false);
                         setShowImportProjects(false);
                       }}
-                      className="group relative bg-white rounded-2xl p-8 shadow-lg border border-slate-100 hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden transform hover:-translate-y-2"
+                      className="group relative bg-white rounded-2xl p-8 shadow-lg border border-[#312583]/10 hover:shadow-2xl hover:border-[#312583]/30 transition-all duration-500 cursor-pointer overflow-hidden transform hover:-translate-y-2"
                     >
                       {/* Card background gradient on hover */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/0 to-blue-500/0 group-hover:from-indigo-500/5 group-hover:to-blue-500/5 transition-all duration-500 rounded-2xl"></div>
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#4a3fa0]/0 to-[#312583]/0 group-hover:from-[#4a3fa0]/5 group-hover:to-[#312583]/5 transition-all duration-500 rounded-2xl"></div>
 
                       {/* Animated wave effect */}
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-100/30 rounded-full  group-hover:bg-indigo-200/40 transition-all duration-700 transform group-hover:scale-150"></div>
-                      <div className="absolute bottom-0 left-0 w-16 h-16 bg-blue-100/30 rounded-full  group-hover:bg-blue-200/40 transition-all duration-700 delay-200 transform group-hover:scale-125"></div>
+                      <div className="absolute top-0 right-0 w-20 h-20 bg-[#4a3fa0]/10 rounded-full group-hover:bg-[#4a3fa0]/20 transition-all duration-700 transform group-hover:scale-150"></div>
+                      <div className="absolute bottom-0 left-0 w-16 h-16 bg-[#312583]/10 rounded-full group-hover:bg-[#312583]/20 transition-all duration-700 delay-200 transform group-hover:scale-125"></div>
 
                       <div className="relative z-10">
                         {/* Icon */}
-                        <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300 transform group-hover:scale-110 group-hover:-rotate-3">
+                        <div className="w-16 h-16 bg-gradient-to-br from-[#4a3fa0] to-[#312583] rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300 transform group-hover:scale-110 group-hover:-rotate-3">
                           <FiPieChart size={28} className="text-white" />
                         </div>
 
                         {/* Title */}
-                        <h4 className="text-xl font-black text-slate-800 mb-3 group-hover:text-indigo-700 transition-colors">
+                        <h4 className="text-xl font-black text-[#312583] mb-3 group-hover:text-[#4a3fa0] transition-colors">
                           التقارير والإحصائيات
                         </h4>
 
@@ -1028,11 +952,11 @@ const SystemManagerDashboard: React.FC = () => {
 
                         {/* Action indicator */}
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
+                          <span className="text-xs font-semibold text-[#4a3fa0] bg-[#4a3fa0]/10 px-3 py-1 rounded-full">
                             تقارير متقدمة
                           </span>
-                          <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
-                            <FiChevronLeft size={14} className="text-indigo-600" />
+                          <div className="w-8 h-8 bg-[#4a3fa0]/10 rounded-full flex items-center justify-center group-hover:bg-[#4a3fa0]/20 transition-colors">
+                            <FiChevronLeft size={14} className="text-[#4a3fa0]" />
                           </div>
                         </div>
                       </div>
@@ -1046,23 +970,23 @@ const SystemManagerDashboard: React.FC = () => {
                           setShowManagementContent(false);
                           setActiveReport(null);
                         }}
-                        className="group relative bg-white rounded-2xl p-8 shadow-lg border border-slate-100 hover:shadow-2xl transition-all duration-500 cursor-pointer overflow-hidden transform hover:-translate-y-2"
+                        className="group relative bg-white rounded-2xl p-8 shadow-lg border border-[#312583]/10 hover:shadow-2xl hover:border-[#312583]/30 transition-all duration-500 cursor-pointer overflow-hidden transform hover:-translate-y-2"
                       >
                         {/* Card background gradient on hover */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-indigo-500/0 group-hover:from-blue-500/5 group-hover:to-indigo-500/5 transition-all duration-500 rounded-2xl"></div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#312583]/0 to-[#4a3fa0]/0 group-hover:from-[#312583]/5 group-hover:to-[#4a3fa0]/5 transition-all duration-500 rounded-2xl"></div>
 
                         {/* Animated wave effect */}
-                        <div className="absolute top-0 right-0 w-20 h-20 bg-blue-100/30 rounded-full  group-hover:bg-blue-200/40 transition-all duration-700 transform group-hover:scale-150"></div>
-                        <div className="absolute bottom-0 left-0 w-16 h-16 bg-indigo-100/30 rounded-full  group-hover:bg-indigo-200/40 transition-all duration-700 delay-200 transform group-hover:scale-125"></div>
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-[#312583]/10 rounded-full group-hover:bg-[#312583]/20 transition-all duration-700 transform group-hover:scale-150"></div>
+                        <div className="absolute bottom-0 left-0 w-16 h-16 bg-[#4a3fa0]/10 rounded-full group-hover:bg-[#4a3fa0]/20 transition-all duration-700 delay-200 transform group-hover:scale-125"></div>
 
                         <div className="relative z-10">
                           {/* Icon */}
-                          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300 transform group-hover:scale-110 group-hover:rotate-3">
+                          <div className="w-16 h-16 bg-gradient-to-br from-[#312583] to-[#4a3fa0] rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300 transform group-hover:scale-110 group-hover:rotate-3">
                             <FiDownload size={28} className="text-white" />
                           </div>
 
                           {/* Title */}
-                          <h4 className="text-xl font-black text-slate-800 mb-3 group-hover:text-indigo-700 transition-colors">
+                          <h4 className="text-xl font-black text-[#312583] mb-3 group-hover:text-[#4a3fa0] transition-colors">
                             استيراد المشاريع
                           </h4>
 
@@ -1073,11 +997,11 @@ const SystemManagerDashboard: React.FC = () => {
 
                           {/* Action indicator */}
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
+                            <span className="text-xs font-semibold text-[#312583] bg-[#312583]/10 px-3 py-1 rounded-full">
                               استيراد دفعي
                             </span>
-                            <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
-                              <FiChevronLeft size={14} className="text-indigo-600" />
+                            <div className="w-8 h-8 bg-[#312583]/10 rounded-full flex items-center justify-center group-hover:bg-[#312583]/20 transition-colors">
+                              <FiChevronLeft size={14} className="text-[#312583]" />
                             </div>
                           </div>
                         </div>
@@ -1096,12 +1020,12 @@ const SystemManagerDashboard: React.FC = () => {
                 {renderManagementContent()}
                 {renderReport()}
                 {showImportProjects && (
-                  <div className="bg-white p-8 rounded-2xl shadow-lg border border-slate-100">
-                    <h3 className="text-2xl font-black text-slate-800 mb-4">استيراد المشاريع</h3>
+                  <div className="bg-white p-8 rounded-2xl shadow-lg border border-[#312583]/10">
+                    <h3 className="text-2xl font-black text-[#312583] mb-4">استيراد المشاريع</h3>
                     <p className="text-slate-600 mb-6">قسم استيراد المشاريع قيد التطوير. سيتم إضافة واجهة لاستيراد المشاريع من ملفات Excel قريباً.</p>
                     <button
                       onClick={() => navigate("/dashboard/system-manager/import-projects")}
-                      className="px-6 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors"
+                      className="px-6 py-3 bg-gradient-to-r from-[#312583] to-[#4a3fa0] text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-[#312583]/30 transition-all duration-200"
                     >
                       الذهاب إلى صفحة الاستيراد
                     </button>
@@ -1117,20 +1041,20 @@ const SystemManagerDashboard: React.FC = () => {
               {activeTab === 'groups' && <GroupsTable />}
               {activeTab === 'projects' && <ProjectsTable />}
               {activeTab === 'approvals' && (
-                <div className="bg-white p-20 rounded-[2.5rem] text-center border border-slate-100 shadow-sm">
-                  <div className="w-24 h-24 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div className="bg-white p-20 rounded-[2.5rem] text-center border border-[#312583]/10 shadow-md">
+                  <div className="w-24 h-24 bg-gradient-to-br from-[#312583]/10 to-[#4a3fa0]/10 text-[#312583] rounded-full flex items-center justify-center mx-auto mb-6">
                     <FiFileText size={48} />
                   </div>
-                  <h3 className="text-2xl font-black text-slate-800 mb-2">قسم الموافقات</h3>
+                  <h3 className="text-2xl font-black text-[#312583] mb-2">قسم الموافقات</h3>
                   <p className="text-slate-500 max-w-md mx-auto">هذا القسم قيد التطوير حالياً وسيكون متاحاً قريباً لإدارة طلبات الموافقة.</p>
                 </div>
               )}
               {activeTab === 'settings' && (
-                <div className="bg-white p-20 rounded-[2.5rem] text-center border border-slate-100 shadow-sm">
-                  <div className="w-24 h-24 bg-slate-50 text-slate-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div className="bg-white p-20 rounded-[2.5rem] text-center border border-[#312583]/10 shadow-md">
+                  <div className="w-24 h-24 bg-gradient-to-br from-slate-100 to-slate-200 text-slate-600 rounded-full flex items-center justify-center mx-auto mb-6">
                     <FiSettings size={48} />
                   </div>
-                  <h3 className="text-2xl font-black text-slate-800 mb-2">إعدادات النظام</h3>
+                  <h3 className="text-2xl font-black text-[#312583] mb-2">إعدادات النظام</h3>
                   <p className="text-slate-500 max-w-md mx-auto">تخصيص إعدادات النظام، التنبيهات، والخيارات العامة.</p>
                 </div>
               )}
@@ -1139,9 +1063,9 @@ const SystemManagerDashboard: React.FC = () => {
           {/* Import Projects Modal */}
 {/* Import Modal */}
           {showImportModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-              <div className="bg-white rounded-2xl p-8 w-80 shadow-2xl relative">
-                <h3 className="text-lg font-black text-slate-800 mb-4 text-center">اختر نوع الاستيراد</h3>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-white rounded-2xl p-8 w-80 shadow-2xl relative border border-[#312583]/10">
+                <h3 className="text-lg font-black text-[#312583] mb-4 text-center">اختر نوع الاستيراد</h3>
 
                 <div className="flex flex-col gap-4">
                   {/* Full Import */}
@@ -1150,7 +1074,7 @@ const SystemManagerDashboard: React.FC = () => {
                       setShowImportModal(false);
                       navigate('/sysmanager-import-projects'); // FULL import page
                     }}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl font-semibold transition-colors"
+                    className="w-full bg-gradient-to-r from-[#312583] to-[#4a3fa0] hover:shadow-lg hover:shadow-[#312583]/30 text-white py-2 rounded-xl font-semibold transition-all duration-200"
                   >
                     الذهاب إلى صفحة الاستيراد
                   </button>
@@ -1161,7 +1085,7 @@ const SystemManagerDashboard: React.FC = () => {
                       setShowImportModal(false);
                       navigate('/sysmanager-import-single-project'); // SINGLE row import page
                     }}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl font-semibold transition-colors"
+                    className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:shadow-lg hover:shadow-emerald-500/30 text-white py-2 rounded-xl font-semibold transition-all duration-200"
                   >
                     استيراد صف واحد
                   </button>
@@ -1169,7 +1093,7 @@ const SystemManagerDashboard: React.FC = () => {
 
                 <button
                   onClick={() => setShowImportModal(false)}
-                  className="absolute top-3 right-3 text-slate-500 hover:text-slate-800"
+                  className="absolute top-3 right-3 text-slate-400 hover:text-[#312583] transition-colors"
                 >
                   <FiX size={20} />
                 </button>

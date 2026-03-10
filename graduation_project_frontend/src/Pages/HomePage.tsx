@@ -11,11 +11,22 @@ import Universities from "../components/uni_college_department_branch/Universiti
 import ConnectUs from "../components/HomePage/ConnectUs";
 import Footer from "../components/HomePage/Footer";
 
+import { studentService } from "../services/studentService";
+import { collegeService } from "../services/collegeServices";
+import { departmentService } from "../services/departmentService";
+import { projectService } from "../services/projectService";
+
 export default function HomePage() {
 
   const navigate = useNavigate();
   const location = useLocation();
   const [isVisible, setIsVisible] = useState(false);
+  const [stats, setStats] = useState({
+    departments: 0,
+    colleges: 0,
+    projects: 0,
+    students: 0,
+  });
 
   useEffect(() => {
     setIsVisible(true);
@@ -32,6 +43,40 @@ export default function HomePage() {
       }, 400);
     }
   }, [location]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+  const [studentsRes, collegesRes, departmentsRes, projectsRes] = await Promise.all([
+    studentService.getStudentCount(),  // returns a number
+    collegeService.getColleges(),
+    departmentService.getDepartments(),
+    projectService.getProjects(),
+  ]);
+
+  console.log('Students response:', studentsRes);
+  console.log('Colleges response:', collegesRes);
+  console.log('Departments response:', departmentsRes);
+  console.log('Projects response:', projectsRes);
+
+  setStats({
+    students: studentsRes, // ✅ use the awaited number directly
+    colleges: collegesRes.count || collegesRes.results?.length || collegesRes.length || 0,
+    departments: departmentsRes.count || departmentsRes.results?.length || departmentsRes.length || 0,
+    projects: projectsRes.count || projectsRes.results?.length || projectsRes.length || 0,
+  });
+} catch (error) {
+  console.error("Failed to fetch stats", error);
+  setStats({
+    students: 0,
+    colleges: 0,
+    departments: 0,
+    projects: 0,
+  });
+}
+    };
+    fetchStats();
+  }, []);
 
   return (
 
@@ -100,10 +145,10 @@ export default function HomePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
 
             {[
-              { number: "150+", label: "الأقسام" },
-              { number: "30+", label: "الكليات" },
-              { number: "2000+", label: "مشروع تخرج" },
-              { number: "57000+", label: "الطلاب" },
+              { number: stats.departments + "+", label: "الأقسام" },
+              { number: stats.colleges + "+", label: "الكليات" },
+              { number: stats.projects + "+", label: "مشروع تخرج" },
+              { number: stats.students + "+", label: "الطلاب" },
             ].map((item, i) => (
 
               <div

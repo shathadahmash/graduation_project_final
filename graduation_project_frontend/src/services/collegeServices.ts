@@ -8,8 +8,6 @@ import api from './api';
 
 export interface College {
   id: number;
-  college_name?: string;
-  cid?: number;
   name_ar?: string;
   name_en?: string | null;
   branch?: number | null;

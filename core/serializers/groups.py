@@ -81,7 +81,6 @@ class GroupMembersSerializer(serializers.ModelSerializer):
         model = GroupMembers
         fields = ['user', 'user_detail', 'group']
 
-
 class GroupSupervisorsSerializer(serializers.ModelSerializer):
     user_detail = UserSerializer(source='user', read_only=True)
 
@@ -94,7 +93,6 @@ class GroupSerializer(serializers.ModelSerializer):
     members = serializers.SerializerMethodField()
     supervisors = serializers.SerializerMethodField()
     members_count = serializers.SerializerMethodField()
-    group_name = serializers.SerializerMethodField()
     department = serializers.SerializerMethodField()
     program = serializers.SerializerMethodField()
     academic_year = serializers.CharField(read_only=True)
@@ -102,7 +100,7 @@ class GroupSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Group
-        fields = ['group_id', 'group_name', 'project', 'project_detail', 'members', 'supervisors', 'members_count', 'department', 'program', 'academic_year']
+        fields = ['group_id',  'project', 'project_detail', 'members', 'supervisors', 'members_count', 'department', 'program', 'academic_year']
 
     def get_members(self, obj):
         qs = GroupMembers.objects.filter(group=obj).select_related('user')
@@ -114,20 +112,6 @@ class GroupSerializer(serializers.ModelSerializer):
 
     def get_members_count(self, obj):
         return obj.groupmembers_set.count()
-
-    def get_group_name(self, obj):
-        # support legacy field `group_name` if present, otherwise derive
-        name = getattr(obj, 'group_name', None)
-        if name:
-            return name
-        # fallback to pattern + project title
-        pat = obj.pattern.name if getattr(obj, 'pattern', None) else None
-        proj = obj.project.title if getattr(obj, 'project', None) else None
-        if pat and proj:
-            return f"{pat} - {proj}"
-        if proj:
-            return proj
-        return f"Group #{obj.group_id}"
 
     def get_department(self, obj):
         # Try to infer department from linked program_groups

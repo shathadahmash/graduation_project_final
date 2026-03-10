@@ -23,7 +23,7 @@ class UniversitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = University
-        fields = ['uid', 'uname_ar', 'uname_en', 'type', 'image']
+        fields = ['uid', 'uname_ar', 'uname_en', 'type', 'image','description',]
 
     def get_image(self, obj):
         request = self.context.get('request')
@@ -58,6 +58,7 @@ class CollegeSerializer(serializers.ModelSerializer):
             'name_en',
             'branch',
             'branch_detail',
+            'description',
             'image'
         ]
 
