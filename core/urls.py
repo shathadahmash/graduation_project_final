@@ -4,6 +4,8 @@ from django.contrib.auth.decorators import login_required
 from rest_framework.routers import DefaultRouter
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django.conf.urls.static import static
+from GraduationProjects import settings
 #this is added for the import
 # import views for import functionality
 from .views.import_views import import_users_validate, import_users_commit
@@ -102,3 +104,6 @@ urlpatterns = [
     path('system/import/projects/template/', import_projects_template, name='import-projects-template'),
 
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

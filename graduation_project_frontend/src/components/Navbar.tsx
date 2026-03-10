@@ -32,24 +32,25 @@ function Navbar() {
     setOpen(false);
   };
 
-  const handleNavigation = (path, sectionId = null) => {
-    if (path === '/') {
-      if (sectionId) {
-        scrollToSection(sectionId);
-      } else {
-        navigate('/');
-      }
+ const handleNavigation = (path, sectionId = null) => {
+  if (path === '/') {
+    if (sectionId) {
+      scrollToSection(sectionId);
     } else {
-      navigate(path);
+      navigate('/');
     }
-    setOpen(false);
-  };
+  } else {
+    // هنا نستخدم navigate مباشرة للانتقال إلى أي صفحة أخرى
+    navigate(path);
+  }
+  setOpen(false);
+};
 
   return (
     <div dir="rtl" className="w-full font-['Cairo',sans-serif]">
       
       {/* NAVBAR - ثابت في الأعلى */}
-      <nav className={`fixed top-0 left-0 w-full bg-white/90 backdrop-blur-sm border-b border-[#0B2B4F]/10 px-6 md:px-16 flex items-center justify-between h-[80px] z-50 transition-all duration-300 ${
+      <nav className={`fixed top-0 left-0 w-full bg-white/90 backdrop-blur-sm border-b border-[#31257D]/10 px-6 md:px-16 flex items-center justify-between h-[80px] z-50 transition-all duration-300 ${
         scrolled ? 'shadow-lg bg-white/95' : ''
       }`}>
         {/* RIGHT — LOGO - يودي للرئيسية */}
@@ -60,12 +61,12 @@ function Navbar() {
             className="h-12 md:h-14 w-auto object-contain transition-all duration-300 group-hover:scale-105"
           />
           {/* خط سفلي أنيق تحت الشعار */}
-          <div className="w-0 group-hover:w-full h-0.5 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] transition-all duration-300 mt-1"></div>
+          <div className="w-0 group-hover:w-full h-0.5 bg-gradient-to-r from-[#31257D] to-[#4937BF] transition-all duration-300 mt-1"></div>
         </div>
 
         {/* MOBILE MENU BUTTON - أنيق */}
         <button
-          className="md:hidden text-2xl text-[#0B2B4F] hover:text-[#1E4A7A] transition-colors duration-300 focus:outline-none"
+          className="md:hidden text-2xl text-[#31257D] hover:text-[#4937BF] transition-colors duration-300 focus:outline-none"
           onClick={() => setOpen(!open)}
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -78,62 +79,62 @@ function Navbar() {
           <li className="relative group">
             <button 
               onClick={() => handleNavigation('/')}
-              className="hover:text-[#0B2B4F] transition-colors duration-300 py-2 block"
+              className="hover:text-[#31257D] transition-colors duration-300 py-2 block"
             >
               الرئيسية
             </button>
-            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] group-hover:w-full transition-all duration-300"></span>
+            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#31257D] to-[#4937BF] group-hover:w-full transition-all duration-300"></span>
           </li>
           
           <li className="relative group">
             <button 
               onClick={() => handleNavigation('/', 'about')}
-              className="hover:text-[#0B2B4F] transition-colors duration-300 py-2 block"
+              className="hover:text-[#31257D] transition-colors duration-300 py-2 block"
             >
               عن النظام
             </button>
-            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] group-hover:w-full transition-all duration-300"></span>
+            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#31257D] to-[#4937BF] group-hover:w-full transition-all duration-300"></span>
           </li>
           
           <li className="relative group">
             <button 
               onClick={() => handleNavigation('/', 'features')}
-              className="hover:text-[#0B2B4F] transition-colors duration-300 py-2 block"
+              className="hover:text-[#31257D] transition-colors duration-300 py-2 block"
             >
               مميزاتنا
             </button>
-            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] group-hover:w-full transition-all duration-300"></span>
+            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#31257D] to-[#4937BF] group-hover:w-full transition-all duration-300"></span>
           </li>
           
           <li className="relative group">
             <button 
               onClick={() => handleNavigation('/', 'users')}
-              className="hover:text-[#0B2B4F] transition-colors duration-300 py-2 block"
+              className="hover:text-[#31257D] transition-colors duration-300 py-2 block"
             >
               المستفيدون
             </button>
-            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] group-hover:w-full transition-all duration-300"></span>
+            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#31257D] to-[#4937BF] group-hover:w-full transition-all duration-300"></span>
           </li>
           
           <li className="relative group">
             <button 
               onClick={() => handleNavigation('/', 'universities')}
-              className="hover:text-[#0B2B4F] transition-colors duration-300 py-2 block"
+              className="hover:text-[#31257D] transition-colors duration-300 py-2 block"
             >
               الجامعات
             </button>
-            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] group-hover:w-full transition-all duration-300"></span>
+            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#31257D] to-[#4937BF] group-hover:w-full transition-all duration-300"></span>
           </li>
           
           {/* تم تعديل المسار هنا إلى /search بدلاً من /search-project */}
           <li className="relative group">
             <button 
-              onClick={() => handleNavigation('/SearchProject')}
-              className="hover:text-[#0B2B4F] transition-colors duration-300 py-2 block"
+              onClick={() => handleNavigation('/ProjectSearch')}
+              className="hover:text-[#31257D] transition-colors duration-300 py-2 block"
             >
               البحث عن مشاريع
             </button>
-            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] group-hover:w-full transition-all duration-300"></span>
+            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-[#31257D] to-[#4937BF] group-hover:w-full transition-all duration-300"></span>
           </li>
         </ul>
 
@@ -141,7 +142,7 @@ function Navbar() {
         <div className="hidden md:flex gap-3">
           <Link
             to="/register"
-            className="relative px-5 py-2.5 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] text-white text-sm rounded-none overflow-hidden group shadow-md hover:shadow-lg transition-all duration-300"
+            className="relative px-5 py-2.5 bg-gradient-to-r from-[#31257D] to-[#4937BF] text-white text-sm rounded-none overflow-hidden group shadow-md hover:shadow-lg transition-all duration-300"
           >
             <span className="relative z-10 flex items-center gap-2">
               إنشاء حساب
@@ -155,7 +156,7 @@ function Navbar() {
 
           <Link
             to="/login"
-            className="relative px-5 py-2.5 bg-transparent text-[#0B2B4F] text-sm border border-[#0B2B4F]/30 hover:border-[#0B2B4F] rounded-none overflow-hidden group hover:shadow-md transition-all duration-300"
+            className="relative px-5 py-2.5 bg-transparent text-[#31257D] text-sm border border-[#31257D]/30 hover:border-[#31257D] rounded-none overflow-hidden group hover:shadow-md transition-all duration-300"
           >
             <span className="relative z-10 flex items-center gap-2">
               تسجيل الدخول
@@ -164,14 +165,14 @@ function Navbar() {
               </svg>
             </span>
             {/* خلفية متحركة عند التحويم */}
-            <span className="absolute inset-0 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] opacity-0 group-hover:opacity-10 transition-opacity duration-300"></span>
+            <span className="absolute inset-0 bg-gradient-to-r from-[#31257D] to-[#4937BF] opacity-0 group-hover:opacity-10 transition-opacity duration-300"></span>
           </Link>
         </div>
       </nav>
 
       {/* MOBILE MENU - بنفس التصميم مع التحديثات */}
       {open && (
-        <div className="fixed top-[80px] left-0 w-full md:hidden bg-white border-t border-[#0B2B4F]/10 shadow-lg px-6 py-6 space-y-4 text-right animate-slideDown z-40">
+        <div className="fixed top-[80px] left-0 w-full md:hidden bg-white border-t border-[#31257D]/10 shadow-lg px-6 py-6 space-y-4 text-right animate-slideDown z-40">
           
           {/* الشعار في الموبايل */}
           <div className="flex justify-center mb-4">
@@ -188,56 +189,56 @@ function Navbar() {
             <li className="group">
               <button 
                 onClick={() => handleNavigation('/')}
-                className="flex items-center justify-between py-2 border-b border-[#0B2B4F]/10 hover:border-[#0B2B4F] transition-colors duration-300 w-full"
+                className="flex items-center justify-between py-2 border-b border-[#31257D]/10 hover:border-[#31257D] transition-colors duration-300 w-full"
               >
-                <span className="text-[#0B2B4F] group-hover:translate-x-2 transition-transform duration-300">←</span>
-                <span className="group-hover:text-[#0B2B4F] transition-colors duration-300">الرئيسية</span>
+                <span className="text-[#31257D] group-hover:translate-x-2 transition-transform duration-300">←</span>
+                <span className="group-hover:text-[#31257D] transition-colors duration-300">الرئيسية</span>
               </button>
             </li>
             <li className="group">
               <button 
                 onClick={() => handleNavigation('/', 'about')}
-                className="flex items-center justify-between py-2 border-b border-[#0B2B4F]/10 hover:border-[#0B2B4F] transition-colors duration-300 w-full"
+                className="flex items-center justify-between py-2 border-b border-[#31257D]/10 hover:border-[#31257D] transition-colors duration-300 w-full"
               >
-                <span className="text-[#0B2B4F] group-hover:translate-x-2 transition-transform duration-300">←</span>
-                <span className="group-hover:text-[#0B2B4F] transition-colors duration-300">عن النظام</span>
+                <span className="text-[#31257D] group-hover:translate-x-2 transition-transform duration-300">←</span>
+                <span className="group-hover:text-[#31257D] transition-colors duration-300">عن النظام</span>
               </button>
             </li>
             <li className="group">
               <button 
                 onClick={() => handleNavigation('/', 'features')}
-                className="flex items-center justify-between py-2 border-b border-[#0B2B4F]/10 hover:border-[#0B2B4F] transition-colors duration-300 w-full"
+                className="flex items-center justify-between py-2 border-b border-[#31257D]/10 hover:border-[#31257D] transition-colors duration-300 w-full"
               >
-                <span className="text-[#0B2B4F] group-hover:translate-x-2 transition-transform duration-300">←</span>
-                <span className="group-hover:text-[#0B2B4F] transition-colors duration-300">مميزاتنا</span>
+                <span className="text-[#31257D] group-hover:translate-x-2 transition-transform duration-300">←</span>
+                <span className="group-hover:text-[#31257D] transition-colors duration-300">مميزاتنا</span>
               </button>
             </li>
             <li className="group">
               <button 
                 onClick={() => handleNavigation('/', 'users')}
-                className="flex items-center justify-between py-2 border-b border-[#0B2B4F]/10 hover:border-[#0B2B4F] transition-colors duration-300 w-full"
+                className="flex items-center justify-between py-2 border-b border-[#31257D]/10 hover:border-[#31257D] transition-colors duration-300 w-full"
               >
-                <span className="text-[#0B2B4F] group-hover:translate-x-2 transition-transform duration-300">←</span>
-                <span className="group-hover:text-[#0B2B4F] transition-colors duration-300">المستفيدون</span>
+                <span className="text-[#31257D] group-hover:translate-x-2 transition-transform duration-300">←</span>
+                <span className="group-hover:text-[#31257D] transition-colors duration-300">المستفيدون</span>
               </button>
             </li>
             <li className="group">
               <button 
                 onClick={() => handleNavigation('/', 'universities')}
-                className="flex items-center justify-between py-2 border-b border-[#0B2B4F]/10 hover:border-[#0B2B4F] transition-colors duration-300 w-full"
+                className="flex items-center justify-between py-2 border-b border-[#31257D]/10 hover:border-[#31257D] transition-colors duration-300 w-full"
               >
-                <span className="text-[#0B2B4F] group-hover:translate-x-2 transition-transform duration-300">←</span>
-                <span className="group-hover:text-[#0B2B4F] transition-colors duration-300">الجامعات</span>
+                <span className="text-[#31257D] group-hover:translate-x-2 transition-transform duration-300">←</span>
+                <span className="group-hover:text-[#31257D] transition-colors duration-300">الجامعات</span>
               </button>
             </li>
             {/* تم تعديل المسار هنا أيضاً */}
             <li className="group">
               <button 
-                onClick={() => handleNavigation('/SearchProject')}
-                className="flex items-center justify-between py-2 border-b border-[#0B2B4F]/10 hover:border-[#0B2B4F] transition-colors duration-300 w-full"
+                onClick={() => handleNavigation('/ProjectSearch')}
+                className="flex items-center justify-between py-2 border-b border-[#31257D]/10 hover:border-[#31257D] transition-colors duration-300 w-full"
               >
-                <span className="text-[#0B2B4F] group-hover:translate-x-2 transition-transform duration-300">←</span>
-                <span className="group-hover:text-[#0B2B4F] transition-colors duration-300">البحث عن مشاريع</span>
+                <span className="text-[#31257D] group-hover:translate-x-2 transition-transform duration-300">←</span>
+                <span className="group-hover:text-[#31257D] transition-colors duration-300">البحث عن مشاريع</span>
               </button>
             </li>
           </ul>
@@ -246,7 +247,7 @@ function Navbar() {
           <div className="flex flex-col gap-3 mt-6">
             <Link
               to="/register"
-              className="relative px-5 py-3 bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] text-white text-sm rounded-none overflow-hidden group shadow-md text-center"
+              className="relative px-5 py-3 bg-gradient-to-r from-[#31257D] to-[#4937BF] text-white text-sm rounded-none overflow-hidden group shadow-md text-center"
               onClick={() => setOpen(false)}
             >
               <span className="relative z-10 flex items-center justify-center gap-2">
@@ -259,7 +260,7 @@ function Navbar() {
 
             <Link
               to="/login"
-              className="relative px-5 py-3 bg-transparent text-[#0B2B4F] text-sm border border-[#0B2B4F]/30 hover:border-[#0B2B4F] rounded-none overflow-hidden group text-center"
+              className="relative px-5 py-3 bg-transparent text-[#31257D] text-sm border border-[#31257D]/30 hover:border-[#31257D] rounded-none overflow-hidden group text-center"
               onClick={() => setOpen(false)}
             >
               <span className="relative z-10 flex items-center justify-center gap-2">
@@ -272,7 +273,7 @@ function Navbar() {
           </div>
 
           {/* نص مساعد في الموبايل */}
-          <p className="text-xs text-[#A0AEC0] text-center mt-4 pt-4 border-t border-[#0B2B4F]/10">
+          <p className="text-xs text-[#A0AEC0] text-center mt-4 pt-4 border-t border-[#31257D]/10">
             منصة معتمدة من وزارة التعليم العالي
           </p>
         </div>

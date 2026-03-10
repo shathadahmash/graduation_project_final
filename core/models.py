@@ -41,7 +41,7 @@ class University(models.Model):
     uname_ar = models.CharField(max_length=255)
     uname_en = models.CharField(max_length=255, blank=True, null=True)
     type = models.CharField(max_length=100, blank=True, null=True)
-    
+    description = models.TextField(blank=True, null=True)
     # Image field with custom upload path
     image = models.ImageField(
         upload_to=university_image_path,
@@ -82,7 +82,7 @@ class College(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True)
     name_ar = models.CharField(max_length=255)
     name_en = models.CharField(max_length=255, blank=True, null=True)
-
+    description = models.TextField(blank=True, null=True)
     image = models.ImageField(upload_to=college_image_path, blank=True, null=True)
 
     def __str__(self):
@@ -451,6 +451,9 @@ class Project(models.Model):
         blank=True, 
         related_name='created_projects'
     )
+    university = models.ForeignKey(University, on_delete=models.CASCADE, null=True, blank=True)  # optional
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE , null=True, blank=True)
+    college = models.ForeignKey(College, on_delete=models.CASCADE, null=True, blank=True)
     start_date = models.IntegerField(("Start Year"), null=True, blank=True)
     end_date = models.IntegerField(("End Year"), null=True, blank=True)
     external_company = models.ForeignKey(
@@ -737,8 +740,8 @@ class GroupMembers(models.Model):
 class GroupSupervisors(models.Model):
     SUPERVISOR_TYPE_CHOICES = [('supervisor','مشرف'),('co_supervisor','مشرف مشارك')]
     user = models.ForeignKey('User', on_delete=models.CASCADE)
-    group = models.ForeignKey(Group, on_delete=models.CASCADE)
     type = models.CharField(max_length=20, choices=SUPERVISOR_TYPE_CHOICES, default='supervisor')
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="groupsupervisors")
 
     def __str__(self):
         proj_title = self.group.project.title if self.group.project else 'No Project'

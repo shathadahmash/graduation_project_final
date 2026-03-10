@@ -208,13 +208,15 @@ def respond_to_group_request(request, approval_id):
 
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 
 class StudentViewSet(viewsets.ModelViewSet):
     serializer_class = StudentSerializer
 
     def get_queryset(self):
         user = self.request.user
-
         if user.is_superuser:  # superuser يرى كل الطلاب
             return Student.objects.all()
 
@@ -227,6 +229,15 @@ class StudentViewSet(viewsets.ModelViewSet):
             )
         return Student.objects.none()
 
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
+    def count(self, request):
+        """
+        Public endpoint to get the total number of students.
+        Accessible to anyone.
+        """
+        total = Student.objects.count()
+        return Response({"total_students": total})
+    
 class ExternalCompanyViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.filter(userroles__role__type__icontains='External')
     serializer_class = ExternalCompanySerializer

@@ -52,52 +52,53 @@ class ProjectSerializer(serializers.ModelSerializer):
         ]
 
     def get_supervisor_name(self, obj):
-        for grp in getattr(obj, 'groups', []).all():
-            for gs in getattr(grp, 'groupsupervisors_set', []).all():
+        for grp in obj.groups.all():
+            for gs in grp.groupsupervisors.all():
                 if gs.type == 'supervisor' and gs.user:
                     return gs.user.name or gs.user.username
         return "لا يوجد مشرف"
 
     def get_co_supervisor_name(self, obj):
-        for grp in getattr(obj, 'groups', []).all():
-            for gs in getattr(grp, 'groupsupervisors_set', []).all():
-                if gs.type and gs.type.lower().startswith('co_supervisor') and gs.user:
+        for grp in obj.groups.all():
+            for gs in grp.groupsupervisors.all():
+                if gs.type == 'co_supervisor' and gs.user:
                     return gs.user.name or gs.user.username
         return None
 
     def get_college_name(self, obj):
-        for grp in getattr(obj, 'groups', []).all():
-            for pg in getattr(grp, 'program_groups', []).all():
-                prog = getattr(pg, 'program', None)
+        for grp in obj.groups.all():
+            for pg in grp.program_groups.all():
+                prog = pg.program
                 if not prog:
                     continue
-                dept = getattr(prog, 'department', None)
+                dept = prog.department
                 if not dept:
                     continue
-                college = getattr(dept, 'college', None)
+                college = dept.college
                 if college:
                     return college.name_ar
         return None
 
     def get_university_name(self, obj):
-        for grp in getattr(obj, 'groups', []).all():
-            for pg in getattr(grp, 'program_groups', []).all():
-                prog = getattr(pg, 'program', None)
+        for grp in obj.groups.all():
+            for pg in grp.program_groups.all():
+                prog = pg.program
                 if not prog:
                     continue
-                dept = getattr(prog, 'department', None)
+                dept = prog.department
                 if not dept:
                     continue
-                college = getattr(dept, 'college', None)
+                college = dept.college
                 if not college:
                     continue
-                branch = getattr(college, 'branch', None)
+                branch = college.branch
                 if not branch:
                     continue
-                uni = getattr(branch, 'university', None)
+                uni = branch.university
                 if uni:
                     return uni.uname_ar
         return None
+
 
     def get_state_name(self, obj):
         try:

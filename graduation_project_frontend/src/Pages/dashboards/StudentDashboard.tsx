@@ -214,7 +214,7 @@ const StudentDashboard: React.FC = () => {
                 {myGroup && (myGroup.is_official_group || myGroup.user_role_in_pending_request === 'creator') ? (
                   <div className="bg-slate-800/50 backdrop-blur-md p-6 rounded-[2rem] flex items-center justify-end gap-5">
                     <div className="text-right">
-                     {/* <h4 className="text-xl font-black">{myGroup.group_name}</h4>*/}
+            
                      <h4 className="text-xl font-black">فريق التخرج</h4>
                       <p className="text-blue-400 font-bold text-xs mt-1">
                         {myGroup.is_official_group ? 

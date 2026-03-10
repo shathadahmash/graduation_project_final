@@ -22,7 +22,7 @@ export interface Supervisor {
  
 // واجهة إنشاء المجموعة (من الكود الثاني)
 export interface GroupCreatePayload {
-  group_name: string;
+  // group_name: string;
 
   department_id: number;
   college_id: number;

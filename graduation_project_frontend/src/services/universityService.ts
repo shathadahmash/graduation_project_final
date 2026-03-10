@@ -11,6 +11,7 @@ export interface College {
     name_ar?: string;
     name_en?: string | null;
     branch?: number | null;
+    description?: string;
     branch_detail?: any;
 }
 

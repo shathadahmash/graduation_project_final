@@ -112,6 +112,11 @@ class CityAdmin(admin.ModelAdmin):
     search_fields = ('bname_ar', 'bname_en')
     list_filter = ('bname_ar',)
 
+try:
+    admin.site.unregister(University)
+except admin.sites.NotRegistered:
+    pass
+
 @admin.register(University)
 class UniversityAdmin(admin.ModelAdmin):
     list_display = ('uid', 'uname_ar', 'uname_en', 'type', 'image_preview')
@@ -119,16 +124,20 @@ class UniversityAdmin(admin.ModelAdmin):
     list_filter = ('type',)
     fields = ('uname_ar', 'uname_en', 'type', 'image')  # include image in admin form
 
-    # Custom upload widget
+    # Custom upload widget for image field
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         if db_field.name == 'image':
             kwargs['widget'] = ClearableFileInput(attrs={'class': 'file-upload'})
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
-    # Show thumbnail preview in list_display
+    # Show clickable thumbnail in list_display
     def image_preview(self, obj):
         if obj.image:
-            return format_html('<img src="{}" style="height:50px;" />', obj.image.url)
+            return format_html(
+                '<a href="{}" target="_blank"><img src="{}" style="height:50px;" /></a>',
+                obj.image.url,
+                obj.image.url
+            )
         return '-'
     image_preview.short_description = 'Logo'
 
@@ -312,25 +321,20 @@ class ProjectStateAdmin(admin.ModelAdmin):
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
     list_display = (
-        'project_id', 'title', 'project_type', 'state', 'created_by', 
-        'start_date', 'end_date', 'field', 'tools', 'logo_preview', 'documentation_link'
+        'project_id', 'title', 'project_type', 'state', 'university', 'branch', 'college',
+        'created_by', 'start_date', 'end_date', 'field', 'tools', 'logo_preview', 'documentation_link'
     )
     list_filter = (
-        'project_type',
-        'state', 
-        'created_by', 
-        'start_date', 
-        'end_date', 
-        'groups__program_groups__program__department__college__branch__university'
+        'project_type', 'state', 
+        'start_date', 'end_date'
     )
     search_fields = (
-        'title', 
-        'description', 
-        'created_by__username', 
-        'state__name', 
-        'groups__program_groups__program__department__college__branch__university__uname_ar'
+        'title', 'description', 'field', 'tools', 'created_by__username',
+        'university__uname_ar', 'branch__university__uname_ar', 'branch__city__bname_ar',
+        'college__name_ar'
     )
-    autocomplete_fields = ('created_by', 'state')
+    autocomplete_fields = ('created_by', 'state', 'university', 'branch', 'college')
+
     fieldsets = (
         (None, {
             'fields': ('title', 'description', 'state', 'created_by', 'project_type')
