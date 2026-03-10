@@ -46,7 +46,7 @@ class ProjectFilter(django_filters.FilterSet):
     )
     supervisor = django_filters.NumberFilter(method="filter_supervisor")
     co_supervisor = django_filters.NumberFilter(method="filter_co_supervisor")
-    year = django_filters.NumberFilter(field_name="start_date")
+    year = django_filters.NumberFilter(field_name="start_date__year")
     tools = django_filters.CharFilter(field_name="tools", lookup_expr="icontains")
     field = django_filters.CharFilter(field_name="field", lookup_expr="icontains")
 
@@ -74,8 +74,6 @@ class ProjectFilter(django_filters.FilterSet):
             "state_name",
             "college",
             "department",
-            "supervisor",
-            "co_supervisor",
             "year",
             "university",
             "tools",
@@ -144,6 +142,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 user,
             )
             return qs
+        
         user = self.request.user  # Django gives the logged-in User instance
         if PermissionManager.is_supervisor(user):
          return qs.filter(
