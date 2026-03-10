@@ -44,7 +44,7 @@ const TeamStatusPage: React.FC<TeamStatusPageProps> = ({ myGroup, onNavigateToAd
                     رقم الطلب: #{group.id || group.group_id || 'غير متوفر'}
                   </span>
                   <h3 className="text-lg font-black text-blue-800">
-                    فريق: {group.group_name || `Group #${group.id || group.group_id || index}`}
+                    فريق: {` ${group.group_detail?.title ||  'المشروع غير محدد بعد'}`}
                   </h3>
                 </div>
 
@@ -61,13 +61,12 @@ const TeamStatusPage: React.FC<TeamStatusPageProps> = ({ myGroup, onNavigateToAd
                       >
                         <div className="flex items-center gap-4">
                           <div
-                            className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${
-                              isApproved
+                            className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${isApproved
                                 ? 'bg-green-100 text-green-600'
                                 : isRejected
-                                ? 'bg-red-100 text-red-600'
-                                : 'bg-amber-100 text-amber-600'
-                            }`}
+                                  ? 'bg-red-100 text-red-600'
+                                  : 'bg-amber-100 text-amber-600'
+                              }`}
                           >
                             {isApproved ? (
                               <FiCheckCircle />
@@ -85,27 +84,26 @@ const TeamStatusPage: React.FC<TeamStatusPageProps> = ({ myGroup, onNavigateToAd
                               {member.role === 'student'
                                 ? 'طالب'
                                 : member.role === 'supervisor'
-                                ? 'مشرف'
-                                : 'أستاذ مساعد'}
+                                  ? 'مشرف'
+                                  : 'أستاذ مساعد'}
                             </p>
                           </div>
                         </div>
 
                         <div className="text-left flex items-center gap-2">
                           <span
-                            className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${
-                              isApproved
+                            className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${isApproved
                                 ? 'bg-green-50 text-green-700'
                                 : isRejected
-                                ? 'bg-red-50 text-red-700'
-                                : 'bg-amber-50 text-amber-700'
-                            }`}
+                                  ? 'bg-red-50 text-red-700'
+                                  : 'bg-amber-50 text-amber-700'
+                              }`}
                           >
                             {isApproved
                               ? 'تم القبول'
                               : isRejected
-                              ? 'مرفوض'
-                              : 'قيد الانتظار'}
+                                ? 'مرفوض'
+                                : 'قيد الانتظار'}
                           </span>
 
                           {isRejected && (

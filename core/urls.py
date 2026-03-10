@@ -4,12 +4,19 @@ from django.contrib.auth.decorators import login_required
 from rest_framework.routers import DefaultRouter
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django.conf.urls.static import static
+from GraduationProjects import settings
+#from core.serializers.location import FetchRelatedToUniversity
 #this is added for the import
 # import views for import functionality
 from .views.import_views import import_users_validate, import_users_commit
 #till here
 from .views.import_projects import import_projects_commit, import_projects_template, import_projects_validate
+from core.views.groups import GroupProgramViewSet
+from core.views.location_views import BranchViewSet, CollegeDepartmentsView, CollegeProgramsView, DepartmentViewSet, FetchRelatedToUniversity, UniversityViewSet, universitycollegeviewset
+from core.views.location_views import ProgramViewSet
 
+from .views import get_csrf_token
 
 
 from core.views import (
@@ -37,11 +44,7 @@ from core.views import (
 
     
 )
-from core.views.groups import GroupProgramViewSet
-from core.views.location_views import BranchViewSet, CollegeDepartmentsView, CollegeProgramsView, DepartmentViewSet, UniversityViewSet, universitycollegeviewset
-from core.views.location_views import ProgramViewSet
 
-from .views import get_csrf_token
 
 # إنشاء router واحد فقط
 router = DefaultRouter()
@@ -66,6 +69,11 @@ router.register(r'branches', BranchViewSet, basename='branches')
 router.register(r'university-colleges', universitycollegeviewset, basename='university-colleges')
 router.register(r'students', StudentViewSet, basename='students')
 router.register(r'cities', CityViewSet, basename='cities')
+router.register(
+    r'fetch-related-to-university',
+    FetchRelatedToUniversity,
+    basename='fetch-related-to-university'
+)
 urlpatterns = [
     path('colleges/<int:college_id>/departments/', CollegeDepartmentsView.as_view(), name='college-departments'),
     path('approvals/<int:approval_id>/approve/', respond_to_group_request, name='approval-approve'),
@@ -102,3 +110,6 @@ urlpatterns = [
     path('system/import/projects/template/', import_projects_template, name='import-projects-template'),
 
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

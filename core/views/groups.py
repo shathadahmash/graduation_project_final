@@ -139,11 +139,7 @@ class GroupViewSet(viewsets.ModelViewSet):
     # 2) Student creates GROUP CREATION REQUEST (pending)
     # ============================
     def create(self, request, *args, **kwargs):
-        """
-        إنشاء طلب مجموعة جديد بناءً على الحقول الفعلية في الموديل
-        (بدون group_name)
-        
-        """
+      
         print("DEBUG Incoming group data:", request.data)
         logger.debug(f"Incoming group data: {request.data}")  # 👀 check payload
         dept_id = request.data.get('department_id')
@@ -324,10 +320,6 @@ class GroupViewSet(viewsets.ModelViewSet):
                     data['is_pending'] = True
                     data['user_role_in_pending_request'] = 'creator' if request_obj.creator == user else 'invited'
 
-                    # Optional: ensure a friendly group_name in pending data too
-                    # (only if serializer doesn't provide it)
-                    # if 'group_name' not in data or not data.get('group_name'):
-                    #     data['group_name'] = request_obj.creator.name or request_obj.creator.username
 
                 return Response(data_list)
 
@@ -393,10 +385,7 @@ class GroupViewSet(viewsets.ModelViewSet):
 
 @api_view(['POST'])
 def submit_group_creation_request(request):
-    """
-    Submit group creation request (legacy helper endpoint)
-    بدون group_name
-    """
+ 
     data = request.data
     user = request.user
 

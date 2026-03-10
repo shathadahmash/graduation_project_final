@@ -23,7 +23,7 @@ interface Project {
   co_supervisor_name?: string;
   logo?: string;
   documentation?: string;
-  students?: { name: string; id?: string }[]; // إضافة قائمة الطلاب
+  students?: { name: string; id?: string }[];
 }
 
 interface FilterOptions {
@@ -74,9 +74,13 @@ const ProjectSearch: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
   const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
+  const [imageLoading, setImageLoading] = useState<Record<number, boolean>>({});
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // دالة لإزالة التكرار من المصفوفات بناءً على الاسم (للكليات والأقسام)
+  // ثابت عنوان API
+  const API_BASE_URL = 'http://localhost:8000';
+
+  // دالة لإزالة التكرار من المصفوفات بناءً على الاسم
   const removeDuplicatesByName = <T extends { id: number; name: string }>(items: T[]): T[] => {
     const uniqueMap = new Map<string, T>();
     items.forEach(item => {
@@ -105,36 +109,101 @@ const ProjectSearch: React.FC = () => {
     return dateStr.substring(0, 4);
   };
 
-  // بناء رابط الصورة
-  const getImageUrl = (imagePath?: string) => {
-    const API_BASE_URL = 'http://localhost:8000';
-    
+  // دالة محسنة لبناء رابط الصورة
+  const getImageUrl = (imagePath?: string): string => {
     if (!imagePath) {
       return '/default-project-logo.png';
     }
     
+    // إذا كان الرابط كامل (يبدأ بـ http)
     if (imagePath.startsWith('http')) {
       return imagePath;
     }
     
-    const cleanPath = imagePath.replace(/^\/+/, '');
+    // تنظيف المسار من الشرطات الزائدة
+    const cleanPath = imagePath.replace(/^\/+|\/+$/g, '');
     
-    if (cleanPath.startsWith('media/')) {
-      return `${API_BASE_URL}/${cleanPath}`;
+    // قائمة بالمسارات الممكنة للصور
+    const possiblePaths = [
+      // المسار الأصلي
+      `${API_BASE_URL}/media/${cleanPath}`,
+      
+      // إذا كان المسار يبدأ بـ media/
+      ...(cleanPath.startsWith('media/') ? [`${API_BASE_URL}/${cleanPath}`] : []),
+      
+      // إذا كان المسار يبدأ بـ logos/ أو project_logos/
+      ...(cleanPath.startsWith('logos/') || cleanPath.startsWith('project_logos/') 
+        ? [`${API_BASE_URL}/media/${cleanPath}`, `${API_BASE_URL}/${cleanPath}`] 
+        : []),
+      
+      // إذا كان المسار مجرد اسم ملف
+      ...(!cleanPath.includes('/') 
+        ? [
+            `${API_BASE_URL}/media/project_logos/${cleanPath}`,
+            `${API_BASE_URL}/media/logos/${cleanPath}`,
+            `${API_BASE_URL}/media/${cleanPath}`
+          ] 
+        : []),
+      
+      // مسارات إضافية للمرونة
+      `${API_BASE_URL}/media/uploads/${cleanPath.split('/').pop()}`,
+      `${API_BASE_URL}/uploads/${cleanPath.split('/').pop()}`,
+    ];
+    
+    // إزالة التكرار من المسارات
+    return [...new Set(possiblePaths)][0];
+  };
+
+  // دالة للتحقق من وجود الصورة ومحاولة مسارات بديلة
+  const tryImageLoad = (projectId: number, imagePath: string, imgElement: HTMLImageElement, attempt: number = 0) => {
+    const possiblePaths = [
+      imagePath,
+      `${API_BASE_URL}/media/${imagePath.replace(/^\/+/, '')}`,
+      `${API_BASE_URL}/media/project_logos/${imagePath.split('/').pop()}`,
+      `${API_BASE_URL}/media/logos/${imagePath.split('/').pop()}`,
+      `${API_BASE_URL}/uploads/${imagePath.split('/').pop()}`,
+      '/default-project-logo.png'
+    ];
+
+    if (attempt < possiblePaths.length) {
+      console.log(`محاولة تحميل الصورة للمشروع ${projectId}:`, possiblePaths[attempt]);
+      imgElement.src = possiblePaths[attempt];
+      
+      imgElement.onload = () => {
+        console.log(`تم تحميل الصورة بنجاح للمشروع ${projectId} من المسار:`, possiblePaths[attempt]);
+        setImageLoading(prev => ({ ...prev, [projectId]: false }));
+        setImageErrors(prev => ({ ...prev, [projectId]: false }));
+      };
+      
+      imgElement.onerror = () => {
+        console.log(`فشل تحميل الصورة للمشروع ${projectId} من المسار:`, possiblePaths[attempt]);
+        tryImageLoad(projectId, imagePath, imgElement, attempt + 1);
+      };
+    } else {
+      console.log(`فشلت جميع محاولات تحميل الصورة للمشروع ${projectId}`);
+      setImageLoading(prev => ({ ...prev, [projectId]: false }));
+      setImageErrors(prev => ({ ...prev, [projectId]: true }));
     }
-    
-    if (cleanPath.startsWith('logos/') || cleanPath.startsWith('project_logos/')) {
-      return `${API_BASE_URL}/media/${cleanPath}`;
-    }
-    
-    return `${API_BASE_URL}/media/${cleanPath}`;
   };
 
   // معالجة خطأ تحميل الصورة
   const handleImageError = (projectId: number, e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    console.log(`فشل تحميل الصورة للمشروع ${projectId}`);
-    setImageErrors(prev => ({ ...prev, [projectId]: true }));
-    e.currentTarget.src = '/default-project-logo.png';
+    const img = e.currentTarget;
+    const project = projects.find(p => p.project_id === projectId);
+    
+    if (!project || !project.logo) {
+      img.src = '/default-project-logo.png';
+      return;
+    }
+
+    setImageLoading(prev => ({ ...prev, [projectId]: true }));
+    tryImageLoad(projectId, project.logo, img);
+  };
+
+  // معالجة نجاح تحميل الصورة
+  const handleImageLoad = (projectId: number) => {
+    setImageLoading(prev => ({ ...prev, [projectId]: false }));
+    setImageErrors(prev => ({ ...prev, [projectId]: false }));
   };
 
   // ترجمة نوع المشروع
@@ -211,29 +280,37 @@ const ProjectSearch: React.FC = () => {
       const response = await projectService.getProjects(params);
       const data = Array.isArray(response) ? response : response?.results || response?.data || [];
       
-      const processedData = data.map((p: any) => ({
-        project_id: p.project_id,
-        title: p.title,
-        description: p.description,
-        project_type: p.project_type,
-        state: p.state?.name || p.state,
-        field: p.field,
-        tools: p.tools,
-        university_name: p.university?.name || p.university_name,
-        branch_name: p.branch?.name || p.branch_name,
-        college_name: p.college?.name || p.college_name,
-        department_name: p.department?.name,
-        start_date: p.start_date,
-        end_date: p.end_date,
-        external_company: p.external_company?.name,
-        supervisor_name: p.supervisor_name,
-        co_supervisor_name: p.co_supervisor_name,
-        logo: p.logo,
-        documentation: p.documentation,
-        students: p.students || [] // إضافة الطلاب إذا كانت موجودة
-      }));
+      const processedData = data.map((p: any) => {
+        console.log(`مشروع ${p.project_id} - مسار الصورة الأصلي:`, p.logo);
+        return {
+          project_id: p.project_id,
+          title: p.title,
+          description: p.description,
+          project_type: p.project_type,
+          state: p.state?.name || p.state,
+          field: p.field,
+          tools: p.tools,
+          university_name: p.university?.name || p.university_name,
+          branch_name: p.branch?.name || p.branch_name,
+          college_name: p.college?.name || p.college_name,
+          department_name: p.department?.name,
+          start_date: p.start_date,
+          end_date: p.end_date,
+          external_company: p.external_company?.name,
+          supervisor_name: p.supervisor_name,
+          co_supervisor_name: p.co_supervisor_name,
+          logo: p.logo,
+          documentation: p.documentation,
+          students: p.students || []
+        };
+      });
       
       setProjects(processedData);
+      
+      // إعادة تعيين أخطاء الصور عند تحميل مشاريع جديدة
+      setImageErrors({});
+      setImageLoading({});
+      
       setInitialLoad(false);
     } catch (err) {
       console.error('خطأ في جلب المشاريع', err);
@@ -243,6 +320,24 @@ const ProjectSearch: React.FC = () => {
       setLoading(false);
     }
   }, [filters, searchQuery]);
+
+  // التحقق المسبق من الصور
+  useEffect(() => {
+    if (projects.length > 0) {
+      projects.forEach(project => {
+        if (project.logo && !imageErrors[project.project_id]) {
+          const img = new Image();
+          img.onload = () => {
+            console.log(`✅ الصورة تعمل للمشروع ${project.project_id}`);
+          };
+          img.onerror = () => {
+            console.log(`❌ فشل تحميل الصورة للمشروع ${project.project_id}`);
+          };
+          img.src = getImageUrl(project.logo);
+        }
+      });
+    }
+  }, [projects]);
 
   useEffect(() => {
     fetchFilterOptions();
@@ -302,6 +397,81 @@ const ProjectSearch: React.FC = () => {
       project_type: ''
     });
     setSearchQuery('');
+  };
+
+  // مكون عرض الصورة
+  const ProjectImage: React.FC<{ project: Project }> = ({ project }) => {
+    const [localError, setLocalError] = useState(false);
+    const [localLoading, setLocalLoading] = useState(true);
+    const imgRef = useRef<HTMLImageElement>(null);
+
+    useEffect(() => {
+      if (project.logo && imgRef.current) {
+        const img = imgRef.current;
+        const possiblePaths = [
+          `${API_BASE_URL}/media/${project.logo.replace(/^\/+/, '')}`,
+          `${API_BASE_URL}/media/project_logos/${project.logo.split('/').pop()}`,
+          `${API_BASE_URL}/media/logos/${project.logo.split('/').pop()}`,
+          `${API_BASE_URL}/uploads/${project.logo.split('/').pop()}`,
+          '/default-project-logo.png'
+        ];
+
+        let currentAttempt = 0;
+
+        const tryNextPath = () => {
+          if (currentAttempt < possiblePaths.length) {
+            console.log(`محاولة ${currentAttempt + 1} للمشروع ${project.project_id}:`, possiblePaths[currentAttempt]);
+            img.src = possiblePaths[currentAttempt];
+            currentAttempt++;
+          } else {
+            setLocalLoading(false);
+            setLocalError(true);
+          }
+        };
+
+        img.onload = () => {
+          console.log(`✅ تم تحميل الصورة للمشروع ${project.project_id}`);
+          setLocalLoading(false);
+          setLocalError(false);
+        };
+
+        img.onerror = () => {
+          console.log(`❌ فشل تحميل المحاولة ${currentAttempt} للمشروع ${project.project_id}`);
+          tryNextPath();
+        };
+
+        tryNextPath();
+      } else {
+        setLocalLoading(false);
+        setLocalError(true);
+      }
+    }, [project]);
+
+    if (localLoading) {
+      return (
+        <div className="w-full h-full flex items-center justify-center bg-[#F8FAFC]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#31257D]"></div>
+        </div>
+      );
+    }
+
+    if (localError || !project.logo) {
+      return (
+        <div className="flex flex-col items-center justify-center text-[#A0AEC0]">
+          <FiImage size={40} />
+          <span className="text-xs mt-1">لا توجد صورة</span>
+        </div>
+      );
+    }
+
+    return (
+      <img
+        ref={imgRef}
+        alt={project.title}
+        className="w-full h-full object-contain p-2 transition-transform hover:scale-105"
+        style={{ display: localError ? 'none' : 'block' }}
+      />
+    );
   };
 
   return (
@@ -505,22 +675,9 @@ const ProjectSearch: React.FC = () => {
                   key={p.project_id} 
                   className="bg-white shadow rounded-xl p-4 border border-[#31257D]/5 hover:shadow-lg transition-all flex flex-col h-full"
                 >
-                  {/* صورة المشروع */}
+                  {/* صورة المشروع - باستخدام المكون المخصص */}
                   <div className="w-full h-40 bg-[#F8FAFC] rounded-lg mb-3 flex items-center justify-center overflow-hidden border border-[#31257D]/10">
-                    {p.logo && !imageErrors[p.project_id] ? (
-                      <img 
-                        src={getImageUrl(p.logo)}
-                        alt={p.title}
-                        className="w-full h-full object-contain p-2 transition-transform hover:scale-105"
-                        onError={(e) => handleImageError(p.project_id, e)}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center text-[#A0AEC0]">
-                        <FiImage size={40} />
-                        <span className="text-xs mt-1">لا توجد صورة</span>
-                      </div>
-                    )}
+                    <ProjectImage project={p} />
                   </div>
                   
                   {/* عنوان المشروع */}
@@ -619,7 +776,7 @@ const ProjectSearch: React.FC = () => {
           </>
         )}
 
-        {/* نافذة التفاصيل المنبثقة - المعدلة حسب الطلب */}
+        {/* نافذة التفاصيل المنبثقة */}
         {selectedProject && (
           <div 
             className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-all duration-300"
@@ -645,15 +802,18 @@ const ProjectSearch: React.FC = () => {
 
               {/* محتوى النافذة */}
               <div className="p-6 max-h-[70vh] overflow-y-auto">
-                {/* صورة المشروع */}
+                {/* صورة المشروع في النافذة المنبثقة */}
                 <div className="flex justify-center mb-6">
                   <div className="w-32 h-32 bg-[#31257D]/5 rounded-xl flex items-center justify-center p-2 overflow-hidden border border-[#31257D]/10">
-                    {selectedProject.logo && !imageErrors[selectedProject.project_id] ? (
+                    {selectedProject.logo ? (
                       <img 
                         src={getImageUrl(selectedProject.logo)}
                         alt={selectedProject.title}
                         className="w-full h-full object-contain"
-                        onError={(e) => handleImageError(selectedProject.project_id, e)}
+                        onError={(e) => {
+                          const img = e.currentTarget;
+                          img.src = '/default-project-logo.png';
+                        }}
                       />
                     ) : (
                       <div className="flex flex-col items-center justify-center text-[#A0AEC0]">
@@ -680,6 +840,7 @@ const ProjectSearch: React.FC = () => {
                   </span>
                 </div>
 
+                {/* بقية محتوى النافذة يبقى كما هو */}
                 {/* ملخص المشروع */}
                 <div className="mb-6">
                   <h4 className="font-bold text-[#31257D] mb-3 flex items-center gap-2 text-lg">
@@ -715,7 +876,7 @@ const ProjectSearch: React.FC = () => {
                   </div>
                 </div>
 
-                {/* ملف التوثيق - غير قابل للتحميل (عرض فقط) */}
+                {/* ملف التوثيق */}
                 {selectedProject.documentation && (
                   <div className="mb-4">
                     <h4 className="font-bold text-[#31257D] mb-3 flex items-center gap-2 text-lg">
@@ -740,7 +901,6 @@ const ProjectSearch: React.FC = () => {
                           تحميل
                         </button>
                       </div>
-                      {/* عرض المحتوى إذا كان نصاً أو رابطاً للعرض */}
                       {selectedProject.documentation.startsWith('http') ? (
                         <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                           <p className="text-sm text-[#4A5568] mb-2">معاينة الرابط:</p>
@@ -764,7 +924,7 @@ const ProjectSearch: React.FC = () => {
                   </div>
                 )}
 
-                {/* معلومات إضافية (اختيارية) - جامعة، كلية، الخ */}
+                {/* معلومات إضافية */}
                 <div className="mt-6 grid grid-cols-2 gap-3 text-sm bg-[#F8FAFC] p-4 rounded-lg">
                   <div>
                     <p className="text-[#4A5568]">الجامعة</p>
@@ -775,12 +935,10 @@ const ProjectSearch: React.FC = () => {
                     <p className="font-bold text-[#31257D]">{selectedProject.college_name}</p>
                   </div>
                   {selectedProject.department_name && (
-                    <>
-                      <div>
-                        <p className="text-[#4A5568]">القسم</p>
-                        <p className="font-bold text-[#31257D]">{selectedProject.department_name}</p>
-                      </div>
-                    </>
+                    <div>
+                      <p className="text-[#4A5568]">القسم</p>
+                      <p className="font-bold text-[#31257D]">{selectedProject.department_name}</p>
+                    </div>
                   )}
                   <div>
                     <p className="text-[#4A5568]">المشرف</p>

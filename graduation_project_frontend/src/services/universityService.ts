@@ -1,8 +1,6 @@
-/// ------ collegeServices.ts ------//
 import axios from 'axios';
 import { bulkFetch } from './bulkService';
 import api from './api';
-
 
 export interface College {
     id: number;
@@ -15,6 +13,10 @@ export interface College {
     branch_detail?: any;
 }
 
+export interface UniversityRelatedData {
+    university: any; // serialized university object
+    branches: any[]; // serialized branches with nested colleges, departments, programs
+}
 
 export const universityService = {
     // جلب الجامعات (يمكن استخدام axios أو api)
@@ -38,7 +40,6 @@ export const universityService = {
         }
     },
 
-    // إضافة جامعة جديدة - استخدام api لإرسال التوكن
     async addUniversity(universityData: Omit<College, 'id'>) {
         try {
             const response = await api.post('/universities/', universityData);
@@ -49,7 +50,6 @@ export const universityService = {
         }
     },
 
-    // تعديل جامعة - تم إصلاح الرابط واستخدام api
     async updateUniversity(universityId: number, universityData: Partial<Omit<College, 'id'>>) {
         if (!universityId) throw new Error("University ID is required for update");
         try {
@@ -61,7 +61,6 @@ export const universityService = {
         }
     },
 
-    // حذف جامعة - تم إصلاح الرابط واستخدام api لحل مشكلة 403
     async deleteUniversity(universityId: number) {
         if (!universityId) throw new Error("University ID is required for deletion");
         try {
@@ -117,6 +116,27 @@ export const universityService = {
             return response.data;
         } catch (err) {
             return [];
+        }
+    },
+
+    // ------------------ NEW FUNCTION ------------------
+    /**
+     * Fetch university with all related branches, colleges, departments, and programs
+     */
+    async getUniversityRelatedData(universityId: number): Promise<UniversityRelatedData | null> {
+        try {
+            // Option 1: If your DRF ViewSet uses query param
+            const response = await api.get('/fetch-related-to-university/', {
+                params: { university_id: universityId }
+            });
+
+            // Option 2: If your DRF ViewSet uses path param
+            // const response = await api.get(`/fetch-related-to-university/${universityId}/related/`);
+
+            return response.data;
+        } catch (error: any) {
+            console.error(`[universityService] Failed to fetch related data for university ${universityId}:`, error);
+            return null;
         }
     }
 };

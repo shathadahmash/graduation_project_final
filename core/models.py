@@ -451,9 +451,9 @@ class Project(models.Model):
         blank=True, 
         related_name='created_projects'
     )
-    university = models.ForeignKey(University, on_delete=models.CASCADE)  # optional
-    branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
-    college = models.ForeignKey(College, on_delete=models.CASCADE)
+    university = models.ForeignKey(University, on_delete=models.CASCADE, null=True, blank=True)  # optional
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE , null=True, blank=True)
+    college = models.ForeignKey(College, on_delete=models.CASCADE, null=True, blank=True)
     start_date = models.IntegerField(("Start Year"), null=True, blank=True)
     end_date = models.IntegerField(("End Year"), null=True, blank=True)
     external_company = models.ForeignKey(

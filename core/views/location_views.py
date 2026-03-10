@@ -194,4 +194,37 @@ class universitycollegeviewset(viewsets.ModelViewSet):
         self.perform_create(serializer)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    
+class FetchRelatedToUniversity(viewsets.ModelViewSet):
+    """
+    ViewSet to fetch all branches, colleges, departments, and programs
+    related to a specific university.
+    """
+    queryset = University.objects.all()
+    serializer_class = UniversitySerializer
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=True, methods=['get'])
+    def related(self, request, pk=None):
+        """
+        GET /fetch-related-to-university/<pk>/related/
+        """
+        try:
+            university = self.get_object()
+        except University.DoesNotExist:
+            return Response(
+                {'detail': 'University not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Fetch branches of the university with related colleges/departments/programs
+        branches = Branch.objects.filter(university=university).prefetch_related(
+            'college_set__department_set__program_set'
+        )
+
+        branch_serializer = BranchSerializer(branches, many=True, context={'request': request})
+        university_serializer = UniversitySerializer(university, context={'request': request})
+
+        return Response({
+            'university': university_serializer.data,
+            'branches': branch_serializer.data
+        })
