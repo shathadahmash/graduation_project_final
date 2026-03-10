@@ -175,39 +175,39 @@ export const projectService = {
     }
   },
 
-async getSupervisors(): Promise<Supervisor[]> {
-  const res = await api.get('/users');
+  async getSupervisors(): Promise<Supervisor[]> {
+    const res = await api.get('/users');
 
-  const supervisors = res.data.filter((user: any) =>
-    user.roles.some((role: any) => role.role__type === "Supervisor")
-  );
+    const supervisors = res.data.filter((user: any) =>
+      user.roles.some((role: any) => role.role__type === "Supervisor")
+    );
 
-  console.log("Fetched supervisors:", supervisors);
-  return supervisors;
-},
+    console.log("Fetched supervisors:", supervisors);
+    return supervisors;
+  },
 
-async getCoSupervisors(): Promise<Supervisor[]> {
-  const res = await api.get('/users');
+  async getCoSupervisors(): Promise<Supervisor[]> {
+    const res = await api.get('/users');
 
-  const coSupervisors = res.data.filter((user: any) =>
-    user.roles.some((role: any) => role.role__type === "Co-Supervisor")
-  );
+    const coSupervisors = res.data.filter((user: any) =>
+      user.roles.some((role: any) => role.role__type === "Co-Supervisor")
+    );
 
-  console.log("Fetched co-supervisors:", coSupervisors);
-  return coSupervisors;
-},
+    console.log("Fetched co-supervisors:", coSupervisors);
+    return coSupervisors;
+  },
 
 
-async updateGroup(
-  groupId: number,
-  supervisors: { user: number; type: "supervisor" | "co_supervisor" }[]
-) {
-  const res = await api.put(`/groups/${groupId}/`, {
-    supervisors: supervisors,
-  });
+  async updateGroup(
+    groupId: number,
+    supervisors: { user: number; type: "supervisor" | "co_supervisor" }[]
+  ) {
+    const res = await api.put(`/groups/${groupId}/`, {
+      supervisors: supervisors,
+    });
 
-  return res.data;
-},
+    return res.data;
+  },
 
 
 
@@ -281,6 +281,18 @@ async updateGroup(
       throw error;
     }
   },
+  // Add this inside projectService
+ async getUniversityProjects(universityId: number) {
+  try {
+    const response = await api.get('/projects/', {
+      params: { university: universityId }  // <-- filter by university
+    });
+    return (response.data as any[]).map(mapBackendProject);
+  } catch (error) {
+    console.error('[projectService] getUniversityProjects failed', error);
+    return [];
+  }
+},
 
   async getProjectsWithGroups(fields?: string[]) {
     const req = [

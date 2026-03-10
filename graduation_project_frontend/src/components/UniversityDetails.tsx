@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import api from "../services/api";
+import { data, Link, useParams } from "react-router-dom";
+import api, { API_ENDPOINTS } from "../services/api.ts";
+import { projectService } from "../services/projectService.ts"; // <-- import your project service
 
 interface Program {
   id: number;
@@ -11,12 +12,14 @@ interface Department {
   id: number;
   name: string;
   programs: Program[];
+  open?: boolean;
 }
 
 interface College {
   id: number;
   name: string;
   departments: Department[];
+  open?: boolean;
 }
 
 interface University {
@@ -29,47 +32,72 @@ interface University {
   colleges: College[];
 }
 
+interface Project {
+  id: number;
+  title: string;
+  description: string;
+  logo?: string;
+}
+
 const UniversityDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [university, setUniversity] = useState<University | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // University projects state
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(true);
+
+  // Fetch university details
   useEffect(() => {
     const fetchUniversity = async () => {
       try {
-        const response = await api.get(`/universities/${id}`);
+        const response = await api.get(
+          `${API_ENDPOINTS.related_to_university}${id}/related/`
+        );
         const data = response.data;
 
-        const mapped: University = {
-          id: data.uid,
-          name: data.uname_ar || "جامعة",
-          type:
-            data.type === "Government"
-              ? "حكومية"
-              : data.type === "Private"
-                ? "أهلية"
-                : data.type || "جامعة",
-          location: data.location || "اليمن",
-          logo: data.image || "/default-uni-logo.png",
-          description: data.description || "لا يوجد وصف متاح.",
-          colleges: data.colleges?.map((c: any) => ({
-            id: c.college_id,
-            name: c.college_name,
-            departments: c.departments?.map((d: any) => ({
-              id: d.department_id,
-              name: d.department_name,
-              programs:
-                d.programs?.map((p: any) => ({
-                  id: p.program_id,
-                  name: p.program_name,
-                })) || [],
-            })) || [],
-          })) || [],
-        };
+        if (!data || !data.university) {
+          setUniversity(null);
+          return;
+        }
 
-        setUniversity(mapped);
+        const colleges: College[] = (data.branches || []).flatMap(
+          (branch: any) =>
+            (branch.colleges || []).map((c: any) => ({
+              id: c.cid,
+              name: c.name_ar || c.name_en || "اسم الكلية",
+              open: false,
+              logo: c.image || data.university.image || "/default-college-logo.png",
+              departments: (c.departments || []).map((d: any) => ({
+                id: d.department_id,
+                name: d.name || d.department_name,
+                open: false,
+                programs: (d.programs || []).map((p: any) => ({
+                  id: p.pid || p.program_id,
+                  name: p.p_name || p.program_name,
+                })),
+              })),
+            }))
+        );
+
+        setUniversity({
+          id: data.university.uid,
+          name: data.university.uname_ar || "جامعة",
+          type:
+            data.university.type === "Government"
+              ? "حكومية"
+              : data.university.type === "Private"
+              ? "أهلية"
+              : data.university.type || "جامعة",
+          location: data.branches[0]?.city_detail?.bname_ar || "اليمن",
+          logo: data.university.image || "/default-uni-logo.png",
+          description: data.university.description || "لا يوجد وصف متاح.",
+          colleges,
+        });
       } catch (error) {
-        console.error("خطأ في جلب تفاصيل الجامعة", error);
+        console.error("Error fetching university", error);
+        setUniversity(null);
       } finally {
         setLoading(false);
       }
@@ -78,100 +106,302 @@ const UniversityDetails: React.FC = () => {
     fetchUniversity();
   }, [id]);
 
+  // Fetch university projects using projectService
+  useEffect(() => {
+    const fetchProjects = async () => {
+      setProjectsLoading(true);
+      try {
+        const fetchedProjects = await projectService.getUniversityProjects(parseInt(id));
+        setProjects(fetchedProjects);
+      } catch (error) {
+        console.error("Error fetching university projects", error);
+        setProjects([]);
+      } finally {
+        setProjectsLoading(false);
+      }
+    };
+    fetchProjects();
+  }, [id]);
+
+  // ... rest of your component (header, colleges, etc.)
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-100">
+      <div className="flex justify-center items-center h-screen bg-gray-50">
         <div className="w-16 h-16 border-4 border-[#31257D]/20 border-t-[#31257D] rounded-full animate-spin"></div>
       </div>
     );
   }
 
   if (!university) {
-    return <div className="text-center mt-20 text-red-500 text-xl">الجامعة غير موجودة</div>;
+    return (
+      <div className="text-center mt-20 text-red-500 text-xl">
+        الجامعة غير موجودة
+      </div>
+    );
   }
 
+  const toggleCollege = (collegeId: number) => {
+    setUniversity((prev) =>
+      prev
+        ? {
+          ...prev,
+          colleges: prev.colleges.map((c) => ({
+            ...c,
+            open: c.id === collegeId ? !c.open : false,
+            departments: c.departments.map((d) => ({ ...d, open: false })),
+          })),
+        }
+        : prev
+    );
+  };
+
+  const toggleDepartment = (collegeId: number, deptId: number) => {
+    setUniversity((prev) =>
+      prev
+        ? {
+          ...prev,
+          colleges: prev.colleges.map((c) =>
+            c.id === collegeId
+              ? {
+                ...c,
+                departments: c.departments.map((d) =>
+                  d.id === deptId
+                    ? { ...d, open: !d.open }
+                    : { ...d, open: false }
+                ),
+              }
+              : c
+          ),
+        }
+        : prev
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Sticky Header */}
-      {/* Sticky Header */}
-      <header className="bg-[#31257D] text-white sticky top-0 z-50 shadow-lg">
+    <div className="min-h-screen bg-[#F8FAFC]">
+
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-[#31257D] text-white shadow-lg">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-6 py-4">
           <h1 className="text-2xl font-bold">{university.name}</h1>
-          <nav className="flex space-x-10 text-lg font-medium"> {/* Increased space between links */}
-            <Link
-              to="/"
-              className="hover:text-yellow-400 transition-colors duration-200"
-            >
+
+          <nav className="flex gap-6">
+            <Link to="/" className="hover:underline">
               الصفحة الرئيسية
             </Link>
-            <Link
-              to={`/universities/${university.id}/about`}
-              className="hover:text-yellow-400 transition-colors duration-200"
-            >
-              عن الكلية
+            <Link to={`/universities/${university.id}/about`}>
+              عن الجامعة
             </Link>
-            <Link
-              to={`/universities/${university.id}/projects`}
-              className="hover:text-yellow-400 transition-colors duration-200"
-            >
+            <Link to={`/universities/${university.id}/projects`}>
               المشاريع
             </Link>
           </nav>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-12 space-y-12">
-        {/* University Hero */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 text-center flex flex-col items-center space-y-4">
-          <img
-            src={university.logo}
-            alt={university.name}
-            className="w-40 h-40 rounded-full object-contain border-4 border-[#31257D]/30"
-          />
-          <h1 className="text-5xl font-extrabold text-[#31257D]">{university.name}</h1>
-          <p className="text-lg text-gray-700">{university.type} - {university.location}</p>
+      <div className="max-w-7xl mx-auto px-6 py-14 flex flex-col md:flex-row gap-10 items-center">
+
+        <img
+          src={university.logo}
+          alt={university.name}
+          className="w-64 h-80 md:w-80 md:h-96 object-cover shadow-lg transition-all duration-300"
+          onError={(e) => {
+            e.currentTarget.src = '/default-uni-logo.png';
+          }}
+        />
+
+        <div className="space-y-4">
+          <h1 className="text-5xl font-bold text-[#31257D]">
+            {university.name}
+          </h1>
+
+          <p className="text-lg text-gray-600">
+            {university.type} • {university.location}
+          </p>
+
+          <p className="bg-white shadow-sm rounded-xl p-6 text-gray-600">
+            {university.description}
+          </p>
         </div>
+      </div>
 
-        {/* University Description */}
-        <section className="bg-white rounded-2xl shadow-lg p-8 text-gray-700">
-          <h2 className="text-3xl font-semibold mb-4 border-b-2 border-[#31257D]/40 inline-block pb-2">عن الجامعة</h2>
-          <p className="text-lg leading-relaxed">{university.description}</p>
-        </section>
+      {/* Colleges */}
+      <section className="max-w-7xl mx-auto px-6 pb-20">
+        <h2 className="text-3xl font-bold text-[#31257D] text-center mb-12">
+          الكليات
+        </h2>
 
-        {/* Colleges, Departments, Programs */}
-        <section className="bg-white rounded-2xl shadow-lg p-8 text-gray-700 space-y-6">
-          <h2 className="text-3xl font-semibold mb-4 border-b-2 border-[#31257D]/40 inline-block pb-2">الكليات والأقسام والبرامج</h2>
-          {university.colleges.length === 0 ? (
-            <p className="text-gray-500 font-bold">لا توجد كليات متاحة</p>
-          ) : (
-            <div className="space-y-6">
-              {university.colleges.map((college) => (
-                <div key={college.id} className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow duration-200">
-                  <h3 className="text-2xl font-bold text-blue-800 mb-2">{college.name}</h3>
-                  {college.departments.length === 0 ? (
-                    <p className="text-gray-500 ml-4">لا توجد أقسام</p>
-                  ) : (
-                    <ul className="ml-4 space-y-2">
-                      {college.departments.map((dept) => (
-                        <li key={dept.id}>
-                          <span className="font-semibold">{dept.name}</span>
-                          {dept.programs.length > 0 && (
-                            <ul className="ml-6 list-disc space-y-1">
-                              {dept.programs.map((prog) => (
-                                <li key={prog.id}>{prog.name}</li>
-                              ))}
-                            </ul>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+        <div className="flex flex-wrap justify-center gap-8">
+          {university.colleges.map((college) => (
+            <div key={college.id} className="w-80">
+
+              {/* College Card */}
+              <div className="group bg-white rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 p-6 text-center relative overflow-hidden">
+
+                <div className="absolute inset-0 bg-gradient-to-br from-[#31257D] to-[#4937BF] opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+
+                <div className="relative z-10">
+                  {/* Logo */}
+                  <div className="relative mb-4 w-full h-56 md:h-64 mx-auto">
+                    <img
+                      src={college.logo}
+                      alt={college.name}
+                      className="w-full h-full object-cover shadow-lg transition-all duration-300"
+                      onError={(e) => {
+                        e.currentTarget.src = '/default-college-logo.png';
+                      }}
+                    />
+                  </div>
+
+                  {/* Name */}
+                  <h3 className="text-xl font-bold text-[#31257D] group-hover:text-white transition-colors mb-3">
+                    {college.name}
+                  </h3>
+
+                  {/* City */}
+                  <div className="flex justify-center gap-2 mb-4">
+                    <span className="text-xs px-2 py-1 rounded-full bg-[#31257D]/5 text-gray-600 group-hover:bg-white/20 group-hover:text-white">
+                      {university.location}
+                    </span>
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => toggleCollege(college.id)}
+                      className="bg-[#31257D] text-white py-2 rounded-lg text-sm font-medium transition-all duration-300 group-hover:bg-white group-hover:text-[#31257D]"
+                    >
+                      عرض الأقسام
+                    </button>
+
+                    <Link
+                      to={`/colleges/${college.id}/projects`}
+                      className="text-center bg-[#31257D] text-white py-2 rounded-lg text-sm font-medium transition-all duration-300 group-hover:bg-white group-hover:text-[#31257D]"
+                    >
+                      مشاريع الكلية
+                    </Link>
+                  </div>
                 </div>
-              ))}
+
+                <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-white to-[#4937BF] transition-all duration-300 w-0 group-hover:w-full"></div>
+              </div>
+
+              {/* Departments */}
+              {college.open && (
+                <div className="mt-6 flex flex-wrap justify-center gap-6 animate-fadeIn">
+                  {college.departments.map((dept) => (
+                    <div
+                      key={dept.id}
+                      className="w-72 group relative bg-white rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 p-6 text-center overflow-hidden"
+                    >
+                      {/* Gradient hover */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#31257D] to-[#4937BF] opacity-0 group-hover:opacity-30 transition-all duration-500"></div>
+
+                      <div className="relative z-10">
+                        <h4 className="text-lg font-bold text-[#31257D] group-hover:text-white mb-3">
+                          {dept.name}
+                        </h4>
+
+                        {/* Buttons */}
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                          <button
+                            onClick={() => toggleDepartment(college.id, dept.id)}
+                            className="bg-[#31257D] text-white py-2 rounded-lg text-sm font-medium transition-all duration-300 group-hover:bg-white group-hover:text-[#31257D]"
+                          >
+                            عرض التخصصات
+                          </button>
+
+                          <Link
+                            to={`/departments/${dept.id}/projects`}
+                            className="text-center bg-[#31257D] text-white py-2 rounded-lg text-sm font-medium transition-all duration-300 group-hover:bg-white group-hover:text-[#31257D]"
+                          >
+                            عرض المشاريع
+                          </Link>
+                        </div>
+
+                        {/* Programs */}
+                        {dept.open && dept.programs.length > 0 && (
+                          <div className="flex flex-wrap gap-2 justify-center mt-3">
+                            {dept.programs.map((prog) => (
+                              <div
+                                key={prog.id}
+                                className="bg-white px-3 py-2 rounded-lg shadow-sm text-[#31257D] text-sm"
+                              >
+                                {prog.name}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-white to-[#4937BF] transition-all duration-300 w-0 group-hover:w-full"></div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+      {/* University Projects */}
+      {/* University Projects Section */}
+<section className="max-w-7xl mx-auto px-6 pb-20">
+  <h2 className="text-3xl font-bold text-[#31257D] text-center mb-12">
+    مشاريع الجامعة
+  </h2>
+
+  {projectsLoading ? (
+    <div className="flex justify-center items-center h-40">
+      <div className="w-12 h-12 border-4 border-[#31257D]/20 border-t-[#31257D] rounded-full animate-spin"></div>
+    </div>
+  ) : projects.length === 0 ? (
+    <p className="text-center text-gray-500">لا توجد مشاريع للجامعة حالياً.</p>
+  ) : (
+    <div className="flex flex-wrap justify-center gap-6">
+      {projects.map((proj) => (
+        <div
+          key={proj.project_id}
+          className="w-72 bg-white rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 p-4 text-center cursor-pointer"
+        >
+          {proj.image && (
+            <div className="w-full h-40 mb-4">
+              <img
+                src={proj.image}
+                alt={proj.title}
+                className="w-full h-full object-cover rounded-md"
+                onError={(e) => {
+                  e.currentTarget.src = '/default-uni-logo.png';
+                }}
+              />
             </div>
           )}
-        </section>
-      </main>
+
+          <h3 className="text-lg font-bold text-[#31257D] mb-2">{proj.title}</h3>
+          <p className="text-gray-600 text-sm mb-3">{proj.description}</p>
+
+          <Link
+            to={`/projects/${proj.id}`}
+            className="inline-block bg-[#31257D] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4937BF] transition-all duration-300"
+          >
+            عرض المشروع
+          </Link>
+        </div>
+      ))}
+    </div>
+  )}
+      </section>
+      <style>
+        {`
+        @keyframes fadeIn {
+          from {opacity:0; transform:translateY(10px);}
+          to {opacity:1; transform:translateY(0);}
+        }
+        .animate-fadeIn{
+          animation:fadeIn .4s ease forwards;
+        }
+        `}
+      </style>
     </div>
   );
 };

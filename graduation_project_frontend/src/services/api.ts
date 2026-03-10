@@ -139,7 +139,9 @@ export const API_ENDPOINTS = {
   Departments : "departments/",
   Colleges : "colleges/",
   Universities : "universities/",
-  Branches : "branches/",
+  Branches : "branches/", 
+  related_to_university: "fetch-related-to-university/",
+  university_projects: "university-projects/"
 };
 
 /* =======================

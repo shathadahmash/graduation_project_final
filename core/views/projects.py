@@ -42,23 +42,23 @@ class ProjectFilter(django_filters.FilterSet):
         return queryset.filter(
             Exists(
                 GroupSupervisors.objects.filter(
-                    group__project=OuterRef('pk'),
-                    user__id=value,
+                    group__project_id=OuterRef('pk'),
+                    user=value,
                     type='supervisor'
                 )
             )
-        )
+        ).distinct()
 
     def filter_co_supervisor(self, queryset, name, value):
         return queryset.filter(
             Exists(
                 GroupSupervisors.objects.filter(
-                    group__project=OuterRef('pk'),
-                    user__id=value,
+                    group__project_id=OuterRef('pk'),
+                    user=value,
                     type='co_supervisor'
                 )
             )
-        )
+        ).distinct()
 
     class Meta:
         model = Project
@@ -102,8 +102,15 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return qs.filter(created_by=user)
 
         if PermissionManager.is_student(user):
-            logger.debug('ProjectViewSet: user %s is student - returning all projects for student', user)
-            return qs
+            logger.debug('ProjectViewSet: user %s is student - returning own projects', user)
+            return qs.filter(
+                Exists(
+                    GroupMembers.objects.filter(
+                        group__project_id=OuterRef('pk'),
+                        user=user.pk
+                    )
+                )
+            ).distinct()
 
         if PermissionManager.is_admin(user) and not PermissionManager.is_dean(user):
             logger.debug('ProjectViewSet: user %s is admin (not dean) - returning all projects', user)
@@ -145,7 +152,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             data = request.data.copy()
 
             if not data.get("start_date"):
-                data["start_date"] = timezone.now().date().isoformat()
+                data["start_date"] = timezone.now().year
 
             if "state" not in data:
                 pending_state, _ = ProjectState.objects.get_or_create(name="Pending")

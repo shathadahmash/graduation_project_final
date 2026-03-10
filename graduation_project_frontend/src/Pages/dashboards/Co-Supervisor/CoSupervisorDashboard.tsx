@@ -12,7 +12,7 @@ import SupervisorHomeCTA from "../Supervisor/SupervisorHomeCTA";
 import SupervisorGroupsProjectsTable from "../Supervisor/SupervisorGroupProjectsTable";
 import SupervisorNotificationsView from "../Supervisor/SupervisorNotificationsView";
 import SupervisorProjectsView from "../Supervisor/SupervisorProjectsView";
-import SupervisorGroupsView from "../supervisor/SupervisorGroupsView";
+import SupervisorGroupsView from "../Supervisor/SupervisorGroupsView";
 
 const CoSupervisorDashboard: React.FC = () => {
   const { user } = useAuthStore();
