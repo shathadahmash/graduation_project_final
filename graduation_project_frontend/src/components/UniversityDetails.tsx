@@ -42,6 +42,7 @@ const UniversityDetails: React.FC = () => {
         const response = await api.get(
           `${API_ENDPOINTS.related_to_university}${id}/related/`
         );
+        console.log("University API Response:", response.data);
         const data = response.data;
 
         if (!data || !data.university) {
@@ -55,6 +56,7 @@ const UniversityDetails: React.FC = () => {
               id: c.cid,
               name: c.name_ar || c.name_en || "اسم الكلية",
               open: false,
+              logo: c.image || data.university.image || "/default-college-logo.png",
               departments: (c.departments || []).map((d: any) => ({
                 id: d.department_id,
                 name: d.name || d.department_name,
@@ -167,27 +169,16 @@ const UniversityDetails: React.FC = () => {
         </div>
       </header>
 
-      {/* Hero */}
       <div className="max-w-7xl mx-auto px-6 py-14 flex flex-col md:flex-row gap-10 items-center">
 
-        {/* <img
-          src={`http://127.0.0.1:8000${university.logo
-            .split("/")
-            .map(segment => encodeURIComponent(segment))
-            .join("/")}`}
+        <img
+          src={university.logo}
           alt={university.name}
-          className="w-56 h-56 object-contain rounded-full border-4 border-[#31257D]/30 shadow-lg"
-        /> */}
-
-          <img
-                      src={university.logo}
-                      alt={university.name}
-                      className="w-full h-full object-contain p-2 relative z-10 transition-all duration-300 group-hover:scale-105"
-                      onError={(e) => {
-                        e.currentTarget.src = '/default-uni-logo.png';
-                      }}
-                    />
-                 
+          className="w-64 h-80 md:w-80 md:h-96 object-cover shadow-lg transition-all duration-300"
+          onError={(e) => {
+            e.currentTarget.src = '/default-uni-logo.png';
+          }}
+        />
 
         <div className="space-y-4">
           <h1 className="text-5xl font-bold text-[#31257D]">
@@ -198,127 +189,130 @@ const UniversityDetails: React.FC = () => {
             {university.type} • {university.location}
           </p>
 
-          <p className="bg-white shadow-sm border border-[#31257D]/5 rounded-xl p-6 text-gray-600">
+          <p className="bg-white shadow-sm rounded-xl p-6 text-gray-600">
             {university.description}
           </p>
         </div>
       </div>
 
       {/* Colleges */}
-      <section className="max-w-7xl mx-auto px-6 pb-20">
-        <h2 className="text-3xl font-bold text-[#31257D] text-center mb-12">
-          الكليات
-        </h2>
+     <section className="max-w-7xl mx-auto px-6 pb-20">
+  <h2 className="text-3xl font-bold text-[#31257D] text-center mb-12">
+    الكليات
+  </h2>
 
-        <div className="flex flex-wrap justify-center gap-8">
-          {university.colleges.map((college) => (
-            <div key={college.id} className="w-80">
+  <div className="flex flex-wrap justify-center gap-8">
+    {university.colleges.map((college) => (
+      <div key={college.id} className="w-80">
 
-              {/* College Card */}
-              <div className="group bg-white rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 p-6 text-center border border-[#31257D]/5 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#31257D] to-[#4937BF] opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+        {/* College Card */}
+        <div className="group bg-white rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 p-6 text-center relative overflow-hidden">
+
+          <div className="absolute inset-0 bg-gradient-to-br from-[#31257D] to-[#4937BF] opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+
+          <div className="relative z-10">
+            {/* Logo */}
+            <div className="relative mb-4 w-full h-56 md:h-64 mx-auto">
+              <img
+                src={college.logo}
+                alt={college.name}
+                className="w-full h-full object-cover shadow-lg transition-all duration-300"
+                onError={(e) => {
+                  e.currentTarget.src = '/default-college-logo.png';
+                }}
+              />
+            </div>
+
+            {/* Name */}
+            <h3 className="text-xl font-bold text-[#31257D] group-hover:text-white transition-colors mb-3">
+              {college.name}
+            </h3>
+
+            {/* City */}
+            <div className="flex justify-center gap-2 mb-4">
+              <span className="text-xs px-2 py-1 rounded-full bg-[#31257D]/5 text-gray-600 group-hover:bg-white/20 group-hover:text-white">
+                {university.location}
+              </span>
+            </div>
+
+            {/* Buttons */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => toggleCollege(college.id)}
+                className="bg-[#31257D] text-white py-2 rounded-lg text-sm font-medium transition-all duration-300 group-hover:bg-white group-hover:text-[#31257D]"
+              >
+                عرض الأقسام
+              </button>
+
+              <Link
+                to={`/colleges/${college.id}/projects`}
+                className="text-center bg-[#31257D] text-white py-2 rounded-lg text-sm font-medium transition-all duration-300 group-hover:bg-white group-hover:text-[#31257D]"
+              >
+                مشاريع الكلية
+              </Link>
+            </div>
+          </div>
+
+          <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-white to-[#4937BF] transition-all duration-300 w-0 group-hover:w-full"></div>
+        </div>
+
+        {/* Departments */}
+        {college.open && (
+          <div className="mt-6 flex flex-wrap justify-center gap-6 animate-fadeIn">
+            {college.departments.map((dept) => (
+              <div
+                key={dept.id}
+                className="w-72 group relative bg-white rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 p-6 text-center overflow-hidden"
+              >
+                {/* Gradient hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-[#31257D] to-[#4937BF] opacity-0 group-hover:opacity-30 transition-all duration-500"></div>
 
                 <div className="relative z-10">
-                  {/* Logo */}
-                  <div className="relative mb-4 w-24 h-24 mx-auto">
-                    <div className="absolute inset-0 rounded-full bg-[#31257D]/5 group-hover:bg-white/20 transition-all duration-300"></div>
-                    <img
-                      src="/default-college-logo.png"
-                      alt={college.name}
-                      className="w-full h-full object-contain p-2 relative z-10 transition-all duration-300 group-hover:scale-105"
-                    />
-                  </div>
-
-                  {/* Name */}
-                  <h3 className="text-xl font-bold text-[#31257D] group-hover:text-white transition-colors mb-3">
-                    {college.name}
-                  </h3>
-
-                  {/* City */}
-                  <div className="flex justify-center gap-2 mb-4">
-                    <span className="text-xs px-2 py-1 rounded-full bg-[#31257D]/5 text-gray-600 group-hover:bg-white/20 group-hover:text-white">
-                      {university.location}
-                    </span>
-                  </div>
+                  <h4 className="text-lg font-bold text-[#31257D] group-hover:text-white mb-3">
+                    {dept.name}
+                  </h4>
 
                   {/* Buttons */}
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2 mb-4">
                     <button
-                      onClick={() => toggleCollege(college.id)}
+                      onClick={() => toggleDepartment(college.id, dept.id)}
                       className="bg-[#31257D] text-white py-2 rounded-lg text-sm font-medium transition-all duration-300 group-hover:bg-white group-hover:text-[#31257D]"
                     >
-                      عرض الأقسام
+                      عرض التخصصات
                     </button>
 
                     <Link
-                      to={`/colleges/${college.id}/projects`}
+                      to={`/departments/${dept.id}/projects`}
                       className="text-center bg-[#31257D] text-white py-2 rounded-lg text-sm font-medium transition-all duration-300 group-hover:bg-white group-hover:text-[#31257D]"
                     >
-                      مشاريع الكلية
+                      عرض المشاريع
                     </Link>
                   </div>
+
+                  {/* Programs */}
+                  {dept.open && dept.programs.length > 0 && (
+                    <div className="flex flex-wrap gap-2 justify-center mt-3">
+                      {dept.programs.map((prog) => (
+                        <div
+                          key={prog.id}
+                          className="bg-white px-3 py-2 rounded-lg shadow-sm text-[#31257D] text-sm"
+                        >
+                          {prog.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-white to-[#4937BF] transition-all duration-300 w-0 group-hover:w-full"></div>
               </div>
-
-              {/* Departments */}
-              {college.open && (
-                <div className="mt-6 flex flex-wrap justify-center gap-6 animate-fadeIn">
-                  {college.departments.map((dept) => (
-                    <div
-                      key={dept.id}
-                      className="w-72 group relative bg-white rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 p-6 text-center border border-[#31257D]/5 overflow-hidden"
-                    >
-                      {/* Gradient hover */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-[#31257D] to-[#4937BF] opacity-0 group-hover:opacity-30 transition-all duration-500"></div>
-
-                      <div className="relative z-10">
-                        <h4 className="text-lg font-bold text-[#31257D] group-hover:text-white mb-3">
-                          {dept.name}
-                        </h4>
-
-                        {/* Buttons */}
-                        <div className="grid grid-cols-2 gap-2 mb-4">
-                          <button
-                            onClick={() => toggleDepartment(college.id, dept.id)}
-                            className="bg-[#31257D] text-white py-2 rounded-lg text-sm font-medium transition-all duration-300 group-hover:bg-white group-hover:text-[#31257D]"
-                          >
-                            عرض التخصصات
-                          </button>
-
-                          <Link
-                            to={`/departments/${dept.id}/projects`}
-                            className="text-center bg-[#31257D] text-white py-2 rounded-lg text-sm font-medium transition-all duration-300 group-hover:bg-white group-hover:text-[#31257D]"
-                          >
-                            عرض المشاريع
-                          </Link>
-                        </div>
-
-                        {/* Programs */}
-                        {dept.open && dept.programs.length > 0 && (
-                          <div className="flex flex-wrap gap-2 justify-center mt-3">
-                            {dept.programs.map((prog) => (
-                              <div
-                                key={prog.id}
-                                className="bg-white px-3 py-2 rounded-lg shadow-sm text-[#31257D] text-sm"
-                              >
-                                {prog.name}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-white to-[#4937BF] transition-all duration-300 w-0 group-hover:w-full"></div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+</section>
       <style>
         {`
         @keyframes fadeIn {
