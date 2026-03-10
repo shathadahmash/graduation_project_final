@@ -35,15 +35,14 @@ class SupervisorGroupViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        user = self.request.user
-        return (
-            Group.objects.filter(
-                groupsupervisors__user=user,
-                groupsupervisors__type__in=["supervisor", "co_supervisor"]
-            )
-            .select_related("project")
-            .distinct()
-        )
+     user = self.request.user
+     print(f"DEBUG user type: {type(user)}, value: {user}")
+     if not isinstance(user, User):
+        raise Exception("request.user is not a User instance!")
+     return Group.objects.filter(
+        groupsupervisors__user=user,
+        groupsupervisors__type__in=["supervisor", "co_supervisor"]
+     )
 
 
 class GroupViewSet(viewsets.ModelViewSet):
@@ -58,7 +57,7 @@ class GroupViewSet(viewsets.ModelViewSet):
             return Group.objects.all()
 
         if PermissionManager.is_supervisor(user):
-            return Group.objects.filter(groupsupervisors__user=user).distinct()
+            return Group.objects.filter(groupsupervisors_set__user=user).distinct()
 
         if PermissionManager.is_student(user):
             return Group.objects.filter(groupmembers__user=user).distinct()

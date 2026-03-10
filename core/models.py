@@ -308,9 +308,9 @@ class User(AbstractUser):
     email = models.EmailField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        if self.name is None:
-            self.name = f"{self.first_name or ''} {self.last_name or ''}".strip()
-        super().save(*args, **kwargs)
+      if not self.name:
+        self.name = f"{self.first_name or ''} {self.last_name or ''}".strip()
+      super().save(*args, **kwargs)
 
 # ============================================================================== 
 # 4. تواصل معنا
@@ -758,14 +758,17 @@ class GroupMembers(models.Model):
         verbose_name_plural = "Group Members"
 
 class GroupSupervisors(models.Model):
-    SUPERVISOR_TYPE_CHOICES = [('supervisor','مشرف'),('co_supervisor','مشرف مشارك')]
+    SUPERVISOR_TYPE_CHOICES = [
+        ('supervisor', 'مشرف'),
+        ('co_supervisor', 'مشرف مشارك')
+    ]
     user = models.ForeignKey('User', on_delete=models.CASCADE)
-    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='supervisors')
     type = models.CharField(max_length=20, choices=SUPERVISOR_TYPE_CHOICES, default='supervisor')
 
     def __str__(self):
         proj_title = self.group.project.title if self.group.project else 'No Project'
-        return f"{self.get_type_display()} {self.user.username} for Group with the project name  {proj_title}"
+        return f"{self.get_type_display()} {self.user.username} for Group with the project name {proj_title}"
 
     class Meta:
         unique_together = ('user', 'group')

@@ -1,15 +1,27 @@
+
+from urllib import request as urllib_request
+
 from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated ,AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
 import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Exists, OuterRef
-
+from django.db.models import Q
 from core.models import (
-    User, Group, Project, ApprovalRequest, Role, College, UserRoles,
-    AcademicAffiliation, ProjectState, GroupSupervisors, University
+    User,
+    Group,
+    Project,
+    ApprovalRequest,
+    Role,
+    College,
+    UserRoles,
+    AcademicAffiliation,
+    ProjectState,
+    GroupSupervisors,
+    University,
 )
 from core.serializers import ProjectSerializer
 from core.permissions import PermissionManager
@@ -21,10 +33,10 @@ logger = logging.getLogger(__name__)
 class ProjectFilter(django_filters.FilterSet):
     state_name = django_filters.CharFilter(
         field_name="state__name",
-        lookup_expr="iexact" # case insensitive exact match exact  => sensitive 
+        lookup_expr="iexact",  # case insensitive exact match exact  => sensitive
     )
     university = django_filters.NumberFilter(
-        field_name= "groups__program_groups__program__department__college__branch__university__uid"
+        field_name="groups__program_groups__program__department__college__branch__university__uid"
     )
     college = django_filters.NumberFilter(
         field_name="groups__program_groups__program__department__college__cid"
@@ -32,8 +44,8 @@ class ProjectFilter(django_filters.FilterSet):
     department = django_filters.NumberFilter(
         field_name="groups__program_groups__program__department__department_id"
     )
-    supervisor = django_filters.NumberFilter(method='filter_supervisor')
-    co_supervisor = django_filters.NumberFilter(method='filter_co_supervisor')
+    supervisor = django_filters.NumberFilter(method="filter_supervisor")
+    co_supervisor = django_filters.NumberFilter(method="filter_co_supervisor")
     year = django_filters.NumberFilter(field_name="start_date")
     tools = django_filters.CharFilter(field_name="tools", lookup_expr="icontains")
     field = django_filters.CharFilter(field_name="field", lookup_expr="icontains")
@@ -42,9 +54,7 @@ class ProjectFilter(django_filters.FilterSet):
         return queryset.filter(
             Exists(
                 GroupSupervisors.objects.filter(
-                    group__project=OuterRef('pk'),
-                    user__id=value,
-                    type='supervisor'
+                    group__project=OuterRef("pk"), user__id=value, type="supervisor"
                 )
             )
         )
@@ -53,205 +63,257 @@ class ProjectFilter(django_filters.FilterSet):
         return queryset.filter(
             Exists(
                 GroupSupervisors.objects.filter(
-                    group__project=OuterRef('pk'),
-                    user__id=value,
-                    type='co_supervisor'
+                    group__project=OuterRef("pk"), user__id=value, type="co_supervisor"
                 )
             )
         )
 
     class Meta:
         model = Project
-        fields = ["state_name", "college", "department", "supervisor", "co_supervisor", "year", "university", "tools", "field"]
+        fields = [
+            "state_name",
+            "college",
+            "department",
+            "supervisor",
+            "co_supervisor",
+            "year",
+            "university",
+            "tools",
+            "field",
+        ]
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all().order_by("start_date")
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
     filterset_class = ProjectFilter
     search_fields = ["title", "description"]
     ordering_fields = ["title", "start_date", "created_by__name", "state__name"]
 
+   
     def get_queryset(self):
         user = self.request.user
         qs = Project.objects.all().order_by("-start_date")
+
         # bring in related state and creator in single join
-        qs = qs.select_related('state', 'created_by')
+        qs = qs.select_related("state", "created_by")
 
         # Prefetch related objects used heavily in serializer to avoid N+1 queries
         qs = qs.prefetch_related(
-            'groups__groupsupervisors_set__user',
-            'groups__program_groups__program__department__college__branch__university'
+            "groups__groupsupervisors_set__user",
+            "groups__program_groups__program__department__college__branch__university",
         )
 
         try:
             total = qs.count()
-            logger.debug('ProjectViewSet: total projects before role filtering: %s', total)
+            logger.debug(
+                "ProjectViewSet: total projects before role filtering: %s", total
+            )
         except Exception:
-            logger.debug('ProjectViewSet: unable to count total projects')
+            logger.debug("ProjectViewSet: unable to count total projects")
 
+        # ---- External users only see their projects ----
         is_external = UserRoles.objects.filter(
-            user=user,
-            role__type__icontains="External"
+            user=user, role__type__icontains="External"
         ).exists()
 
         if is_external:
-            logger.debug('ProjectViewSet: user %s is external - returning own projects', user)
+            logger.debug(
+                "ProjectViewSet: user %s is external - returning own projects", user
+            )
             return qs.filter(created_by=user)
 
+        # ---- Students can view all projects ----
         if PermissionManager.is_student(user):
-            logger.debug('ProjectViewSet: user %s is student - returning all projects for student', user)
+            logger.debug(
+                "ProjectViewSet: user %s is student - returning all projects for student",
+                user,
+            )
             return qs
 
+        # ---- Admin (not dean) sees all projects ----
         if PermissionManager.is_admin(user) and not PermissionManager.is_dean(user):
-            logger.debug('ProjectViewSet: user %s is admin (not dean) - returning all projects', user)
+            logger.debug(
+                "ProjectViewSet: user %s is admin (not dean) - returning all projects",
+                user,
+            )
             return qs
-
+        user = self.request.user  # Django gives the logged-in User instance
         if PermissionManager.is_supervisor(user):
-            return qs.filter(
-                groups__groupsupervisors_set__user=user
-            ).distinct()
+         return qs.filter(
+         Q(groups__groupsupervisors_set__user=user) | Q(created_by=user)
+         ).distinct()
 
-        # Allow dean to view projects belonging to their college(s)
+        # ---- Dean sees projects belonging to their colleges ----
         if PermissionManager.is_dean(user):
-            # find colleges the dean is affiliated with
-            college_ids = AcademicAffiliation.objects.filter(user=user).values_list('college_id', flat=True)
+            college_ids = AcademicAffiliation.objects.filter(user=user).values_list(
+                "college_id", flat=True
+            )
+
             college_ids = [c for c in college_ids if c]
-            try:
-                logger.debug('ProjectViewSet: total projects before dean filter: %s', total)
-            except Exception:
-                pass
-            logger.debug('ProjectViewSet: user %s is dean - affiliated colleges: %s', user, college_ids)
+
+            logger.debug(
+                "ProjectViewSet: user %s is dean - affiliated colleges: %s",
+                user,
+                college_ids,
+            )
+
             if college_ids:
                 filtered_qs = qs.filter(
                     groups__program_groups__program__department__college__in=college_ids
                 ).distinct()
+
                 try:
                     cnt = filtered_qs.count()
-                    sample_ids = list(filtered_qs.values_list('project_id', flat=True)[:20])
-                    logger.debug('ProjectViewSet: dean filtered projects count=%s sample_ids=%s', cnt, sample_ids)
+                    sample_ids = list(
+                        filtered_qs.values_list("project_id", flat=True)[:20]
+                    )
+                    logger.debug(
+                        "ProjectViewSet: dean filtered projects count=%s sample_ids=%s",
+                        cnt,
+                        sample_ids,
+                    )
                 except Exception:
-                    logger.debug('ProjectViewSet: dean filtered queryset created')
+                    logger.debug("ProjectViewSet: dean filtered queryset created")
+
                 return filtered_qs
+
             return qs.none()
 
-        return qs.none()
+        # ---- Fallback (VERY IMPORTANT) ----
+        logger.debug(
+            "ProjectViewSet: user %s matched no specific role rule - returning all projects",
+            user,
+        )
+
+        return qs
 
     def create(self, request, *args, **kwargs):
-        try:
-            data = request.data.copy()
+            try:
+                data = request.data.copy()
 
-            if not data.get("start_date"):
-                data["start_date"] = timezone.now().date().isoformat()
+                if not data.get("start_date"):
+                    data["start_date"] = timezone.now().date().isoformat()
 
-            if "state" not in data:
-                pending_state, _ = ProjectState.objects.get_or_create(name="Pending")
-                data["state"] = pending_state.ProjectStateId
-            else:
-                try:
-                    state_obj = ProjectState.objects.get(
-                        name__iexact=data["state"]
+                if "state" not in data:
+                    pending_state, _ = ProjectState.objects.get_or_create(
+                        name="Pending"
                     )
-                    data["state"] = state_obj.ProjectStateId
-                except ProjectState.DoesNotExist:
-                    return Response(
-                        {"error": f"Invalid project state: {data['state']}"},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+                    data["state"] = pending_state.ProjectStateId
+                else:
+                    try:
+                        state_obj = ProjectState.objects.get(name__iexact=data["state"])
+                        data["state"] = state_obj.ProjectStateId
+                    except ProjectState.DoesNotExist:
+                        return Response(
+                            {"error": f"Invalid project state: {data['state']}"},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
 
-            serializer = self.get_serializer(data=data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save(created_by=request.user)
+                serializer = self.get_serializer(data=data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save(created_by=request.user)
 
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=["get"], url_path="filter-options")
     def filter_options(self, request):
-        try:
-            universities = University.objects.values("uid", "uname_ar")
-            university_list = [{"id": u["uid"], "name": u["uname_ar"]} for u in universities]
+            try:
+                universities = University.objects.values("uid", "uname_ar")
+                university_list = [
+                    {"id": u["uid"], "name": u["uname_ar"]} for u in universities
+                ]
 
-            colleges = College.objects.values("cid", "name_ar")
-            college_list = [{"id": c["cid"], "name": c["name_ar"]} for c in colleges]
+                colleges = College.objects.values("cid", "name_ar")
+                college_list = [
+                    {"id": c["cid"], "name": c["name_ar"]} for c in colleges
+                ]
 
-            active_supervisors = User.objects.filter(
-                groupsupervisors__type='supervisor'
-            ).distinct().values("id", "name")
-            supervisor_list = [
-                {"id": s["id"], "name": s["name"] or "Unnamed Supervisor"}
-                for s in active_supervisors
-            ]
+                active_supervisors = (
+                    User.objects.filter(groupsupervisors__type="supervisor")
+                    .distinct()
+                    .values("id", "name")
+                )
+                supervisor_list = [
+                    {"id": s["id"], "name": s["name"] or "Unnamed Supervisor"}
+                    for s in active_supervisors
+                ]
 
-            active_co_supervisors = User.objects.filter(
-                groupsupervisors__type='co_supervisor'
-            ).distinct().values("id", "name")
-            co_supervisor_list = [
-                {"id": s["id"], "name": s["name"] or "Unnamed Co-Supervisor"}
-                for s in active_co_supervisors
-            ]
+                active_co_supervisors = (
+                    User.objects.filter(groupsupervisors__type="co_supervisor")
+                    .distinct()
+                    .values("id", "name")
+                )
+                co_supervisor_list = [
+                    {"id": s["id"], "name": s["name"] or "Unnamed Co-Supervisor"}
+                    for s in active_co_supervisors
+                ]
 
-            years_qs = Project.objects.values_list(
-                "start_date", flat=True
-            ).distinct().order_by("-start_date")
-            years = [str(y) for y in years_qs if y is not None]
+                years_qs = (
+                    Project.objects.values_list("start_date", flat=True)
+                    .distinct()
+                    .order_by("-start_date")
+                )
+                years = [str(y) for y in years_qs if y is not None]
 
-            states = ProjectState.objects.values_list(
-                "name", flat=True
-            ).distinct()
+                states = ProjectState.objects.values_list("name", flat=True).distinct()
 
-            # Get distinct tools
-            tools_qs = Project.objects.values_list(
-                "tools", flat=True
-            ).distinct().exclude(tools__isnull=True).exclude(tools__exact='')
-            tools = [str(t) for t in tools_qs if t is not None and t.strip()]
+                # Get distinct tools
+                tools_qs = (
+                    Project.objects.values_list("tools", flat=True)
+                    .distinct()
+                    .exclude(tools__isnull=True)
+                    .exclude(tools__exact="")
+                )
+                tools = [str(t) for t in tools_qs if t is not None and t.strip()]
 
-            # Get distinct fields
-            fields_qs = Project.objects.values_list(
-                "field", flat=True
-            ).distinct().exclude(field__isnull=True).exclude(field__exact='')
-            fields = [str(f) for f in fields_qs if f is not None and f.strip()]
+                # Get distinct fields
+                fields_qs = (
+                    Project.objects.values_list("field", flat=True)
+                    .distinct()
+                    .exclude(field__isnull=True)
+                    .exclude(field__exact="")
+                )
+                fields = [str(f) for f in fields_qs if f is not None and f.strip()]
 
-            return Response({
-                "universities": university_list,
-                "colleges": college_list,
-                "supervisors": supervisor_list,
-                "co_supervisors": co_supervisor_list,
-                "years": years,
-                "states": list(states),
-                "tools": tools,
-                "fields": fields,
-            })
-        except Exception as e:
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+                return Response(
+                    {
+                        "universities": university_list,
+                        "colleges": college_list,
+                        "supervisors": supervisor_list,
+                        "co_supervisors": co_supervisor_list,
+                        "years": years,
+                        "states": list(states),
+                        "tools": tools,
+                        "fields": fields,
+                    }
+                )
+            except Exception as e:
+                return Response(
+                    {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
     @action(detail=False, methods=["get"])
     def my_project(self, request):
         user = request.user
 
         if not PermissionManager.is_student(user):
-            return Response(
-                {"error": "Unauthorized"},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
 
-        project = Project.objects.filter(
-            groups__groupmembers__user=user
-        ).first()
+        project = Project.objects.filter(groups__groupmembers__user=user).first()
 
         if not project:
             return Response(
                 {"message": "No project found for this student"},
-                status=status.HTTP_200_OK
+                status=status.HTTP_200_OK,
             )
 
         return Response(self.get_serializer(project).data)
@@ -280,7 +342,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 "project_id": new_project.project_id,
                 "message": "Project proposed successfully",
             },
-            status=status.HTTP_201_CREATED
+            status=status.HTTP_201_CREATED,
         )
 
     @action(detail=False, methods=["post"])
@@ -292,7 +354,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if not title or not description:
             return Response(
                 {"error": "Title and description are required"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         try:
@@ -303,7 +365,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 description=description,
                 state=pending_state,
                 created_by=user,
-                start_date=timezone.now().date().year
+                start_date=timezone.now().date().year,
             )
 
             try:
@@ -320,7 +382,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
                             project=project,
                             requested_by=user,
                             current_approver=dept_head_user_role.user,
-                            status="pending"
+                            status="pending",
                         )
             except Exception:
                 pass
@@ -329,8 +391,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
     @action(detail=True, methods=["patch", "put"])
@@ -344,7 +405,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
             user_can_edit = True
 
         # allow admins or users with explicit permission
-        if not user_can_edit and PermissionManager.has_permission(user, 'change_project'):
+        if not user_can_edit and PermissionManager.has_permission(
+            user, "change_project"
+        ):
             user_can_edit = True
 
         if not user_can_edit and PermissionManager.is_admin(user):
@@ -352,21 +415,21 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         # allow dean to edit projects that belong to their affiliated colleges
         if not user_can_edit and PermissionManager.is_dean(user):
-            college_ids = AcademicAffiliation.objects.filter(user=user).values_list('college_id', flat=True)
+            college_ids = AcademicAffiliation.objects.filter(user=user).values_list(
+                "college_id", flat=True
+            )
             college_ids = [c for c in college_ids if c]
             if college_ids:
-                if Group.objects.filter(project=project, program_groups__program__department__college__in=college_ids).exists():
+                if Group.objects.filter(
+                    project=project,
+                    program_groups__program__department__college__in=college_ids,
+                ).exists():
                     user_can_edit = True
 
         if not user_can_edit:
-            return Response(
-                {"error": "Unauthorized"},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
 
-        serializer = self.get_serializer(
-            project, data=request.data, partial=True
-        )
+        serializer = self.get_serializer(project, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
@@ -382,21 +445,25 @@ class ProjectViewSet(viewsets.ModelViewSet):
         elif project.created_by == user:
             user_can_delete = True
         elif PermissionManager.is_admin(user):
-            user_affiliation = AcademicAffiliation.objects.filter(
-                user=user
-            ).order_by("-start_date").first()
+            user_affiliation = (
+                AcademicAffiliation.objects.filter(user=user)
+                .order_by("-start_date")
+                .first()
+            )
 
             if user_affiliation and user_affiliation.college:
                 if Group.objects.filter(
                     project=project,
-                    program_groups__program__department__college=user_affiliation.college
+                    program_groups__program__department__college=user_affiliation.college,
                 ).exists():
                     user_can_delete = True
 
         if not user_can_delete:
             return Response(
-                {"error": "Unauthorized - You do not have permission to delete this project"},
-                status=status.HTTP_403_FORBIDDEN
+                {
+                    "error": "Unauthorized - You do not have permission to delete this project"
+                },
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         project.delete()
@@ -408,9 +475,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
 def dropdown_data(request):
     user = request.user
 
-    user_affiliation = AcademicAffiliation.objects.filter(
-        user=user
-    ).order_by("-start_date").first()
+    user_affiliation = (
+        AcademicAffiliation.objects.filter(user=user).order_by("-start_date").first()
+    )
     user_department = user_affiliation.department if user_affiliation else None
     user_college = user_affiliation.college if user_affiliation else None
 
@@ -419,48 +486,52 @@ def dropdown_data(request):
         students = (
             User.objects.filter(
                 userroles__role=student_role,
-                academicaffiliation__department=user_department
+                academicaffiliation__department=user_department,
             )
             .exclude(id=user.id)
             .distinct()
-            if student_role else User.objects.none()
+            if student_role
+            else User.objects.none()
         )
     else:
-        students = User.objects.filter(
-            userroles__role__type="Student"
-        ).exclude(id=user.id).distinct()
+        students = (
+            User.objects.filter(userroles__role__type="Student")
+            .exclude(id=user.id)
+            .distinct()
+        )
 
     if user_college:
         supervisor_role = Role.objects.filter(type="supervisor").first()
         supervisors = (
             User.objects.filter(
                 userroles__role=supervisor_role,
-                academicaffiliation__college=user_college
+                academicaffiliation__college=user_college,
             ).distinct()
-            if supervisor_role else User.objects.none()
+            if supervisor_role
+            else User.objects.none()
         )
     else:
-        supervisors = User.objects.filter(
-            userroles__role__type="supervisor"
-        ).distinct()
+        supervisors = User.objects.filter(userroles__role__type="supervisor").distinct()
 
     if user_college:
         co_supervisor_role = Role.objects.filter(type="Co-supervisor").first()
         assistants = (
             User.objects.filter(
                 userroles__role=co_supervisor_role,
-                academicaffiliation__college=user_college
+                academicaffiliation__college=user_college,
             ).distinct()
-            if co_supervisor_role else User.objects.none()
+            if co_supervisor_role
+            else User.objects.none()
         )
     else:
         assistants = User.objects.filter(
             userroles__role__type="Co-supervisor"
         ).distinct()
 
-    return Response({
-        "students": [{"id": s.id, "name": s.name} for s in students],
-        "supervisors": [{"id": sp.id, "name": sp.name} for sp in supervisors],
-        "assistants": [{"id": a.id, "name": a.name} for a in assistants],
-    })
-
+    return Response(
+        {
+            "students": [{"id": s.id, "name": s.name} for s in students],
+            "supervisors": [{"id": sp.id, "name": sp.name} for sp in supervisors],
+            "assistants": [{"id": a.id, "name": a.name} for a in assistants],
+        }
+    )
