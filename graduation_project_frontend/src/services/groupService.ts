@@ -22,7 +22,7 @@ export interface Supervisor {
  
 // واجهة إنشاء المجموعة (من الكود الثاني)
 export interface GroupCreatePayload {
-  group_name: string;
+  // group_name: string;
 
   department_id: number;
   college_id: number;
@@ -160,7 +160,6 @@ export const groupService = {
   async getMyGroup(): Promise<any> {
     try {
       const response = await api.get('/groups/my-group/');
-      console.log('My group response:', response.data);
       return response.data;
     } catch (error: any) {
       // إذا كان السيرفر يعيد 404 فهذا يعني لا توجد مجموعة، وهو أمر طبيعي

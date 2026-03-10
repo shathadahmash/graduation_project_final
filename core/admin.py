@@ -325,7 +325,7 @@ class ProjectAdmin(admin.ModelAdmin):
         'created_by', 'start_date', 'end_date', 'field', 'tools', 'logo_preview', 'documentation_link'
     )
     list_filter = (
-        'project_type', 'state', 'university', 'branch', 'college', 'created_by', 
+        'project_type', 'state', 
         'start_date', 'end_date'
     )
     search_fields = (
@@ -337,7 +337,7 @@ class ProjectAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (None, {
-            'fields': ('title', 'description', 'state', 'created_by', 'project_type', 'university', 'branch', 'college')
+            'fields': ('title', 'description', 'state', 'created_by', 'project_type')
         }),
         (_('Project Timeline'), {
             'fields': ('start_date', 'end_date')
