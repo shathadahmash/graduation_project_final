@@ -43,7 +43,7 @@ export default function HomePage() {
       <section className="relative overflow-hidden py-24">
 
         {/* خلفية */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0B2B4F] via-[#163b66] to-[#1E4A7A]"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#31257D] via-[#3D2E9E] to-[#4937BF]"></div>
 
         <div className="absolute top-0 left-0 w-full h-full opacity-10">
           <div className="absolute w-96 h-96 bg-white rounded-full blur-3xl top-20 left-20"></div>
@@ -72,7 +72,7 @@ export default function HomePage() {
 
             <button
               onClick={() => navigate("/login")}
-              className="px-8 py-4 bg-white text-[#0B2B4F] font-semibold rounded-xl shadow-lg hover:scale-105 transition"
+              className="px-8 py-4 bg-white text-[#31257D] font-semibold rounded-xl shadow-lg hover:scale-105 transition"
             >
               الدخول إلى النظام
             </button>
@@ -81,7 +81,7 @@ export default function HomePage() {
               onClick={() =>
                 document.getElementById("about")?.scrollIntoView({ behavior: "smooth" })
               }
-              className="px-8 py-4 border border-white rounded-xl hover:bg-white hover:text-[#0B2B4F] transition"
+              className="px-8 py-4 border border-white rounded-xl hover:bg-white hover:text-[#31257D] transition"
             >
               تعرف على النظام
             </button>
@@ -108,9 +108,9 @@ export default function HomePage() {
 
               <div
                 key={i}
-                className="bg-gray-50 border hover:border-blue-200 rounded-xl p-8 text-center shadow-sm hover:shadow-lg transition"
+                className="bg-gray-50 border hover:border-[#4937BF] rounded-xl p-8 text-center shadow-sm hover:shadow-lg transition"
               >
-                <div className="text-4xl font-bold text-[#0B2B4F] mb-2">
+                <div className="text-4xl font-bold text-[#31257D] mb-2">
                   {item.number}
                 </div>
 

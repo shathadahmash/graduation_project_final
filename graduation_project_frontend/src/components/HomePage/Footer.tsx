@@ -2,7 +2,7 @@ import React from "react";
 
 export default function Footer() {
   return (
-    <footer className="bg-gradient-to-r from-[#0B2B4F] to-[#1E4A7A] text-white relative overflow-hidden">
+    <footer className="bg-gradient-to-r from-[#31257D] to-[#4937BF] text-white relative overflow-hidden">
       {/* عناصر خلفية أكاديمية */}
       <div className="absolute inset-0">
         <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
@@ -22,7 +22,7 @@ export default function Footer() {
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center">
-                <span className="text-2xl font-bold text-white">YU</span>
+                <span className="text-2xl font-bold text-white">YCIT</span>
               </div>
               <div>
                 <h3 className="text-xl font-bold text-white">البوابة الموحدة</h3>
