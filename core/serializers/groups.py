@@ -57,10 +57,11 @@ class SupervisorGroupSerializer(serializers.ModelSerializer):
             if not p:
                 continue
 
-            programs.add(p.id)
+            programs.add(p.pid)
             departments.add(p.department_id)
             colleges.add(p.department.college_id)
-            universities.add(p.department.college.branch.university_id)
+            if p.department.college.branch:
+                universities.add(p.department.college.branch.university_id)
 
         if len(universities) > 1:
             return 'multi_university'
@@ -94,7 +95,7 @@ class GroupSerializer(serializers.ModelSerializer):
     members = serializers.SerializerMethodField()
     supervisors = serializers.SerializerMethodField()
     members_count = serializers.SerializerMethodField()
-    # group_name = serializers.SerializerMethodField()
+
     department = serializers.SerializerMethodField()
     program = serializers.SerializerMethodField()
     academic_year = serializers.CharField(read_only=True)
@@ -115,19 +116,6 @@ class GroupSerializer(serializers.ModelSerializer):
     def get_members_count(self, obj):
         return obj.groupmembers_set.count()
 
-    # def get_group_name(self, obj):
-    #     # support legacy field `group_name` if present, otherwise derive
-    #     name = getattr(obj, 'group_name', None)
-    #     if name:
-    #         return name
-    #     # fallback to pattern + project title
-    #     pat = obj.pattern.name if getattr(obj, 'pattern', None) else None
-    #     proj = obj.project.title if getattr(obj, 'project', None) else None
-    #     if pat and proj:
-    #         return f"{pat} - {proj}"
-    #     if proj:
-    #         return proj
-    #     return f"Group #{obj.group_id}"
 
     def get_department(self, obj):
         # Try to infer department from linked program_groups
@@ -213,12 +201,12 @@ class GroupProgramSerializer(serializers.ModelSerializer):
     department_name = serializers.CharField(source='program.department.name', read_only=True)
     college_name = serializers.CharField(source='program.department.college.name_ar', read_only=True)
     branch_name = serializers.SerializerMethodField()
-    university_name = serializers.CharField(source='program.department.college.branch.university.name_ar', read_only=True)
+    university_name = serializers.SerializerMethodField()
     program_id = serializers.IntegerField(source='program.pid', read_only=True)
     department_id = serializers.IntegerField(source='program.department.department_id', read_only=True)
     college_id = serializers.IntegerField(source='program.department.college.cid', read_only=True)
     branch_id = serializers.SerializerMethodField()
-    university_id = serializers.IntegerField(source='program.department.college.branch.university.uid', read_only=True)
+    university_id = serializers.SerializerMethodField()
 
     class Meta:
         model = programgroup
@@ -234,6 +222,18 @@ class GroupProgramSerializer(serializers.ModelSerializer):
         try:
             return obj.program.department.college.branch.ubid
         except Exception:
+            return None
+        
+    def get_university_name(self, obj):
+        try:
+            return obj.program.department.college.branch.university.name_ar
+        except AttributeError:
+            return None
+        
+    def get_university_id(self, obj):
+        try:
+            return obj.program.department.college.branch.university.uid
+        except AttributeError:
             return None
         
 

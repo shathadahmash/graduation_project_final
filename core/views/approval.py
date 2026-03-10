@@ -36,10 +36,10 @@ class ApprovalRequestViewSet(viewsets.ModelViewSet):
                 # 3. تحديث سجل العضوية (GroupMemberApproval) المرتبط بهذا الطلب
                 # نصل إليه من خلال المستخدم والطلب الأصلي
                 member_approval = GroupMemberApproval.objects.filter(
-                    user=request.user, 
-                    request__group_name=approval_task.group.group_name if approval_task.group else "", # البحث عن طريق المجموعة
-                    status='pending'
-                ).last()
+                user=request.user,
+                status='pending',
+                request__group_id=approval_task.group.id if approval_task.group else None
+                 ).order_by('-id').first()
 
                 if member_approval:
                     member_approval.status = 'accepted'
