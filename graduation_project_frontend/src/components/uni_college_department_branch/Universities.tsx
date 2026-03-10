@@ -41,15 +41,14 @@ const Universities: React.FC = () => {
       const uniData = Array.isArray(response.data) ? response.data : [];
       
       const processedData = uniData.map((uni: any) => ({
-        id: uni.uid,
-        name: uni.uname_ar || "جامعة",
-        type: uni.type === "حكومي" ? "حكومية" : 
-              uni.type === "اهلي" ? "أهلية" : 
-              uni.type || "جامعة",
-        location: "اليمن",
-        logo: "/default-uni-logo.png"
-      }));
-
+      id: uni.uid,
+      name: uni.uname_ar || "جامعة",
+      type: uni.type === "حكومي" ? "حكومية" : 
+            uni.type === "اهلي" ? "أهلية" : 
+            uni.type || "جامعة",
+      location: "اليمن",
+      logo: uni.image || "/default-uni-logo.png" // استخدام الصورة من API إذا وجدت
+    }));
       setUniversities(processedData);
     } catch (error) {
       console.error("خطأ في جلب الجامعات", error);

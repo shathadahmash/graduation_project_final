@@ -7,6 +7,7 @@ import HomePage from './Pages/HomePage';
 import LoginPage from './Pages/LoginPage';
 import DashboardRouter from './components/DashboardRouter';
 import ProjectSearch from './components/uni_college_department_branch/ProjectSearch';
+import UniversityDetails from "./components/UniversityDetails";
 
 
 
@@ -56,6 +57,7 @@ const App: React.FC = () => {
           }
         />
         <Route path="/ProjectSearch" element={<ProjectSearch />} />
+        <Route path="/university/:id" element={<UniversityDetails />} />
 
       </Routes>
     </BrowserRouter>
