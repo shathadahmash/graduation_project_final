@@ -84,57 +84,58 @@ export default function HomePage() {
 
       <Navbar />
 
-      {/* HERO */}
-      <section className="relative overflow-hidden py-24">
+      {/* HERO SECTION */}
+<section className="relative overflow-hidden py-24">
 
-        {/* خلفية */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#31257D] via-[#3D2E9E] to-[#4937BF]"></div>
+  {/* خلفية gradient ثابتة */}
+  <div className="absolute inset-0 bg-gradient-to-br from-[#31257D] to-[#4937BF]"></div>
 
-        <div className="absolute top-0 left-0 w-full h-full opacity-10">
-          <div className="absolute w-96 h-96 bg-white rounded-full blur-3xl top-20 left-20"></div>
-          <div className="absolute w-72 h-72 bg-white rounded-full blur-3xl bottom-10 right-20"></div>
-        </div>
+  {/* عناصر خلفية ضبابية */}
+  <div className="absolute inset-0">
+    <div className="absolute w-96 h-96 bg-white/10 rounded-full blur-3xl top-20 left-20"></div>
+    <div className="absolute w-72 h-72 bg-white/10 rounded-full blur-3xl bottom-10 right-20"></div>
+  </div>
 
-        {/* المحتوى */}
-        <div className="relative max-w-7xl mx-auto px-6 text-center text-white">
+  {/* المحتوى */}
+  <div className="relative max-w-7xl mx-auto px-6 text-center text-white">
 
-          <h1 className={`text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight transition-all duration-1000 ${
-            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-          }`}>
-            البوابة الموحدة
-            <span className="block text-blue-200 mt-4 text-3xl md:text-4xl font-light">
-               لمشاريع التخرج في الجامعات اليمنية
-            </span>
-          </h1>
+    <h1 className={`text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight transition-all duration-1000 ${
+      isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+    }`}>
+      البوابة الموحدة
+      <span className="block text-blue-200 mt-4 text-3xl md:text-4xl font-light">
+        لمشاريع التخرج في الجامعات اليمنية
+      </span>
+    </h1>
 
-          <p className="max-w-2xl mx-auto text-lg text-blue-100 mb-10 leading-relaxed">
-            منصة رقمية حديثة لإدارة ومتابعة مشاريع التخرج في الجامعات اليمنية
-            باستخدام تقنيات ذكية ومعايير أكاديمية متقدمة.
-          </p>
+    <p className="max-w-2xl mx-auto text-lg text-blue-100 mb-10 leading-relaxed">
+      منصة رقمية حديثة لإدارة ومتابعة مشاريع التخرج في الجامعات اليمنية
+      باستخدام تقنيات ذكية ومعايير أكاديمية متقدمة.
+    </p>
 
-          {/* أزرار */}
-          <div className="flex justify-center gap-4 flex-wrap">
+    {/* أزرار */}
+    <div className="flex justify-center gap-4 flex-wrap">
 
-            <button
-              onClick={() => navigate("/login")}
-              className="px-8 py-4 bg-white text-[#31257D] font-semibold rounded-xl shadow-lg hover:scale-105 transition"
-            >
-              الدخول إلى النظام
-            </button>
+      <button
+        onClick={() => navigate("/login")}
+        className="px-8 py-4 bg-white text-[#31257D] font-semibold rounded-xl shadow-lg hover:scale-105 transition"
+      >
+        الدخول إلى النظام
+      </button>
 
-            <button
-              onClick={() =>
-                document.getElementById("about")?.scrollIntoView({ behavior: "smooth" })
-              }
-              className="px-8 py-4 border border-white rounded-xl hover:bg-white hover:text-[#31257D] transition"
-            >
-              تعرف على النظام
-            </button>
+      <button
+        onClick={() =>
+          document.getElementById("about")?.scrollIntoView({ behavior: "smooth" })
+        }
+        className="px-8 py-4 border border-white rounded-xl hover:bg-white hover:text-[#31257D] transition"
+      >
+        تعرف على النظام
+      </button>
 
-          </div>
+    </div>
 
-        </div>
-      </section>
+  </div>
+</section>
 
 
       {/* الإحصائيات */}
