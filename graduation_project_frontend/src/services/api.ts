@@ -6,7 +6,7 @@ import axios from "axios";
    Axios Instance
 ======================= */
 const api = axios.create({
-  baseURL: "http://localhost:8000/api/",
+  baseURL: "https://back.graduation-projects.ycithe.net",
   headers: {
     "Content-Type": "application/json",
     "Accept": "application/json",

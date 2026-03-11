@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { data, Link, useParams } from "react-router-dom";
 import api, { API_ENDPOINTS } from "../services/api.ts";
 import { projectService } from "../services/projectService.ts"; // <-- import your project service
-import ProjectSearch from "./ProjectSearch"; // adjust path as needed
+import ProjectSearch from "./ProjectUniversitySearch.tsx"; // adjust path as needed
 interface Program {
   id: number;
   name: string;
@@ -56,6 +56,7 @@ const UniversityDetails: React.FC = () => {
           `${API_ENDPOINTS.related_to_university}${id}/related/`
         );
         const data = response.data;
+        console.log("--------------------------------------------University Data:", data); // Debug log
 
         if (!data || !data.university) {
           setUniversity(null);
@@ -69,6 +70,7 @@ const UniversityDetails: React.FC = () => {
               name: c.name_ar || c.name_en || "اسم الكلية",
               open: false,
               logo: c.image || data.university.image || "/default-college-logo.png",
+              location: branch.city_detail?.bname_ar || branch.city_detail?.bname_en || "الموقع غير معروف",
               departments: (c.departments || []).map((d: any) => ({
                 id: d.department_id,
                 name: d.name || d.department_name,
@@ -90,7 +92,7 @@ const UniversityDetails: React.FC = () => {
               : data.university.type === "Private"
                 ? "أهلية"
                 : data.university.type || "جامعة",
-          location: data.branches[0]?.city_detail?.bname_ar || "اليمن",
+          location: data.university.city_detail?.cname_ar || data.university.city_detail?.cname_en || "الموقع غير معروف",
           logo: data.university.image || "/default-uni-logo.png",
           description: data.university.description || "لا يوجد وصف متاح.",
           colleges,
@@ -260,7 +262,7 @@ const UniversityDetails: React.FC = () => {
                   {/* City */}
                   <div className="flex justify-center gap-2 mb-4">
                     <span className="text-xs px-2 py-1 rounded-full bg-[#31257D]/5 text-gray-600 group-hover:bg-white/20 group-hover:text-white">
-                      {university.location}
+                      {college.location}
                     </span>
                   </div>
 

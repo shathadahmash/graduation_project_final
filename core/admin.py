@@ -4,6 +4,8 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.utils.html import format_html
 from django.forms import ClearableFileInput
+from django.forms import ClearableFileInput
+from django import forms
 from .models import (
     City, University, Branch, College, Department,
     ProgressStage, ProgressSubStage, ProgressPattern, PatternStageAssignment, PatternSubStageAssignment,
@@ -316,24 +318,62 @@ class ProjectStateAdmin(admin.ModelAdmin):
     list_display = ('ProjectStateId', 'name')
     search_fields = ('name',)
 
+class ProjectAdminForm(forms.ModelForm):
+    class Meta:
+        model = Project
+        fields = '__all__'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Filter branches by selected university
+        if 'university' in self.data:
+            try:
+                university_id = int(self.data.get('university'))
+                self.fields['branch'].queryset = Branch.objects.filter(university_id=university_id)
+            except (ValueError, TypeError):
+                self.fields['branch'].queryset = Branch.objects.none()
+        elif self.instance.pk and self.instance.university:
+            self.fields['branch'].queryset = Branch.objects.filter(university=self.instance.university)
+        else:
+            self.fields['branch'].queryset = Branch.objects.none()
+
+        # Filter colleges by selected branch
+        if 'branch' in self.data:
+            try:
+                branch_id = int(self.data.get('branch'))
+                self.fields['college'].queryset = College.objects.filter(branch_id=branch_id)
+            except (ValueError, TypeError):
+                self.fields['college'].queryset = College.objects.none()
+        elif self.instance.pk and self.instance.branch:
+            self.fields['college'].queryset = College.objects.filter(branch=self.instance.branch)
+        else:
+            self.fields['college'].queryset = College.objects.none()
+
+
+# ===========================
+# Project Admin
+# ===========================
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
+    form = ProjectAdminForm
+
     list_display = (
-        'project_id', 'title', 'project_type', 'state', 'university', 'branch', 'college',
+        'project_id', 'title', 'project_type', 'state', 'university_name', 'branch', 'college',
         'created_by', 'start_date', 'end_date', 'field', 'tools', 'logo_preview', 'documentation_link'
     )
     list_filter = ('project_type', 'state', 'start_date', 'end_date')
     search_fields = (
         'title', 'description', 'field', 'tools', 'created_by__username',
-        'university__uname_ar', 'branch__university__uname_ar', 'branch__city__bname_ar',
+        'university__uname_ar', 'branch__uname_ar', 'branch__university__uname_ar',
         'college__name_ar'
     )
     autocomplete_fields = ('created_by', 'state', 'university', 'branch', 'college')
 
     fieldsets = (
         (None, {
-            'fields': ('title', 'description', 'state', 'created_by', 'project_type')
+            'fields': ('title', 'description', 'state', 'created_by', 'project_type', 
+                       'external_company', 'university', 'branch', 'college')
         }),
         (_('Project Timeline'), {
             'fields': ('start_date', 'end_date')
@@ -343,7 +383,7 @@ class ProjectAdmin(admin.ModelAdmin):
         }),
     )
 
-    # Custom upload widgets for files
+    # Custom file upload widgets
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         if db_field.name in ['logo', 'documentation']:
             kwargs['widget'] = ClearableFileInput(attrs={'class': 'file-upload'})
@@ -367,10 +407,10 @@ class ProjectAdmin(admin.ModelAdmin):
         return '-'
     documentation_link.short_description = 'Documentation'
 
+    # Display university name with fallback
     @admin.display(description='University')
     def university_name(self, obj):
-        # delegate to model property which already aggregates names
-        return obj.university_name or 'N/A'
+        return getattr(obj.university, 'uname_ar', 'N/A')
 
 
 @admin.register(Staff)

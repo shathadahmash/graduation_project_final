@@ -67,8 +67,8 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
     'localhost:8000',
-    'back.graduation-projects.ycithe.net',
-    'front.graduation-projects.ycithe.net',
+    'https://back.graduation-projects.ycithe.net',
+    'https://front.graduation-projects.ycithe.net',
 ]
 
 # CORS settings
@@ -77,6 +77,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://localhost:8000',
     'https://front.graduation-projects.ycithe.net',
+    'https://back.graduation-projects.ycithe.net',
 ]
 
 # CSRF trusted origins
@@ -85,6 +86,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://localhost:8000',
     'https://front.graduation-projects.ycithe.net',
+    'https://back.graduation-projects.ycithe.net',
 ]
 
 # Allow credentials (cookies) for cross-origin requests
@@ -158,16 +160,16 @@ ASGI_APPLICATION = 'GraduationProjects.asgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        # 'NAME': 'graduation_projects',
-        # 'USER': 'fgps',
-        # 'PASSWORD': '9Q8$w^Lueny!r@m9&we4n',
-        # 'HOST': 'ycithe.net',
-        # 'PORT': '3308',
-        'NAME': 'graduationprojects_db',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost',        
-        'PORT': '3307',
+        'NAME': 'graduation_projects',
+        'USER': 'fgps',
+        'PASSWORD': '9Q8$w^Lueny!r@m9&we4n',
+        'HOST': 'ycithe.net',
+        'PORT': '3308',
+        # 'NAME': 'graduationprojects_db',
+        # 'USER': 'root',
+        # 'PASSWORD': '',
+        # 'HOST': 'localhost',        
+        # 'PORT': '3307',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         },
