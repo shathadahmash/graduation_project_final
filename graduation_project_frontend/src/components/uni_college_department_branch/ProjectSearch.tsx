@@ -78,7 +78,7 @@ const ProjectSearch: React.FC = () => {
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
   // ثابت عنوان API
-  const API_BASE_URL = 'https://back.graduation-projects.ycithe.net/api/';
+  const API_BASE_URL = 'http://localhost:8000/api/';
 
   // دالة لإزالة التكرار من المصفوفات بناءً على الاسم
   const removeDuplicatesByName = <T extends { id: number; name: string }>(items: T[]): T[] => {

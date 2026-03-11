@@ -61,31 +61,44 @@ SITE_ID = 1
 # CORS & CSRF
 # -------------------------
 
+# Allowed hosts for Django
 ALLOWED_HOSTS = [
-    "back.graduation-projects.ycithe.net",
-    "front.graduation-projects.ycithe.net",
+    "http://localhost:5173",
+    '127.0.0.1',
+    'localhost',
+    'localhost:8000',
+    'back.graduation-projects.ycithe.net',
+    'front.graduation-projects.ycithe.net',
 ]
 
+# CORS settings
 CORS_ALLOWED_ORIGINS = [
-    "https://front.graduation-projects.ycithe.net",
+    "http://localhost:5173",
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+    'https://front.graduation-projects.ycithe.net',
 ]
 
+# CSRF trusted origins
 CSRF_TRUSTED_ORIGINS = [
-    "https://front.graduation-projects.ycithe.net",
-    "https://back.graduation-projects.ycithe.net",
+    "http://localhost:5173",
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+    'https://front.graduation-projects.ycithe.net',
 ]
 
+# Allow credentials (cookies) for cross-origin requests
 CORS_ALLOW_CREDENTIALS = True
 
-CSRF_COOKIE_SAMESITE = "None"
-SESSION_COOKIE_SAMESITE = "None"
-
+# Cookies configuration
+CSRF_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 
+# Proxy and SSL settings
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
-
 
 
 # -------------------------
@@ -145,16 +158,22 @@ ASGI_APPLICATION = 'GraduationProjects.asgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'graduation_projects',
-        'USER': 'fgps',
-        'PASSWORD': '9Q8$w^Lueny!r@m9&we4n',
-        'HOST': 'ycithe.net',
-        'PORT': '3308',
+        # 'NAME': 'graduation_projects',
+        # 'USER': 'fgps',
+        # 'PASSWORD': '9Q8$w^Lueny!r@m9&we4n',
+        # 'HOST': 'ycithe.net',
+        # 'PORT': '3308',
+        'NAME': 'graduationprojects_db',
+        'USER': 'root',
+        'PASSWORD': '',
+        'HOST': 'localhost',        
+        'PORT': '3307',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         },
     }
 }
+
 
 USE_TZ = False
 
