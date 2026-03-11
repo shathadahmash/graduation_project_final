@@ -121,10 +121,10 @@ except admin.sites.NotRegistered:
 
 @admin.register(University)
 class UniversityAdmin(admin.ModelAdmin):
-    list_display = ('uid', 'uname_ar', 'uname_en', 'type', 'image_preview')
+    list_display = ('uid', 'uname_ar', 'uname_en', 'type', 'image_preview', 'description')
     search_fields = ('uname_ar', 'uname_en', 'type')
     list_filter = ('type',)
-    fields = ('uname_ar', 'uname_en', 'type', 'image')  # include image in admin form
+    fields = ('uname_ar', 'uname_en', 'type', 'image', 'description')  # include image in admin form
 
     # Custom upload widget for image field
     def formfield_for_dbfield(self, db_field, request, **kwargs):
