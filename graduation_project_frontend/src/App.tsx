@@ -8,11 +8,15 @@ import LoginPage from './Pages/LoginPage';
 import DashboardRouter from './components/DashboardRouter';
 import ProjectSearch from './components/uni_college_department_branch/ProjectSearch';
 import UniversityDetails from "./components/UniversityDetails";
+// import ProjectDetails from './components/uni_college_department_branch/ProjectDetails';
+
+
 
 
 
 // ✅ import page
 import SysManagerImport from "./Pages/dashboards/SystemManager/sysManagerImport";
+import ProjectDetails from './components/uni_college_department_branch/ProjectDetails';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
@@ -58,6 +62,7 @@ const App: React.FC = () => {
         />
         <Route path="/ProjectSearch" element={<ProjectSearch />} />
         <Route path="/university/:id" element={<UniversityDetails />} />
+        <Route path="/projects/:id" element={<ProjectDetails />} />
 
       </Routes>
     </BrowserRouter>

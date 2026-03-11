@@ -152,6 +152,16 @@ export const projectService = {
       throw error;
     }
   },
+  async getProjectGroups(projectId: number) {
+  try {
+    const response = await api.get(`/groups/?project=${projectId}`);
+    console.log("[projectService] project groups:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("[projectService] getProjectGroups failed:", error);
+    return [];
+  }
+},
 
   async getFilterOptions() {
     try {
