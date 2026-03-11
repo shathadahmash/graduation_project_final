@@ -14,10 +14,6 @@ SECRET_KEY = 'django-insecure--q@f3psho5s*_0)nc$5px%hb&11*4!p8p*=bee!e54(udg9bxv
 
 DEBUG = True
 
-ALLOWED_HOSTS = [
-    "back.graduation-projects.ycithe.net",
-    "front.graduation-projects.ycithe.net",
-]
 
 # -------------------------
 # INSTALLED APPS
@@ -63,12 +59,10 @@ SITE_ID = 1
 
 # Allowed hosts for Django
 ALLOWED_HOSTS = [
-    "http://localhost:5173",
-    '127.0.0.1',
-    'localhost',
-    'localhost:8000',
-    'https://back.graduation-projects.ycithe.net',
-    'https://front.graduation-projects.ycithe.net',
+    "localhost",
+    "127.0.0.1",
+    "back.graduation-projects.ycithe.net",
+    "front.graduation-projects.ycithe.net",
 ]
 
 # CORS settings
