@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { FiCalendar, FiMapPin, FiBookOpen, FiTool, FiUser, FiUsers, FiX, FiSearch } from 'react-icons/fi';
+import { FiCalendar, FiMapPin, FiBookOpen, FiTool, FiUser, FiUsers } from 'react-icons/fi';
 import Navbar from './Navbar';
 import { projectService } from '../services/projectService';
 import { userService } from '../services/userService';
@@ -47,7 +47,7 @@ const ProjectSearch: React.FC<Props> = ({ universityId, colleges }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    university: universityId.toString(),
+    project_university: universityId.toString(),
     college: '',
     department: '',
     year: '',
@@ -82,7 +82,6 @@ const ProjectSearch: React.FC<Props> = ({ universityId, colleges }) => {
     return Array.from(unique.values());
   };
 
-  // Fetch additional filter options
   const fetchFilterOptions = useCallback(async () => {
     try {
       const options = await projectService.getFilterOptions();
@@ -94,7 +93,7 @@ const ProjectSearch: React.FC<Props> = ({ universityId, colleges }) => {
         supervisors: removeDuplicatesById(options.supervisors || []),
         co_supervisors: removeDuplicatesById(options.co_supervisors || []),
         years: Array.from(new Set((options.years || []).map((y: string) => y.toString().substring(0, 4))))
-          .sort((a,b)=>parseInt(b)-parseInt(a)),
+          .sort((a, b) => parseInt(b) - parseInt(a)),
         fields: Array.from(new Set(options.fields || [])),
         tools: Array.from(new Set(options.tools || []))
       }));
@@ -104,19 +103,17 @@ const ProjectSearch: React.FC<Props> = ({ universityId, colleges }) => {
   }, []);
 
   const fetchProjects = useCallback(async () => {
-    if (!filters.university) {
+    if (!filters.project_university) {
       setProjects([]);
       return;
     }
 
     try {
       setLoading(true);
-      const params: any = { limit: 50, university_id: Number(filters.university) };
+      const params: any = { limit: 50, project_university: Number(filters.project_university) };
       if (searchQuery.trim()) params.search = searchQuery.trim();
-
-      // Only add filter if value exists
-      if (filters.college) params.college_id = Number(filters.college);
-      if (filters.department) params.department_id = Number(filters.department);
+      if (filters.college) params.college = Number(filters.college);
+      if (filters.department) params.department = Number(filters.department);
       if (filters.year) params.year = filters.year;
       if (filters.field) params.field = filters.field;
       if (filters.tools) params.tools = filters.tools;
@@ -126,7 +123,7 @@ const ProjectSearch: React.FC<Props> = ({ universityId, colleges }) => {
 
       const response = await projectService.getProjects(params);
       const data = Array.isArray(response) ? response : response?.results || response?.data || [];
-
+      console.log('المشاريع المستلمة:', data);
       setProjects(data.map((p: any) => ({
         project_id: p.project_id,
         title: p.title,
@@ -137,15 +134,15 @@ const ProjectSearch: React.FC<Props> = ({ universityId, colleges }) => {
         tools: p.tools,
         university_name: p.university_name || p.university?.name || '',
         branch_name: p.branch_name || p.branch?.name || '',
-        college_name: p.college_name || p.college?.name || '',
+        college_name: p.college_name || p.college?.name || 'لا توجد كلية',
         department_name: p.department?.name,
         start_date: p.start_date,
         end_date: p.end_date,
         external_company: p.external_company?.name,
-        supervisor_name: p.supervisor_name,
-        co_supervisor_name: p.co_supervisor_name,
-        logo: p.logo,
-        documentation: p.documentation,
+        supervisor_name: p.supervisor_name || 'لا يوجد مشرف',
+        co_supervisor_name: p.co_supervisor_name || 'لا يوجد مشرف مساعد',
+        logo: p.logo || '/default-project-logo.png',
+        documentation: p.documentation_url || null,
         students: p.students || []
       })));
     } catch (err) {
@@ -156,11 +153,9 @@ const ProjectSearch: React.FC<Props> = ({ universityId, colleges }) => {
     }
   }, [filters, searchQuery]);
 
-  // Initial fetch
   useEffect(() => { fetchFilterOptions(); }, [fetchFilterOptions]);
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
-  // Debounce search
   useEffect(() => {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(fetchProjects, 500);
@@ -182,11 +177,10 @@ const ProjectSearch: React.FC<Props> = ({ universityId, colleges }) => {
             onChange={e => setSearchQuery(e.target.value)}
             className="border rounded px-3 py-2 flex-1"
           />
-
-          <select value={filters.college} onChange={e => setFilters(f=>({...f, college: e.target.value}))}>
+          <select value={filters.college} onChange={e => setFilters(f => ({ ...f, college: e.target.value }))}>
             <option value="">الكلية</option>
             {filterOptions.colleges
-              .filter(c => c.university_id === universityId)
+              .filter(c => c.university_id === Number(filters.project_university))
               .map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
@@ -200,9 +194,26 @@ const ProjectSearch: React.FC<Props> = ({ universityId, colleges }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {projects.map(p => (
               <div key={p.project_id} className="bg-white p-4 rounded-lg shadow">
-                <h3 className="font-bold text-lg">{p.title}</h3>
-                <p className="text-sm text-gray-600">{p.university_name} - {p.college_name || 'لا توجد كلية'}</p>
-                <p className="text-sm">{p.supervisor_name}</p>
+                <img
+                  src={p.logo?.startsWith('http') ? p.logo : `http://localhost:8000${p.logo}`}
+                  alt={p.title}
+                  className="w-full h-32 object-cover rounded mb-3"
+                />
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-bold text-lg">{p.title}</h3>
+                  <span className={`px-2 py-1 rounded text-xs font-bold ${p.project_type === 'Proposed' ? 'bg-purple-100 text-purple-700' :
+                    p.project_type === 'Governmental' ? 'bg-blue-100 text-blue-700' :
+                      'bg-green-100 text-green-700'
+                    }`}>
+                    {p.project_type === 'Proposed' ? 'مقترح' : p.project_type === 'Governmental' ? 'حكومي' : 'شركات خارجية'}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600">{p.university_name} - {p.college_name}</p>
+                <p className="text-sm"><FiUser className="inline mr-1" /> {p.supervisor_name}</p>
+                <p className="text-sm"><FiUsers className="inline mr-1" /> {p.co_supervisor_name}</p>
+                <p className="text-sm"><FiBookOpen className="inline mr-1" /> {p.field}</p>
+                <p className="text-sm"><FiTool className="inline mr-1" /> {p.tools}</p>
+                <p className="text-sm"><FiCalendar className="inline mr-1" /> {p.start_date} - {p.end_date}</p>
               </div>
             ))}
           </div>

@@ -317,17 +317,13 @@ class ProjectStateAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
 
-
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
     list_display = (
         'project_id', 'title', 'project_type', 'state', 'university', 'branch', 'college',
         'created_by', 'start_date', 'end_date', 'field', 'tools', 'logo_preview', 'documentation_link'
     )
-    list_filter = (
-        'project_type', 'state', 
-        'start_date', 'end_date'
-    )
+    list_filter = ('project_type', 'state', 'start_date', 'end_date')
     search_fields = (
         'title', 'description', 'field', 'tools', 'created_by__username',
         'university__uname_ar', 'branch__university__uname_ar', 'branch__city__bname_ar',
@@ -347,20 +343,24 @@ class ProjectAdmin(admin.ModelAdmin):
         }),
     )
 
-    # Upload buttons
+    # Custom upload widgets for files
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         if db_field.name in ['logo', 'documentation']:
             kwargs['widget'] = ClearableFileInput(attrs={'class': 'file-upload'})
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
-    # Show preview for logo
+    # Clickable thumbnail preview for project logo
     def logo_preview(self, obj):
         if obj.logo:
-            return format_html('<img src="{}" style="height:50px;" />', obj.logo.url)
+            return format_html(
+                '<a href="{}" target="_blank"><img src="{}" style="height:50px;" /></a>',
+                obj.logo.url,
+                obj.logo.url
+            )
         return '-'
     logo_preview.short_description = 'Logo'
 
-    # Show link for documentation
+    # Clickable link for project documentation
     def documentation_link(self, obj):
         if obj.documentation:
             return format_html('<a href="{}" target="_blank">View</a>', obj.documentation.url)
