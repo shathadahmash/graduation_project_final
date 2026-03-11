@@ -419,7 +419,7 @@ def project_documentation_path(instance, filename):
     ext = filename.split('.')[-1]
     return f'projects_documentation/{safe_title}.{ext}'
 
-class Project(models.Model):
+class Project(models.Model): 
     PROJECT_TYPE_CHOICES = [
         ('Governmental', 'حكومي'),
         ('External', 'شركات خارجية'),
@@ -429,56 +429,29 @@ class Project(models.Model):
     project_type = models.CharField(
         max_length=20,
         choices=PROJECT_TYPE_CHOICES,
-        default='Proposed',  # optional
-        blank=False,
-        null=False
+        default='Proposed',
     )
 
-    state  = models.ForeignKey(
-        'ProjectState',
-        on_delete=models.PROTECT,
-        related_name='projects',
-    )
+    state = models.ForeignKey('ProjectState', on_delete=models.PROTECT, related_name='projects')
     field = models.TextField(blank=True, null=True)
     tools = models.TextField(blank=True, null=True)
     project_id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=500)
     description = models.TextField()
-    created_by = models.ForeignKey(
-        'User', 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name='created_projects'
-    )
-    university = models.ForeignKey(University, on_delete=models.CASCADE, null=True, blank=True)  # optional
+    created_by = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_projects')
+    university = models.ForeignKey(University, on_delete=models.CASCADE, null=True, blank=True)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE , null=True, blank=True)
     college = models.ForeignKey(College, on_delete=models.CASCADE, null=True, blank=True)
     start_date = models.IntegerField(("Start Year"), null=True, blank=True)
     end_date = models.IntegerField(("End Year"), null=True, blank=True)
-    external_company = models.ForeignKey(
-        'ExternalCompany',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='projects'
-    )
+    external_company = models.ForeignKey('ExternalCompany', on_delete=models.SET_NULL, null=True, blank=True, related_name='projects')
 
     # Image fields
-    logo = models.ImageField(
-        upload_to=project_logo_path,
-        blank=True,
-        null=True
-    )
-    documentation = models.FileField(
-        upload_to=project_documentation_path,
-        blank=True,
-        null=True
-    )
+    logo = models.ImageField(upload_to=project_logo_path, blank=True, null=True)
+    documentation = models.FileField(upload_to=project_documentation_path, blank=True, null=True)
 
     def __str__(self):
         return self.title
-
 # ===========================
 # موديل الطالب
 # ===========================

@@ -1,111 +1,100 @@
 from rest_framework import serializers
-from core.models import Project, GroupSupervisors
+from core.models import Project, University, College, Branch, ProjectState
 from core.serializers.users import UserSerializer
 from django.conf import settings
 
-class ProjectSerializer(serializers.ModelSerializer):
-    start_date = serializers.IntegerField(
-        required=False,
-        allow_null=True,
-        min_value=1900,
-        max_value=2100
-    )
-    end_date = serializers.IntegerField(
-        required=False,
-        allow_null=True,
-        min_value=1900,
-        max_value=2100
-    )
 
+class ProjectSerializer(serializers.ModelSerializer):
+    # Optional integer fields
+    start_date = serializers.IntegerField(required=False, allow_null=True)
+    end_date = serializers.IntegerField(required=False, allow_null=True)
+
+    # Supervisor fields
     supervisor_name = serializers.SerializerMethodField()
     co_supervisor_name = serializers.SerializerMethodField()
-    created_by = UserSerializer(read_only=True)
-    college_name = serializers.SerializerMethodField()
-    state_name = serializers.SerializerMethodField()
-    university_name = serializers.SerializerMethodField()
 
-    # New fields: return full URLs for logo and documentation
+    # IDs and names
+    state_id = serializers.SerializerMethodField()
+    state_name = serializers.SerializerMethodField()
+    college_id = serializers.SerializerMethodField()
+    college_name = serializers.SerializerMethodField()
+    university_id = serializers.SerializerMethodField()
+    university_name = serializers.SerializerMethodField()
+    branch_id = serializers.SerializerMethodField()
+    branch_name = serializers.SerializerMethodField()
+
+    # URLs
     logo_url = serializers.SerializerMethodField()
     documentation_url = serializers.SerializerMethodField()
+
+    created_by = UserSerializer(read_only=True)
 
     class Meta:
         model = Project
         fields = [
-            'project_id',
-            'title',
-            'description',
-            'state',
-            'state_name',
-            'start_date',
-            'end_date',
-            'field',
-            'tools',
-            'logo',
-            'logo_url',
-            'documentation',
-            'documentation_url',
-            'co_supervisor_name',
-            'supervisor_name',
-            'created_by',
-            'college_name',
-            'university_name',
+            'project_id', 'title', 'description', 'project_type',
+            'state', 'state_id', 'state_name',
+            'college_id', 'college_name',
+            'university_id', 'university_name',
+            'branch_id', 'branch_name',
+            'start_date', 'end_date', 'field', 'tools',
+            'logo', 'logo_url', 'documentation', 'documentation_url',
+            'supervisor_name', 'co_supervisor_name', 'created_by'
         ]
 
+    # --- Supervisor logic ---
     def get_supervisor_name(self, obj):
-        for grp in obj.groups.all():
-            for gs in grp.groupsupervisors.all():
+        groups = getattr(obj, 'groups', None)
+        if not groups:
+            return "لا يوجد مشرف"
+        for grp in groups.all():
+            supervisors = getattr(grp, 'groupsupervisors', None)
+            if not supervisors:
+                continue
+            for gs in supervisors.all():
                 if gs.type == 'supervisor' and gs.user:
                     return gs.user.name or gs.user.username
         return "لا يوجد مشرف"
 
     def get_co_supervisor_name(self, obj):
-        for grp in obj.groups.all():
-            for gs in grp.groupsupervisors.all():
+        groups = getattr(obj, 'groups', None)
+        if not groups:
+            return None
+        for grp in groups.all():
+            co_supervisors = getattr(grp, 'groupsupervisors', None)
+            if not co_supervisors:
+                continue
+            for gs in co_supervisors.all():
                 if gs.type == 'co_supervisor' and gs.user:
                     return gs.user.name or gs.user.username
         return None
 
-    def get_college_name(self, obj):
-        for grp in obj.groups.all():
-            for pg in grp.program_groups.all():
-                prog = pg.program
-                if not prog:
-                    continue
-                dept = prog.department
-                if not dept:
-                    continue
-                college = dept.college
-                if college:
-                    return college.name_ar
-        return None
-
-    def get_university_name(self, obj):
-        for grp in obj.groups.all():
-            for pg in grp.program_groups.all():
-                prog = pg.program
-                if not prog:
-                    continue
-                dept = prog.department
-                if not dept:
-                    continue
-                college = dept.college
-                if not college:
-                    continue
-                branch = college.branch
-                if not branch:
-                    continue
-                uni = branch.university
-                if uni:
-                    return uni.uname_ar
-        return None
-
+    # --- IDs and names helpers ---
+    def get_state_id(self, obj):
+        return getattr(obj.state, 'ProjectStateId', None)
 
     def get_state_name(self, obj):
-        try:
-            return obj.state.name if obj.state else None
-        except Exception:
-            return str(obj.state) if obj.state is not None else None
+        return getattr(obj.state, 'name', None)
 
+    def get_university_id(self, obj):
+        return getattr(obj.university, 'uid', None)  # custom PK for University
+
+    def get_university_name(self, obj):
+        return getattr(obj.university, 'uname_ar', None)
+
+    def get_college_id(self, obj):
+        return getattr(obj.college, 'cid', None)  # custom PK for College
+
+    def get_college_name(self, obj):
+        return getattr(obj.college, 'name_ar', None)
+
+    def get_branch_id(self, obj):
+        return getattr(obj.branch, 'bid', None)  # replace 'bid' with actual PK if different
+
+    def get_branch_name(self, obj):
+        return getattr(obj.branch, 'name', None)
+
+    # --- URLs ---
     def get_logo_url(self, obj):
         if obj.logo:
             request = self.context.get('request')

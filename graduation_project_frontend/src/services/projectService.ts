@@ -65,8 +65,8 @@ export interface Project {
     }[];
   } | null;
 }
-function mapBackendProject(raw: any): Project {
 
+function mapBackendProject(raw: any): Project {
   const creator = raw.created_by || null;
 
   const role =
@@ -81,49 +81,44 @@ function mapBackendProject(raw: any): Project {
 
   return {
     project_id: raw.project_id,
-
     title: raw.title,
     description: raw.description,
-
+    project_type: raw.project_type,
     state: raw.state,
     state_name: raw.state_name,
-
     start_date: raw.start_date ?? undefined,
     end_date: raw.end_date ?? undefined,
-
     field: raw.field ?? null,
     tools: raw.tools ?? null,
 
-    logo: raw.Logo ?? null,
-    documentation_path: raw.Documentation_Path ?? null,
+    // 🔹 Use the correct backend keys
+    logo: raw.logo_url ?? null,
+    documentation_path: raw.documentation_url ?? null,
 
     college_name: raw.college_name ?? null,
     university_name: raw.university_name ?? null,
+    branch_name: raw.branch_name ?? null,
 
-    supervisor_name: raw.supervisor_name ?? null,
-    co_supervisor_name: raw.co_supervisor_name ?? null,
+    supervisor_name: raw.supervisor_name ?? 'لا يوجد مشرف',
+    co_supervisor_name: raw.co_supervisor_name ?? 'لا يوجد مشرف مساعد',
 
-    // 👇 expose them directly for the table
     role: role,
     qualification: qualification,
 
     created_by: creator
       ? {
-        id: creator.id,
-        username: creator.username,
-
-        first_name: creator.first_name,
-        last_name: creator.last_name,
-        name: creator.name,
-
-        email: creator.email ?? null,
-        phone: creator.phone ?? null,
-        gender: creator.gender ?? null,
-        CID: creator.CID ?? null,
-
-        role: role,
-        qualification: qualification,
-      }
+          id: creator.id,
+          username: creator.username,
+          first_name: creator.first_name,
+          last_name: creator.last_name,
+          name: creator.name,
+          email: creator.email ?? null,
+          phone: creator.phone ?? null,
+          gender: creator.gender ?? null,
+          CID: creator.CID ?? null,
+          role: role,
+          qualification: qualification,
+        }
       : null,
   };
 }
@@ -152,6 +147,16 @@ export const projectService = {
       throw error;
     }
   },
+  async getProjectGroups(projectId: number) {
+  try {
+    const response = await api.get(`/groups/?project=${projectId}`);
+    console.log("[projectService] project groups:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("[projectService] getProjectGroups failed:", error);
+    return [];
+  }
+},
 
   async getFilterOptions() {
     try {

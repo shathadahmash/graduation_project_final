@@ -23,6 +23,11 @@ class ProjectFilter(django_filters.FilterSet):
         field_name="state__name",
         lookup_expr="iexact" # case insensitive exact match exact  => sensitive 
     )
+        # Direct filter on the Project's own university field
+    project_university = django_filters.NumberFilter(
+        field_name="university__uid"
+    )
+
     university = django_filters.NumberFilter(
         field_name= "groups__program_groups__program__department__college__branch__university__uid"
     )
