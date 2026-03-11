@@ -1,104 +1,100 @@
+// apiConfig.ts
+
+// Base URL from environment
 export const API_BASE_URL = import.meta.env.VITE_API_URL;
 
+// Helper to build full endpoint URL
+const buildUrl = (path: string) => `${API_BASE_URL}${path}`;
+
+// API Endpoints
 export const API_ENDPOINTS = {
-  // Authentication
   AUTH: {
-    LOGIN: '/auth/login',
-    LOGOUT: '/auth/logout',
-    REGISTER: '/auth/register',
-    PROFILE: '/auth/profile',
-    REFRESH: '/auth/refresh',
+    LOGIN: buildUrl('/auth/login'),
+    LOGOUT: buildUrl('/auth/logout'),
+    REGISTER: buildUrl('/auth/register'),
+    PROFILE: buildUrl('/auth/profile'),
+    REFRESH: buildUrl('/auth/refresh'),
   },
 
-  // Groups
   GROUPS: {
-    LIST: '/groups',
-    CREATE: '/groups',
-    DETAIL: (id: number) => `/groups/${id}`,
-    UPDATE: (id: number) => `/groups/${id}`,
-    DELETE: (id: number) => `/groups/${id}`,
-    MEMBERS: (id: number) => `/groups/${id}/members`,
-    SUPERVISORS: (id: number) => `/groups/${id}/supervisors`,
+    LIST: buildUrl('/groups'),
+    CREATE: buildUrl('/groups'),
+    DETAIL: (id: number) => buildUrl(`/groups/${id}`),
+    UPDATE: (id: number) => buildUrl(`/groups/${id}`),
+    DELETE: (id: number) => buildUrl(`/groups/${id}`),
+    MEMBERS: (id: number) => buildUrl(`/groups/${id}/members`),
+    SUPERVISORS: (id: number) => buildUrl(`/groups/${id}/supervisors`),
   },
 
-  // Users
   USERS: {
-    LIST: '/users',
-    DETAIL: (id: number) => `/users/${id}`,
-    UPDATE: (id: number) => `/users/${id}`,
-    DELETE: (id: number) => `/users/${id}`,
+    LIST: buildUrl('/users'),
+    DETAIL: (id: number) => buildUrl(`/users/${id}`),
+    UPDATE: (id: number) => buildUrl(`/users/${id}`),
+    DELETE: (id: number) => buildUrl(`/users/${id}`),
   },
 
-  // Invitations
   INVITATIONS: {
-    LIST: '/invitations',
-    CREATE: '/invitations',
-    DETAIL: (id: number) => `/invitations/${id}`,
-    ACCEPT: (id: number) => `/invitations/${id}/accept`,
-    REJECT: (id: number) => `/invitations/${id}/reject`,
+    LIST: buildUrl('/invitations'),
+    CREATE: buildUrl('/invitations'),
+    DETAIL: (id: number) => buildUrl(`/invitations/${id}`),
+    ACCEPT: (id: number) => buildUrl(`/invitations/${id}/accept`),
+    REJECT: (id: number) => buildUrl(`/invitations/${id}/reject`),
   },
 
-  // Notifications
   NOTIFICATIONS: {
-    LIST: '/notifications',
-    DETAIL: (id: number) => `/notifications/${id}`,
-    MARK_READ: (id: number) => `/notifications/${id}/mark-read`,
-    MARK_ALL_READ: '/notifications/mark-all-read',
-    DELETE: (id: number) => `/notifications/${id}`,
-    UNREAD_COUNT: '/notifications/unread-count',
+    LIST: buildUrl('/notifications'),
+    DETAIL: (id: number) => buildUrl(`/notifications/${id}`),
+    MARK_READ: (id: number) => buildUrl(`/notifications/${id}/mark-read`),
+    MARK_ALL_READ: buildUrl('/notifications/mark-all-read'),
+    DELETE: (id: number) => buildUrl(`/notifications/${id}`),
+    UNREAD_COUNT: buildUrl('/notifications/unread-count'),
   },
 
-  // Approvals
   APPROVALS: {
-    LIST: '/approvals',
-    DETAIL: (id: number) => `/approvals/${id}`,
-    APPROVE: (id: number) => `/approvals/${id}/approve`,
-    REJECT: (id: number) => `/approvals/${id}/reject`,
+    LIST: buildUrl('/approvals'),
+    DETAIL: (id: number) => buildUrl(`/approvals/${id}`),
+    APPROVE: (id: number) => buildUrl(`/approvals/${id}/approve`),
+    REJECT: (id: number) => buildUrl(`/approvals/${id}/reject`),
   },
 
-  // Projects
   PROJECTS: {
-    LIST: '/projects',
-    CREATE: '/projects',
-    DETAIL: (id: number) => `/projects/${id}`,
-    UPDATE: (id: number) => `/projects/${id}`,
-    DELETE: (id: number) => `/projects/${id}`,
+    LIST: buildUrl('/projects'),
+    CREATE: buildUrl('/projects'),
+    DETAIL: (id: number) => buildUrl(`/projects/${id}`),
+    UPDATE: (id: number) => buildUrl(`/projects/${id}`),
+    DELETE: (id: number) => buildUrl(`/projects/${id}`),
   },
 
-  // Colleges
   COLLEGES: {
-    LIST: '/colleges',
-    DETAIL: (id: number) => `/colleges/${id}`,
-    CREATE: '/colleges',
-    UPDATE: (id: number) => `/colleges/${id}`,
-    DELETE: (id: number) => `/colleges/${id}`,
+    LIST: buildUrl('/colleges'),
+    CREATE: buildUrl('/colleges'),
+    DETAIL: (id: number) => buildUrl(`/colleges/${id}`),
+    UPDATE: (id: number) => buildUrl(`/colleges/${id}`),
+    DELETE: (id: number) => buildUrl(`/colleges/${id}`),
   },
 
-  // Universities
   UNIVERSITIES: {
-    LIST: '/universities',
-    DETAIL: (id: number) => `/universities/${id}`,
-    CREATE: '/universities',
-    UPDATE: (id: number) => `/universities/${id}`,
-    DELETE: (id: number) => `/universities/${id}`,
+    LIST: buildUrl('/universities'),
+    CREATE: buildUrl('/universities'),
+    DETAIL: (id: number) => buildUrl(`/universities/${id}`),
+    UPDATE: (id: number) => buildUrl(`/universities/${id}`),
+    DELETE: (id: number) => buildUrl(`/universities/${id}`),
   },
 
-  // Programs
   PROGRAMS: {
-    LIST: '/programs',
-    DETAIL: (id: number) => `/programs/${id}`,
-    CREATE: '/programs',
-    UPDATE: (id: number) => `/programs/${id}`,
-    DELETE: (id: number) => `/programs/${id}`,
+    LIST: buildUrl('/programs'),
+    CREATE: buildUrl('/programs'),
+    DETAIL: (id: number) => buildUrl(`/programs/${id}`),
+    UPDATE: (id: number) => buildUrl(`/programs/${id}`),
+    DELETE: (id: number) => buildUrl(`/programs/${id}`),
   },
 
-  // Departments
   DEPARTMENTS: {
-    LIST: '/departments',
-    DETAIL: (id: number) => `/departments/${id}`,
-    CREATE: '/departments',
-    UPDATE: (id: number) => `/departments/${id}`,
-    DELETE: (id: number) => `/departments/${id}`,
+    LIST: buildUrl('/departments'),
+    CREATE: buildUrl('/departments'),
+    DETAIL: (id: number) => buildUrl(`/departments/${id}`),
+    UPDATE: (id: number) => buildUrl(`/departments/${id}`),
+    DELETE: (id: number) => buildUrl(`/departments/${id}`),
   },
 };
 
