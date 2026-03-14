@@ -52,7 +52,7 @@ export default function ConnectUs() {
         <div className="flex flex-col items-center">
           
           {/* معلومات الاتصال السريعة - في الأعلى */}
-          <div className="grid grid-cols-3 gap-6 md:gap-12 mb-12 max-w-2xl">
+          {/* <div className="grid grid-cols-3 gap-6 md:gap-12 mb-12 max-w-2xl">
             <div className="text-center group">
               <div className="w-12 h-12 mx-auto bg-[#31257D]/5 rounded-full flex items-center justify-center group-hover:bg-[#31257D] transition-all duration-300 mb-3">
                 <svg className="w-5 h-5 text-[#31257D] group-hover:text-white transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,7 +81,7 @@ export default function ConnectUs() {
               <p className="text-sm text-[#4A5568] group-hover:text-[#31257D] transition-colors font-medium">صنعاء، اليمن</p>
               <p className="text-xs text-[#718096]">العنوان</p>
             </div>
-          </div>
+          </div> */}
 
           {/* النموذج */}
           <form onSubmit={handleSubmit} className="w-full max-w-2xl bg-white rounded-lg shadow-lg p-8 space-y-6">

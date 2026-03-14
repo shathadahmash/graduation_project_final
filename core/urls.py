@@ -74,6 +74,7 @@ router.register(
     FetchRelatedToUniversity,
     basename='fetch-related-to-university'
 )
+
 urlpatterns = [
     path('colleges/<int:college_id>/departments/', CollegeDepartmentsView.as_view(), name='college-departments'),
     path('approvals/<int:approval_id>/approve/', respond_to_group_request, name='approval-approve'),
@@ -108,6 +109,7 @@ urlpatterns = [
     path('import_projects_validate/', import_projects_validate, name='import-projects-validate'),
     path('import_projects_commit/', import_projects_commit, name='import-projects-commit'),
     path('system/import/projects/template/', import_projects_template, name='import-projects-template'),
+    
 
 ]
 

@@ -30,11 +30,11 @@ class DepartmentSerializer(serializers.ModelSerializer):
             'name_en': obj.college.name_en
         } if obj.college else None
 
-
 class CollegeSerializer(serializers.ModelSerializer):
     departments = DepartmentSerializer(source='department_set', many=True, read_only=True)
     branch_detail = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()  # override description
 
     class Meta:
         model = College
@@ -56,6 +56,16 @@ class CollegeSerializer(serializers.ModelSerializer):
         if obj.image and request:
             return request.build_absolute_uri(obj.image.url)
         return None
+
+    def get_description(self, obj):
+        # fallback to branch or university description if college description is empty
+        if obj.description:
+            return obj.description
+        if obj.branch and hasattr(obj.branch, 'description') and obj.branch.description:
+            return obj.branch.description
+        if obj.branch and hasattr(obj.branch, 'university') and obj.branch.university.description:
+            return obj.branch.university.description
+        return "لا يوجد وصف متاح."
 
 
 class BranchSerializer(serializers.ModelSerializer):

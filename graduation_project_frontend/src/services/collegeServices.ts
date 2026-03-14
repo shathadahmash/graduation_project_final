@@ -1,4 +1,4 @@
-// ------ collegeServices.ts ------//
+// ------ collegeServices.ts ------ //
 
 import api from './api';
 
@@ -7,11 +7,19 @@ import api from './api';
 ================================ */
 
 export interface College {
-  id: number;
-  name_ar?: string;
+  cid: number; // backend primary key
+  name_ar: string;
   name_en?: string | null;
   branch?: number | null;
-  branch_detail?: any;
+  branch_detail?: {
+    ubid: number;
+    location?: string | null;
+    address?: string | null;
+    contact?: string | null;
+  };
+  description?: string | null;
+  image?: string | null;
+  departments?: any[]; // optional, include if API returns departments
 }
 
 export interface Branch {
@@ -23,60 +31,50 @@ export interface Branch {
   program?: number | null;
 }
 
-
 /* ================================
    COLLEGE SERVICE
 ================================ */
 
-import api from './api';
-
-export interface College {
-    cid: number; // المعرف الأساسي للكليات
-    college_name: string;
-    name_ar?: string;
-    name_en?: string | null;
-    branch?: number | null;
-}
-
 export const collegeService = {
-    async getColleges(params?: any) {
-        try {
-            const response = await api.get('/colleges/', { params });
-            return response.data;
-        } catch (error: any) {
-            console.error('[collegeService] Failed to fetch colleges:', error);
-            return [];
-        }
-    },
-
-    async addCollege(collegeData: any) {
-        try {
-            const response = await api.post('/colleges/', collegeData);
-            return response.data;
-        } catch (error) {
-            console.error('Failed to add college:', error);
-            throw error;
-        }
-    },
-
-    async updateCollege(collegeId: number, collegeData: any) {
-        try {
-            const response = await api.put(`/colleges/${collegeId}/`, collegeData);
-            return response.data;
-        } catch (error) {
-            console.error('Failed to update college:', error);
-            throw error;
-        }
-    },
-
-    async deleteCollege(collegeId: number) {
-        try {
-            await api.delete(`/colleges/${collegeId}/`);
-            return true;
-        } catch (error) {
-            console.error('Failed to delete college:', error);
-            throw error;
-        }
+  async getColleges(params?: any): Promise<College[]> {
+    try {
+      const response = await api.get('/colleges/', { params });
+      return response.data;
+    } catch (error: any) {
+      console.error('[collegeService] Failed to fetch colleges:', error);
+      return [];
     }
+  },
+
+  async addCollege(collegeData: any): Promise<College> {
+    try {
+      const response = await api.post('/colleges/', collegeData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to add college:', error);
+      throw error;
+    }
+  },
+
+  async updateCollege(collegeId: number, collegeData: any): Promise<College> {
+    try {
+      const response = await api.put(`/colleges/${collegeId}/`, collegeData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to update college:', error);
+      throw error;
+    }
+  },
+
+  async deleteCollege(collegeId: number): Promise<boolean> {
+    try {
+      await api.delete(`/colleges/${collegeId}/`);
+      return true;
+    } catch (error) {
+      console.error('Failed to delete college:', error);
+      throw error;
+    }
+  },
 };
+
 export default collegeService;

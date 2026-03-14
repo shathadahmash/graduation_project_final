@@ -26,7 +26,7 @@ export default function Footer() {
               </div>
               <div>
                 <h3 className="text-xl font-bold text-white">البوابة الموحدة</h3>
-                <p className="text-xs text-white/60">لإدارة مشاريع التخرج</p>
+                <p className="text-xs text-white/60">لمشاريع التخرج</p>
               </div>
             </div>
             
@@ -36,7 +36,7 @@ export default function Footer() {
             </p>
             
             {/* أيقونات التواصل الاجتماعي */}
-            <div className="flex gap-3 pt-4">
+            {/* <div className="flex gap-3 pt-4">
               {[
                 { icon: 'f', href: '#' },
                 { icon: 't', href: '#' },
@@ -53,7 +53,7 @@ export default function Footer() {
                   </span>
                 </a>
               ))}
-            </div>
+            </div> */}
           </div>
 
           {/* القسم الثاني - روابط سريعة */}
@@ -79,7 +79,7 @@ export default function Footer() {
           </div>
 
           {/* القسم الثالث - تواصل معنا */}
-          <div className="space-y-4">
+          {/* <div className="space-y-4">
             <h4 className="text-lg font-bold text-white relative inline-block">
               تواصل معنا
               <span className="absolute -bottom-2 right-0 w-8 h-0.5 bg-white/30 rounded-full"></span>
@@ -106,7 +106,7 @@ export default function Footer() {
                 <span>صنعاء، اليمن</span>
               </li>
             </ul>
-          </div>
+          </div> */}
         </div>
 
         {/* خط فاصل */}
@@ -114,11 +114,11 @@ export default function Footer() {
 
         {/* السطر الأخير */}
         <div className="flex flex-col md:flex-row justify-between items-center text-sm text-white/60">
-          <p>© جميع الحقوق محفوظة 2025 | بوابة إدارة مشاريع التخرج</p>
+          <p>© جميع الحقوق محفوظة 2025 | بوابة مشاريع التخرج</p>
           <p className="mt-2 md:mt-0">
             تصميم وتطوير | 
             <a href="#" className="text-white/80 hover:text-white transition-colors mr-1">
-              Y-CIT-HIE
+              Y-CIT-HE
             </a>
           </p>
         </div>

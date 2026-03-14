@@ -101,7 +101,7 @@ const ProjectSearch: React.FC = () => {
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
   // ثابت عنوان API
-  const API_BASE_URL = 'https://back.graduation-projects.ycithe.net';
+  const API_BASE_URL = 'http://localhost:8001/api/';
 
   // دالة لبناء رابط الصورة الكامل
   const getImageUrl = (imagePath?: string): string => {
@@ -586,25 +586,30 @@ const ProjectSearch: React.FC = () => {
                     className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-[#31257D]/10 flex flex-col h-full group"
                   >
                     {/* صورة المشروع */}
-                    <div className="relative h-48 overflow-hidden bg-gradient-to-br from-[#31257D]/5 to-[#4937BF]/5">
+               <div className="relative h-48 overflow-hidden bg-gradient-to-br from-[#31257D]/5 to-[#4937BF]/5">
+
+                    {p.logo ? (
                       <img
-                        src={p.logo}
+                        src={getImageUrl(p.logo)}
                         alt={p.title}
                         className="w-full h-full object-cover transition-all duration-300"
-                        onError={(e) => {
-                          e.currentTarget.src = '/default-project-logo.png';
-                        }}
                       />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                        <FiImage size={40} className="mb-2" />
+                        <span className="text-xs">لا توجد صورة</span>
+                      </div>
+                    )}
 
-                      {/* شارة نوع المشروع على الصورة */}
-                      {p.project_type !== 'غير محدد' && (
-                        <div className="absolute top-3 right-3">
-                          <span className={`${badge.bg} ${badge.color} px-3 py-1 rounded-full text-xs font-bold shadow-lg`}>
-                            {badge.label}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                    {p.project_type !== 'غير محدد' && (
+                      <div className="absolute top-3 right-3">
+                        <span className={`${badge.bg} ${badge.color} px-3 py-1 rounded-full text-xs font-bold shadow-lg`}>
+                          {badge.label}
+                        </span>
+                      </div>
+                    )}
+
+                  </div>
 
                     {/* محتوى البطاقة */}
                     <div className="p-5 flex-1 flex flex-col">

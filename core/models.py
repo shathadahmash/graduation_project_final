@@ -440,6 +440,8 @@ class Project(models.Model):
     description = models.TextField()
     created_by = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_projects')
     university = models.ForeignKey(University, on_delete=models.CASCADE, null=True, blank=True)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, null=True, blank=True)
+    program = models.ForeignKey(Program, on_delete=models.CASCADE, null=True, blank=True)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE , null=True, blank=True)
     college = models.ForeignKey(College, on_delete=models.CASCADE, null=True, blank=True)
     start_date = models.IntegerField(("Start Year"), null=True, blank=True)
@@ -473,7 +475,8 @@ class Student(models.Model):
     phone = models.CharField(max_length=20, blank=True, null=True)
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
-    enrolled_at = models.DateField(auto_now_add=True)
+    enrolled_at = models.IntegerField( null=True, blank=True)
+    graduation_year = models.IntegerField( null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.name} - {self.student_id or 'No ID'}"

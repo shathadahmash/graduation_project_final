@@ -8,12 +8,31 @@ export interface Supervisor {
   name: string;
 }
 
+export interface GroupMember {
+  user: number;
+  user_detail?: {
+    id?: number;
+    name?: string;
+    username?: string;
+  };
+}
+
+export interface Group {
+  group_id: number;
+  members: GroupMember[];
+  supervisors?: any[];
+  members_count?: number;
+}
 export interface Project {
-  members?: { id: number; name?: string; CID?: string | null }[];
   project_id?: number;
 
   title: string;
   description: string;
+  project_type?: string;
+
+  groups?: Group[];
+
+  members?: { id: number; name?: string }[];
 
   state?: number;
   state_name?: string;
@@ -27,83 +46,74 @@ export interface Project {
   logo?: string | null;
   documentation_path?: string | null;
 
-  college_name?: string | null;
+  // 🔹 IDs (used for filtering & grouping)
+  university_id?: number | null;
+  college_id?: number | null;
+  department_id?: number | null;
+  program_id?: number | null;
+
+  // 🔹 Names (used for display)
   university_name?: string | null;
+  college_name?: string | null;
+  department_name?: string | null;
+  program_name?: string | null;
+  branch_name?: string | null;
 
   supervisor_name?: string | null;
   co_supervisor_name?: string | null;
 
-  created_by?: {
-    id: number;
-    username?: string;
-
-    first_name?: string;
-    last_name?: string;
-    name?: string;
-
-    email?: string | null;
-    phone?: string | null;
-    gender?: string | null;
-    CID?: string | null;
-
-    roles?: {
-      role__role_ID?: number;
-      role__type?: string;
-    }[];
-
-    staff_profiles?: {
-      staff_id?: number;
-
-      role?: string;
-      Qualification?: string;
-      Office_Hours?: string;
-
-      user?: {
-        id?: number;
-        name?: string;
-      };
-    }[];
-  } | null;
+  created_by?: any;
 }
 
 function mapBackendProject(raw: any): Project {
   const creator = raw.created_by || null;
 
-  const role =
-    creator?.roles?.length > 0
-      ? creator.roles[0]?.role__type
-      : null;
+  const groups = raw.groups || [];
 
-  const qualification =
-    creator?.staff_profiles?.length > 0
-      ? creator.staff_profiles[0]?.Qualification
-      : null;
+  const members =
+    groups.flatMap((g: any) =>
+      (g.members || []).map((m: any) => ({
+        id: m.user,
+        name: m.user_detail?.name || m.user_detail?.username,
+      }))
+    ) || [];
 
   return {
     project_id: raw.project_id,
     title: raw.title,
     description: raw.description,
     project_type: raw.project_type,
+
     state: raw.state,
     state_name: raw.state_name,
+
     start_date: raw.start_date ?? undefined,
     end_date: raw.end_date ?? undefined,
+
     field: raw.field ?? null,
     tools: raw.tools ?? null,
 
-    // 🔹 Use the correct backend keys
     logo: raw.logo_url ?? null,
     documentation_path: raw.documentation_url ?? null,
 
-    college_name: raw.college_name ?? null,
+    // 🔹 IDs (important for filtering and grouping)
+    university_id: raw.university_id ?? null,
+    college_id: raw.college_id ?? null,
+    department_id: raw.department_id ?? null,
+    program_id: raw.program_id ?? null,
+
+    // 🔹 Display names
     university_name: raw.university_name ?? null,
+    college_name: raw.college_name ?? null,
+    department_name: raw.department_name ?? null,
+    program_name: raw.program_name ?? null,
     branch_name: raw.branch_name ?? null,
 
-    supervisor_name: raw.supervisor_name ?? 'لا يوجد مشرف',
-    co_supervisor_name: raw.co_supervisor_name ?? 'لا يوجد مشرف مساعد',
+    supervisor_name: raw.supervisor_name ?? "لا يوجد مشرف",
+    co_supervisor_name: raw.co_supervisor_name ?? "لا يوجد مشرف مساعد",
 
-    role: role,
-    qualification: qualification,
+    groups: groups,
+    members: members,
 
     created_by: creator
       ? {
@@ -116,13 +126,10 @@ function mapBackendProject(raw: any): Project {
           phone: creator.phone ?? null,
           gender: creator.gender ?? null,
           CID: creator.CID ?? null,
-          role: role,
-          qualification: qualification,
         }
       : null,
   };
 }
-
 export const projectService = {
   async getProjects(params?: any) {
     try {
@@ -147,16 +154,17 @@ export const projectService = {
       throw error;
     }
   },
-  async getProjectGroups(projectId: number) {
-  try {
-    const response = await api.get(`/groups/?project=${projectId}`);
-    console.log("[projectService] project groups:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error("[projectService] getProjectGroups failed:", error);
-    return [];
-  }
-},
+
+//   async getProjectGroups(projectId: number) {
+//   try {
+//     const response = await api.get(`/groups/?project=${projectId}`);
+//     console.log("[projectService] project groups:", response.data);
+//     return response.data;
+//   } catch (error) {
+//     console.error("[projectService] getProjectGroups failed:", error);
+//     return [];
+//   }
+// },
 
   async getFilterOptions() {
     try {
@@ -167,7 +175,43 @@ export const projectService = {
       return { colleges: [], supervisors: [], years: [], states: [], tools: [], fields: [] };
     }
   },
-
+// داخل projectService
+async getProjectGroups(projectId: number) {
+  try {
+    // المسار الصحيح: /groups/?project=projectId
+    // هذا سيجلب فقط المجموعات المرتبطة بهذا المشروع المحدد
+    const response = await api.get('/groups/', {
+      params: { project: projectId }  // التأكد من استخدام 'project' كمفتاح params
+    });
+    
+    console.log(`[projectService] جلب مجموعات المشروع ${projectId}:`, response.data);
+    
+    // التعامل مع هيكل البيانات
+    // قد يكون response.data مباشرة أو response.data.results
+    const groupsData = response.data?.results || response.data;
+    
+    // التحقق من أن البيانات مصفوفة
+    if (Array.isArray(groupsData)) {
+      return groupsData;
+    }
+    
+    console.warn('[projectService] البيانات المستلمة ليست مصفوفة:', groupsData);
+    return [];
+  } catch (error: any) {
+    console.error(`[projectService] فشل جلب مجموعات المشروع ${projectId}:`, error?.response?.data || error);
+    
+    // محاولة مسار بديل إذا فشل الأول
+    try {
+      console.log('[projectService] محاولة مسار بديل...');
+      const fallbackResponse = await api.get(`/projects/${projectId}/groups/`);
+      const fallbackData = fallbackResponse.data?.results || fallbackResponse.data;
+      return Array.isArray(fallbackData) ? fallbackData : [];
+    } catch (fallbackError) {
+      console.error('[projectService] فشل المسار البديل:', fallbackError);
+      return [];
+    }
+  }
+},
   async searchProjects(query: string, params?: any) {
     try {
       const response = await api.get('/projects/search/', {
@@ -298,6 +342,63 @@ export const projectService = {
     return [];
   }
 },
+
+async getCollegeProjects(collegeId: number) {
+  try {
+    const response = await api.get('/projects/', {
+      params: { college_id: collegeId }
+    });
+
+    const data = Array.isArray(response.data)
+      ? response.data
+      : response.data?.results || [];
+
+    return data.map(mapBackendProject);
+  } catch (error) {
+    console.error('getCollegeProjects failed', error);
+    return [];
+  }
+},
+
+async getDepartmentProjects(departmentId: number) {
+  try {
+    const response = await api.get('/projects/', {
+      params: { department_id: departmentId }
+    });
+
+    const data = Array.isArray(response.data)
+      ? response.data
+      : response.data?.results || [];
+
+    return data.map(mapBackendProject);
+  } catch (error) {
+    console.error('getDepartmentProjects failed', error);
+    return [];
+  }
+},
+
+async getProgramProjects(programId: number) {
+  try {
+    const response = await api.get('/projects/', {
+      params: { program_id: programId }
+    });
+
+    const data = Array.isArray(response.data)
+      ? response.data
+      : response.data?.results || [];
+
+    return data.map(mapBackendProject);
+  } catch (error) {
+    console.error('getProgramProjects failed', error);
+    return [];
+  }
+},
+
+
+
+
+
+
 
   async getProjectsWithGroups(fields?: string[]) {
     const req = [

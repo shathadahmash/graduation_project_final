@@ -19,26 +19,41 @@ logger = logging.getLogger(__name__)
 
 
 class ProjectFilter(django_filters.FilterSet):
+
+    # project state
     state_name = django_filters.CharFilter(
         field_name="state__name",
-        lookup_expr="iexact" # case insensitive exact match exact  => sensitive 
+        lookup_expr="iexact"
     )
-        # Direct filter on the Project's own university field
-    project_university = django_filters.NumberFilter(
+
+    # -------------------------
+    # Location filters (MAIN)
+    # -------------------------
+    college_id = django_filters.NumberFilter(
+        field_name="college__cid"
+    )
+
+    department_id = django_filters.NumberFilter(
+        field_name="department__department_id"
+    )
+
+    program_id = django_filters.NumberFilter(
+        field_name="program__pid"
+    )
+
+    university_id = django_filters.NumberFilter(
         field_name="university__uid"
     )
 
-    university = django_filters.NumberFilter(
-        field_name= "groups__program_groups__program__department__college__branch__university__uid"
-    )
-    college = django_filters.NumberFilter(
-        field_name="groups__program_groups__program__department__college__cid"
-    )
-    department = django_filters.NumberFilter(
-        field_name="groups__program_groups__program__department__department_id"
-    )
-    supervisor = django_filters.NumberFilter(method='filter_supervisor')
-    co_supervisor = django_filters.NumberFilter(method='filter_co_supervisor')
+    # -------------------------
+    # Supervisor filters
+    # -------------------------
+    supervisor = django_filters.NumberFilter(method="filter_supervisor")
+    co_supervisor = django_filters.NumberFilter(method="filter_co_supervisor")
+
+    # -------------------------
+    # Other filters
+    # -------------------------
     year = django_filters.NumberFilter(field_name="start_date")
     tools = django_filters.CharFilter(field_name="tools", lookup_expr="icontains")
     field = django_filters.CharFilter(field_name="field", lookup_expr="icontains")
@@ -47,9 +62,9 @@ class ProjectFilter(django_filters.FilterSet):
         return queryset.filter(
             Exists(
                 GroupSupervisors.objects.filter(
-                    group__project_id=OuterRef('pk'),
+                    group__project_id=OuterRef("pk"),
                     user=value,
-                    type='supervisor'
+                    type="supervisor"
                 )
             )
         ).distinct()
@@ -58,16 +73,27 @@ class ProjectFilter(django_filters.FilterSet):
         return queryset.filter(
             Exists(
                 GroupSupervisors.objects.filter(
-                    group__project_id=OuterRef('pk'),
+                    group__project_id=OuterRef("pk"),
                     user=value,
-                    type='co_supervisor'
+                    type="co_supervisor"
                 )
             )
         ).distinct()
 
     class Meta:
         model = Project
-        fields = ["state_name", "college", "department", "supervisor", "co_supervisor", "year", "university", "tools", "field"]
+        fields = [
+            "state_name",
+            "college_id",
+            "department_id",
+            "program_id",
+            "university_id",
+            "supervisor",
+            "co_supervisor",
+            "year",
+            "tools",
+            "field",
+        ]
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -80,77 +106,50 @@ class ProjectViewSet(viewsets.ModelViewSet):
     ordering_fields = ["title", "start_date", "created_by__name", "state__name"]
 
     def get_queryset(self):
-        user = self.request.user
-        qs = Project.objects.all().order_by("-start_date")
-        # bring in related state and creator in single join
-        qs = qs.select_related('state', 'created_by')
+     user = self.request.user
 
-        # Prefetch related objects used heavily in serializer to avoid N+1 queries
-        qs = qs.prefetch_related(
-            'groups__groupsupervisors__user',
-            'groups__program_groups__program__department__college__branch__university'
-        )
+     qs = (
+        Project.objects
+        .select_related("state", "created_by", "college", "department", "program", "branch", "university")
+        .prefetch_related("groups", "groups__groupsupervisors__user")
+        .order_by("-start_date")
+     )
 
-        try:
-            total = qs.count()
-            logger.debug('ProjectViewSet: total projects before role filtering: %s', total)
-        except Exception:
-            logger.debug('ProjectViewSet: unable to count total projects')
+    # External users → only their projects
+     if UserRoles.objects.filter(user=user, role__type__icontains="External").exists():
+        qs = qs.filter(created_by=user)
 
-        is_external = UserRoles.objects.filter(
-            user=user,
-            role__type__icontains="External"
-        ).exists()
-
-        if is_external:
-            logger.debug('ProjectViewSet: user %s is external - returning own projects', user)
-            return qs.filter(created_by=user)
-
-        if PermissionManager.is_student(user):
-            logger.debug('ProjectViewSet: user %s is student - returning own projects', user)
-            return qs.filter(
-                Exists(
-                    GroupMembers.objects.filter(
-                        group__project_id=OuterRef('pk'),
-                        user=user.pk
-                    )
+    # Students → projects where they are members
+     elif PermissionManager.is_student(user):
+        qs = qs.filter(
+            Exists(
+                GroupMembers.objects.filter(
+                    group__project_id=OuterRef("pk"),
+                    user=user.pk
                 )
-            ).distinct()
+            )
+        ).distinct()
 
-        if PermissionManager.is_admin(user) and not PermissionManager.is_dean(user):
-            logger.debug('ProjectViewSet: user %s is admin (not dean) - returning all projects', user)
-            return qs
+    # Supervisor → projects they supervise
+     elif PermissionManager.is_supervisor(user):
+        qs = qs.filter(
+            groups__groupsupervisors__user=user,
+            groups__groupsupervisors__type="supervisor"
+        ).distinct()
 
-        if PermissionManager.is_supervisor(user):
-            return qs.filter(
-                groups__groupsupervisors__user=user,
-                groups__groupsupervisors__type='supervisor'
-            ).distinct()
+    # Dean → projects in their colleges
+     elif PermissionManager.is_dean(user):
+        college_ids = list(
+            AcademicAffiliation.objects.filter(user=user).values_list("college_id", flat=True)
+        )
+        college_ids = [c for c in college_ids if c]
+        if college_ids:
+            qs = qs.filter(college__cid__in=college_ids).distinct()
+        else:
+            qs = qs.none()
 
-        # Allow dean to view projects belonging to their college(s)
-        if PermissionManager.is_dean(user):
-            # find colleges the dean is affiliated with
-            college_ids = AcademicAffiliation.objects.filter(user=user).values_list('college_id', flat=True)
-            college_ids = [c for c in college_ids if c]
-            try:
-                logger.debug('ProjectViewSet: total projects before dean filter: %s', total)
-            except Exception:
-                pass
-            logger.debug('ProjectViewSet: user %s is dean - affiliated colleges: %s', user, college_ids)
-            if college_ids:
-                filtered_qs = qs.filter(
-                    groups__program_groups__program__department__college__in=college_ids
-                ).distinct()
-                try:
-                    cnt = filtered_qs.count()
-                    sample_ids = list(filtered_qs.values_list('project_id', flat=True)[:20])
-                    logger.debug('ProjectViewSet: dean filtered projects count=%s sample_ids=%s', cnt, sample_ids)
-                except Exception:
-                    logger.debug('ProjectViewSet: dean filtered queryset created')
-                return filtered_qs
-            return qs.none()
-
-        return qs.none()
+    # Admin (or others) → leave qs as is
+     return qs
 
     def create(self, request, *args, **kwargs):
         try:

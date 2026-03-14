@@ -161,16 +161,21 @@ const Universities: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-br from-[#31257D] to-[#4937BF] opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
                 
                 <div className="relative z-10">
-                  <div className="relative mb-4 w-24 h-24 mx-auto">
-                    <div className="absolute inset-0 rounded-full bg-[#31257D]/5 group-hover:bg-white/20 transition-all duration-300 group-hover:scale-105"></div>
+                  <div className="relative mb-4 w-24 h-24 mx-auto rounded-full overflow-hidden">
+                  <div className="absolute inset-0 rounded-full bg-[#31257D]/5 group-hover:bg-white/20 transition-all duration-300"></div>
+                    {uni.logo ? (
                     <img
                       src={uni.logo}
                       alt={uni.name}
-                      className="w-full h-full object-contain p-2 relative z-10 transition-all duration-300 group-hover:scale-105"
-                      onError={(e) => {
-                        e.currentTarget.src = '/default-uni-logo.png';
-                      }}
+                      className="w-full h-full object-cover rounded-full relative z-10 transition-all duration-300 group-hover:scale-105"
                     />
+                  ) : (
+                    <img
+                      src="/default-uni-logo.png"
+                      alt="default"
+                      className="w-full h-full object-contain p-2 relative z-10"
+                    />
+                  )}
                   </div>
 
                   <h3 className="text-xl font-bold text-[#31257D] group-hover:text-white transition-colors duration-300 mb-3">

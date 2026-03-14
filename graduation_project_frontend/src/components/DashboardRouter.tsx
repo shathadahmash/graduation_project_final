@@ -12,7 +12,7 @@ import SystemManagerDashboard from "../Pages/dashboards/SystemManager/SystemMana
 import MinistryDashboard from "../Pages/dashboards/ministry/MinistryDashboard.tsx";
 import ExternalCompanyDashboard from "../Pages/dashboards/ExternalCompanyDashboard.tsx";
 import StudentDashboard from "../Pages/dashboards/StudentDashboard.tsx";
-
+import ProjectDetails from "../components/uni_college_department_branch/ProjectDetails.tsx";
 import SysManagerImportProjects from "../Pages/dashboards/SystemManager/sysManagerImportProjects.tsx";
 
 const DashboardRouter: React.FC = () => {
@@ -79,6 +79,7 @@ if (Array.isArray(user.roles) && user.roles.length > 0) {
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/dashboard" />} />
+      <Route path="/projectdetail" element={<ProjectDetails />} />
     </Routes>
   );
 };
