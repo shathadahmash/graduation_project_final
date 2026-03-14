@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import ProjectSearchComponent from '../components/ProjectSearchComponent';
 
 const ProjectSearch: React.FC = () => {
-  const API_BASE_URL = 'http://localhost:8001/api/';
+  const API_BASE_URL = 'http://localhost:8000/api/';
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-['Cairo',sans-serif]" dir="rtl">

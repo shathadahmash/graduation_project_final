@@ -98,7 +98,7 @@ const ProjectCollegeSearch: React.FC<Props> = ({ collegeId }) => {
               {/* Image and Badge */}
               <div className="relative h-48 overflow-hidden rounded-t-xl">
                 <img
-                  src={p.logo?.startsWith('http') ? p.logo : `http://localhost:8001${p.logo}`}
+                  src={p.logo?.startsWith('http') ? p.logo : `http://localhost:8000${p.logo}`}
                   alt={p.title}
                   className="w-full h-full object-cover"
                   onError={(e) => {

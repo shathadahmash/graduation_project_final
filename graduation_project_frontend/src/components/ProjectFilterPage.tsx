@@ -73,7 +73,7 @@ const ProjectFilterPage: React.FC<ProjectFilterPageProps> = ({
   const [showFilters, setShowFilters] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
-  const API_BASE_URL = 'http://localhost:8001/api/';
+  const API_BASE_URL = 'http://localhost:8000/api/';
 
   // ... (جميع الدوال المساعدة كما هي)
   const getImageUrl = (imagePath?: string): string => {

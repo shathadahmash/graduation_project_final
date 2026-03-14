@@ -200,7 +200,7 @@ const DepartmentProjects: React.FC = () => {
                 <div key={p.project_id} className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all border border-[#31257D]/10 flex flex-col">
                   <div className="relative h-48 overflow-hidden">
                     <img
-                      src={p.logo?.startsWith('http') ? p.logo : `http://localhost:8001${p.logo}`}
+                      src={p.logo?.startsWith('http') ? p.logo : `http://localhost:8000${p.logo}`}
                       alt={p.title}
                       className="w-full h-full object-cover"
                       onError={e => { e.currentTarget.src = '/default-project-logo.png'; }}
