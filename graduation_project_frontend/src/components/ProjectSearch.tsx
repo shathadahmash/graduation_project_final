@@ -195,7 +195,7 @@ const ProjectSearch: React.FC<Props> = ({ universityId, colleges }) => {
             {projects.map(p => (
               <div key={p.project_id} className="bg-white p-4 rounded-lg shadow">
                 <img
-                  src={p.logo?.startsWith('http') ? p.logo : `http://localhost:8000${p.logo}`}
+                  src={p.logo?.startsWith('http') ? p.logo : `http://localhost:8001${p.logo}`}
                   alt={p.title}
                   className="w-full h-32 object-cover rounded mb-3"
                 />

@@ -54,7 +54,7 @@ const ProjectDetails: React.FC = () => {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [showStudentModal, setShowStudentModal] = useState(false);
 
-  const API_BASE_URL = 'http://localhost:8000';
+  const API_BASE_URL = 'http://localhost:8001';
 
   // دالة لجلب رابط الصورة
   const getImageUrl = (imagePath?: string): string => {

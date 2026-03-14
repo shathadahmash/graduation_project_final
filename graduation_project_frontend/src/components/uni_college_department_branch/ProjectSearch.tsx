@@ -101,7 +101,7 @@ const ProjectSearch: React.FC = () => {
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
   // ثابت عنوان API
-  const API_BASE_URL = 'http://localhost:8000/api/';
+  const API_BASE_URL = 'http://localhost:8001/api/';
 
   // دالة لبناء رابط الصورة الكامل
   const getImageUrl = (imagePath?: string): string => {
