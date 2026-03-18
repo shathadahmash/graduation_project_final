@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.serializers.location import DepartmentSerializer, CollegeSerializer, UniversitySerializer
+from core.serializers.location import DepartmentSerializer, CollegeSerializer, ProgramSerializer, UniversitySerializer
 from core.models import (
     User, Role, UserRoles, Permission, RolePermission,
     AcademicAffiliation, Student, StudentEnrollmentPeriod
@@ -92,6 +92,10 @@ class UserSerializer(serializers.ModelSerializer):
     def get_college_id(self, obj):
         affiliation = getattr(obj, 'academicaffiliation', None)
         return affiliation.college.id if affiliation and affiliation.college else None
+    
+    def get_program_id(self, obj):
+        affiliation = getattr(obj, 'academicaffiliation', None)
+        return affiliation.program.id if affiliation and affiliation.program else None
 
     def get_staff_profiles(self, obj):
         staffs = getattr(obj, 'staff_profiles', None)
@@ -207,6 +211,7 @@ class AcademicAffiliationSerializer(serializers.ModelSerializer):
     university = UniversitySerializer(read_only=True)
     college = CollegeSerializer(read_only=True)
     department = DepartmentSerializer(read_only=True)
+    program = ProgramSerializer(read_only=True)
 
     class Meta:
         model = AcademicAffiliation

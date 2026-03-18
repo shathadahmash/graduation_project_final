@@ -8,6 +8,8 @@ from django.conf import settings
 from django.utils import timezone
 import datetime
 from django.core.validators import RegexValidator
+from django.db.models import Avg, Count
+
 
 
 # ============================================================================== 
@@ -437,6 +439,7 @@ class Project(models.Model):
     tools = models.TextField(blank=True, null=True)
     project_id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=500)
+    title_en = models.CharField(max_length=500, blank=True, null=True)
     description = models.TextField()
     created_by = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_projects')
     university = models.ForeignKey(University, on_delete=models.CASCADE, null=True, blank=True)
@@ -447,6 +450,7 @@ class Project(models.Model):
     start_date = models.IntegerField(("Start Year"), null=True, blank=True)
     end_date = models.IntegerField(("End Year"), null=True, blank=True)
     external_company = models.ForeignKey('ExternalCompany', on_delete=models.SET_NULL, null=True, blank=True, related_name='projects')
+    
 
     # Image fields
     logo = models.ImageField(upload_to=project_logo_path, blank=True, null=True)
@@ -454,6 +458,15 @@ class Project(models.Model):
 
     def __str__(self):
         return self.title
+    @property
+    def average_rating(self):
+        avg = self.ratings.aggregate(Avg('rating'))['rating__avg']
+        return round(avg, 2) if avg else 0  # ضمان عدم رجوع None
+
+    @property
+    def ratings_count(self):
+        return self.ratings.count()
+    
 # ===========================
 # موديل الطالب
 # ===========================
@@ -657,6 +670,7 @@ class Notification(models.Model):
 class AcademicAffiliation(models.Model):
     affiliation_id = models.AutoField(primary_key=True)
     user = models.ForeignKey('User', on_delete=models.CASCADE)
+    Program = models.ForeignKey(Program, on_delete=models.CASCADE, blank=True, null=True)
     university = models.ForeignKey('University', on_delete=models.CASCADE)
     college = models.ForeignKey('College', on_delete=models.CASCADE, blank=True, null=True)
     department = models.ForeignKey('Department', on_delete=models.CASCADE, blank=True, null=True)
@@ -984,3 +998,19 @@ def check_and_finalize_group(request_id):
         print(f"Error finalizing group: {e}")
         return False
     return False
+class ProjectRating(models.Model):
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='ratings')
+    rating = models.IntegerField()
+    ip_address = models.GenericIPAddressField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.project} - {self.rating}"
+
+@property
+def average_rating(self):
+    avg = self.ratings.aggregate(Avg('rating'))['rating__avg']
+    return avg or 0  # إذا لم يوجد تقييم، ترجع 0
+@property
+def ratings_count(self):
+    return self.ratings.count()

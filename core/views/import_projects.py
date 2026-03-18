@@ -1,12 +1,12 @@
-from io import BytesIO
 import openpyxl
-import re
+from io import BytesIO
 from openpyxl import Workbook
-from openpyxl.styles import Font
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
 
 from django.db import transaction
 from django.http import HttpResponse
-
+from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -14,227 +14,240 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.views.decorators.csrf import csrf_exempt
 
 from core.models import (
-    User,
-    Project,
-    ProjectState,
-    University,
-    College,
-    Department,
-    City,
-    Branch,
-    Role,
-    Staff,
+    User, Project, ProjectState, University, 
+    College, Department, City, Branch, Role, Staff, Program, Student, AcademicAffiliation
 )
 
 # ==========================================================
-# Header Mapping
+# Header Mapping (Maintained exactly as your current order)
 # ==========================================================
-
 AR_HEADER_MAP = {
-    "عنوان المشروع": "title",
+    "(عربي)عنوان المشروع": "title",
+    "عنوان المشروع (انجليزي)": "title_en",
     "الملخص": "description",
-    "الحالة": "state",
-    "المشرف - National Number": "supervisor_cid",
-    "المشرف - First Name": "supervisor_first_name",
-    "المشرف - Last Name": "supervisor_last_name",
-    "المشرف - Phone": "supervisor_phone",
-    "المشرف - Email": "supervisor_email",
-    "المشرف - Qualification": "supervisor_qualification",
-    "المشرف - Gender": "supervisor_gender",
-    "المشرف المشارك - National Number": "co_cid",
-    "المشرف المشارك - First Name": "co_first_name",
-    "المشرف المشارك - Last Name": "co_last_name",
-    "المشرف المشارك - Phone": "co_phone",
-    "المشرف المشارك - Email": "co_email",
-    "المشرف المشارك - Qualification": "co_qualification",
-    "المشرف المشارك - Gender": "co_gender",
-    "سنة البداية": "start_year",
-    "سنة النهاية": "end_year",
+    "اسم المشرف": "supervisor_first_name",        
+    "اسم المشرف المشارك": "co_first_name",
+    "سنة بداية المشروع": "start_year", 
+    "سنة نهاية المشروع": "end_year",
     "المجال": "field",
     "الأدوات": "tools",
-    "Logo Path": "Logo",
+    "نوع المشروع": "project_type",
     "الجامعة": "university",
     "الكلية": "college",
     "القسم": "department",
-    "Documentation Path": "Documentation_Path",
-    "الطلاب": "students",
+    "البرنامج": "program",
+    "المحافظة": "city",
+    "أسماء الطلاب": "students_names",
+    "أرقام قيد الطلاب": "students_ids",
+    "ارقام هواتف الطلاب": "students_phones",
 }
 
-REQUIRED_KEYS = [
-    "title",
-    "description",
-    "start_year",
-    "university",
-    "college",
-    "department",
-]
-
-STATE_MAP = {
-    "معلق": "Pending",
-    "مقبول": "Accepted",
-    "محجوز": "Reserved",
-    "مكتمل": "Completed",
-    "مرفوض": "Rejected",
+PROJECT_TYPE_MAP = {
+    "حكومي": "Governmental",
+    "شركات خارجية": "External",
+    "مقترح": "Proposed",
 }
+
+REQUIRED_KEYS = ["title", "description", "start_year", "university", "college", "department"]
 
 # ==========================================================
 # Helpers
 # ==========================================================
-
-def _str(v):
-    return "" if v is None else str(v).strip()
-
-def _normalize(v):
-    return " ".join(_str(v).split())
-
+def _str(v): return "" if v is None else str(v).strip()
+def _normalize(v): return " ".join(_str(v).split())
 def _to_int(v):
-    if v is None or _str(v) == "":
-        return None
-    try:
-        return int(float(_str(v)))
-    except:
-        return None
-
-
-# ==========================================================
-# Excel Reader
-# ==========================================================
+    try: return int(float(_str(v)))
+    except: return None
 
 def read_excel_projects(file_obj):
+    try:
+        wb = openpyxl.load_workbook(file_obj, data_only=True)
+        ws = wb.active
+        header_row = 2
+        columns = {}
+        for col in range(1, ws.max_column + 1):
+            cell_val = _str(ws.cell(row=header_row, column=col).value)
+            if cell_val in AR_HEADER_MAP:
+                columns[col] = AR_HEADER_MAP[cell_val]
 
-    wb = openpyxl.load_workbook(file_obj, data_only=True)
-    ws = wb.active
+        found_keys = set(columns.values())
+        missing = [k for k in REQUIRED_KEYS if k not in found_keys]
+        if missing:
+            return [], [{"row": 2, "message": f"الحقول التالية مفقودة: {', '.join(missing)}"}]
 
-    headers = [_str(c.value) for c in ws[2]]
-
-    index_map = {}
-
-    for i, h in enumerate(headers):
-        if h in AR_HEADER_MAP:
-            index_map[AR_HEADER_MAP[h]] = i
-
-    missing = [k for k in REQUIRED_KEYS if k not in index_map]
-
-    if missing:
-        return None, [{
-            "row": 2,
-            "field": ",".join(missing),
-            "message": "أعمدة مطلوبة غير موجودة"
-        }]
-
-    rows = []
-
-    for r in range(3, ws.max_row + 1):
-
-        values = [ws.cell(row=r, column=c).value for c in range(1, ws.max_column + 1)]
-
-        if all(v is None or _str(v) == "" for v in values):
-            continue
-
-        row_data = {}
-
-        for key, idx in index_map.items():
-            row_data[key] = ws.cell(row=r, column=idx + 1).value
-
-        rows.append((r, row_data))
-
-    return rows, []
-
+        rows_data = []
+        for row_idx in range(3, ws.max_row + 1):
+            row_dict = {}
+            has_data = False
+            for col_idx, key in columns.items():
+                val = ws.cell(row=row_idx, column=col_idx).value
+                row_dict[key] = val
+                if val is not None: has_data = True
+            if has_data: rows_data.append((row_idx, row_dict))
+        return rows_data, []
+    except Exception as e:
+        return [], [{"row": 0, "message": f"فشل قراءة الملف: {str(e)}"}]
 
 # ==========================================================
-# Validation Logic
+# Commit Import Logic
 # ==========================================================
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
+def import_projects_commit(request):
+    f = request.FILES.get("file")
+    if not f: return Response({"detail": "لم يتم رفع ملف"}, status=400)
 
-def validate_project_rows(rows):
+    rows, file_errors = read_excel_projects(f)
+    if file_errors: return Response({"errors": file_errors}, status=400)
 
-    errors = []
-    valid_rows = 0
-    seen_cids = set()
+    created_projects = 0
+    updated_projects = 0
+    created_users = 0
 
-    for excel_row, row in rows:
+    # Ensure base objects exist
+    supervisor_role, _ = Role.objects.get_or_create(type="Supervisor", defaults={"role_type": "Faculty"})
+    state_obj, _ = ProjectState.objects.get_or_create(name="Accepted")
 
-        row_errors = []
-
-        title = _str(row.get("title"))
-        university = _str(row.get("university"))
-        college = _str(row.get("college"))
-        department = _str(row.get("department"))
-
-        supervisor_cid = _str(row.get("supervisor_cid"))
-        email = _str(row.get("supervisor_email"))
-        gender = _str(row.get("supervisor_gender"))
-
-        start_year = _to_int(row.get("start_year"))
-        end_year = _to_int(row.get("end_year"))
-
-        # Required fields
-
-        if not title:
-            row_errors.append(("عنوان المشروع", "عنوان المشروع مطلوب"))
-
-        if not university:
-            row_errors.append(("الجامعة", "اسم الجامعة مطلوب"))
-
-        if not college:
-            row_errors.append(("الكلية", "اسم الكلية مطلوب"))
-
-        if not department:
-            row_errors.append(("القسم", "اسم القسم مطلوب"))
-
-        if not supervisor_cid:
-            row_errors.append(("الرقم الوطني للمشرف", "الرقم الوطني مطلوب"))
-
-        # Year validation
-
-        if start_year is None:
-            row_errors.append(("سنة البداية", "سنة البداية يجب أن تكون رقم"))
-
-        if end_year and start_year and end_year < start_year:
-            row_errors.append(("سنة النهاية", "سنة النهاية يجب أن تكون أكبر من سنة البداية"))
-
-        # CID validation
-
-        if supervisor_cid:
-
-            if not supervisor_cid.isdigit():
-                row_errors.append(("الرقم الوطني", "يجب أن يحتوي أرقام فقط"))
-
-            if supervisor_cid in seen_cids:
-                row_errors.append(("الرقم الوطني", "تم تكرار الرقم الوطني في الملف"))
-
-            seen_cids.add(supervisor_cid)
-
-        # Email validation
-
-        if email:
-            pattern = r"[^@]+@[^@]+\.[^@]+"
-            if not re.match(pattern, email):
-                row_errors.append(("البريد الإلكتروني", "البريد الإلكتروني غير صحيح"))
-
-        # Gender validation
-
-        if gender and gender not in ["ذكر", "انثى"]:
-            row_errors.append(("الجنس", "القيمة يجب أن تكون ذكر أو انثى"))
-
-        # Duplicate project
-
-        if title and Project.objects.filter(title=title).exists():
-            row_errors.append(("عنوان المشروع", "المشروع موجود مسبقاً"))
-
-        if row_errors:
-
-            for field, message in row_errors:
-                errors.append({
-                    "row": excel_row,
-                    "field": field,
-                    "message": message
-                })
-
+    # 1. Helper Function Defined inside the view
+    def create_import_user(full_name, default_username, phone=None):
+        name_parts = full_name.split()
+        first_name = name_parts[0] if len(name_parts) > 0 else ""
+        last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
+        
+        if len(name_parts) > 1:
+            generated_username = f"{name_parts[0]}_{name_parts[-1]}"
         else:
-            valid_rows += 1
+            generated_username = default_username
 
-    return errors, valid_rows
+        user_obj, created = User.objects.get_or_create(
+            username=generated_username,
+            defaults={
+                "first_name": first_name,
+                "last_name": last_name,
+                "name": "", 
+                "phone": phone
+            }
+        )
+        if created:
+            user_obj.set_password("123456")
+            user_obj.save()
+        return user_obj, created
 
+    # 2. The Main Loop (All logic must be inside here)
+    with transaction.atomic():
+        for excel_row, row in rows:
+            # --- A. Hierarchy Setup ---
+            uni_name = _normalize(row.get("university"))
+            if not uni_name: continue
+            
+            uni, _ = University.objects.get_or_create(uname_ar=uni_name)
+            city_name = _normalize(row.get("city")) or "صنعاء"
+            city_obj, _ = City.objects.get_or_create(bname_ar=city_name)
+            branch_obj, _ = Branch.objects.get_or_create(university=uni, city=city_obj)
+            col, _ = College.objects.get_or_create(branch=branch_obj, name_ar=_normalize(row.get("college")))
+            dep, _ = Department.objects.get_or_create(college=col, name=_normalize(row.get("department")))
+            
+            prog_name = _normalize(row.get("program"))
+            prog_obj = None
+            if prog_name:
+                prog_obj, _ = Program.objects.get_or_create(department=dep, p_name=prog_name)
+
+            # --- B. Project Creation ---
+            raw_type = _normalize(row.get("project_type"))
+            db_project_type = PROJECT_TYPE_MAP.get(raw_type, 'Proposed')
+
+            p, project_created = Project.objects.update_or_create(
+                title=_normalize(row["title"]),
+                defaults={
+                    "title_en": _normalize(row.get("title_en")),
+                    "project_type": db_project_type,
+                    "description": _str(row.get("description")),
+                    "start_date": _to_int(row.get("start_year")),
+                    "end_date": _to_int(row.get("end_year")),
+                    "field": _str(row.get("field")),
+                    "tools": _str(row.get("tools")),
+                    "state": state_obj,
+                    "university": uni,
+                    "branch": branch_obj,
+                    "college": col,
+                    "department": dep,
+                    "program": prog_obj,
+                }
+            )
+
+            # --- C. Staff/Supervisor Processing (INSIDE LOOP) ---
+            sup_full_name = _normalize(row.get("supervisor_first_name"))
+            if sup_full_name:
+                backup_username = f"sup_{uni.pk}_{excel_row}"
+                sup_user, u_created = create_import_user(sup_full_name, backup_username)
+                
+                if u_created: created_users += 1
+                
+                Staff.objects.get_or_create(user=sup_user, defaults={"role": supervisor_role})
+                AcademicAffiliation.objects.get_or_create(
+                    user=sup_user, university=uni, college=col, department=dep,
+                    defaults={'start_date': timezone.now().date()}
+                )
+                p.created_by = sup_user 
+                p.save()
+
+            # --- D. Students Processing (INSIDE LOOP) ---
+            s_names = [_normalize(x) for x in _str(row.get("students_names")).split(",") if _normalize(x)]
+            s_ids = [_normalize(x) for x in _str(row.get("students_ids")).split(",") if _normalize(x)]
+            s_phones = [_normalize(x) for x in _str(row.get("students_phones")).split(",") if _normalize(x)]
+
+            for i, full_name in enumerate(s_names):
+                sid = s_ids[i] if i < len(s_ids) else None 
+                sphone = s_phones[i] if i < len(s_phones) else None
+                
+                if sid:
+                    name_parts = full_name.split()
+                    s_user, s_user_created = User.objects.get_or_create(
+                        username=sid,
+                        defaults={
+                            "first_name": name_parts[0] if name_parts else "",
+                            "last_name": " ".join(name_parts[1:]) if len(name_parts) > 1 else "",
+                            "name": "",
+                            "phone": sphone
+                        }
+                    )
+                    if s_user_created:
+                        s_user.set_password("123456")
+                        s_user.save()
+                else:
+                    backup_sid = f"std_{p.id}_{i}"
+                    s_user, s_user_created = create_import_user(full_name, backup_sid, sphone)
+
+                if s_user_created: created_users += 1
+
+                Student.objects.update_or_create(
+                    user=s_user,
+                    defaults={
+                        "student_id": sid or s_user.username,
+                        "phone": sphone,
+                        "university": uni,
+                        "college": col,
+                        "department": dep,
+                        "program": prog_obj,
+                        "status": 'active'
+                    }
+                )
+
+                AcademicAffiliation.objects.get_or_create(
+                    user=s_user, university=uni, college=col, department=dep,
+                    defaults={'start_date': timezone.now().date()}
+                )
+
+            if project_created: created_projects += 1
+            else: updated_projects += 1
+
+    return Response({
+        "message": "تم الاستيراد بنجاح 🎉",
+        "created_projects": created_projects,
+        "updated_projects": updated_projects,
+        "users_created": created_users
+    })
 
 # ==========================================================
 # VALIDATION API
@@ -244,7 +257,6 @@ def validate_project_rows(rows):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def import_projects_validate(request):
-
     f = request.FILES.get("file")
 
     if not f:
@@ -268,173 +280,176 @@ def import_projects_validate(request):
         "errors": errors
     })
 
-
 # ==========================================================
-# COMMIT IMPORT
+# EXCEL TEMPLATE GENERATOR (LOGO & DOCUMENTATION REMOVED)
 # ==========================================================
 
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-@parser_classes([MultiPartParser, FormParser])
-def import_projects_commit(request):
-
-    f = request.FILES.get("file")
-
-    if not f:
-        return Response({"detail": "No file uploaded"}, status=400)
-
-    rows, file_errors = read_excel_projects(f)
-
-    if file_errors:
-        return Response({"errors": file_errors}, status=400)
-
-    errors, valid_rows = validate_project_rows(rows)
-
-    if errors:
-        return Response({
-            "message": "لا يمكن الاستيراد بسبب وجود أخطاء",
-            "errors": errors
-        }, status=400)
-
-    created_projects = 0
-    updated_projects = 0
-    created_users = 0
-
-    supervisor_role, _ = Role.objects.get_or_create(type="Supervisor", defaults={"role_type": "Faculty"})
-
-    with transaction.atomic():
-
-        for excel_row, row in rows:
-
-            uni, _ = University.objects.get_or_create(uname_ar=_normalize(row["university"]))
-            city_obj, _ = City.objects.get_or_create(bname_ar="المركز الرئيسي")
-            branch_obj, _ = Branch.objects.get_or_create(university=uni, city=city_obj)
-
-            col, _ = College.objects.get_or_create(branch=branch_obj, name_ar=_normalize(row["college"]))
-            dep, _ = Department.objects.get_or_create(college=col, name=_normalize(row["department"]))
-
-            sup_cid = _str(row.get("supervisor_cid"))
-            supervisor_user = None
-
-            if sup_cid:
-
-                full_name = f"{_str(row.get('supervisor_first_name'))} {_str(row.get('supervisor_last_name'))}".strip()
-
-                supervisor_user, created = User.objects.get_or_create(
-                    username=sup_cid,
-                    defaults={
-                        "CID": sup_cid,
-                        "name": full_name,
-                        "phone": _str(row.get("supervisor_phone")),
-                        "gender": _normalize(row.get("supervisor_gender")),
-                        "email": _str(row.get("supervisor_email")),
-                    }
-                )
-
-                if created:
-                    supervisor_user.set_password("123456")
-                    supervisor_user.save()
-                    created_users += 1
-
-                Staff.objects.get_or_create(
-                    user=supervisor_user,
-                    defaults={
-                        "role": supervisor_role,
-                        "Qualification": _str(row.get("supervisor_qualification")),
-                    }
-                )
-
-            state_name = _normalize(row.get("state"))
-
-            state_obj, _ = ProjectState.objects.get_or_create(
-                name=STATE_MAP.get(state_name, "Pending")
-            )
-
-            p, created = Project.objects.update_or_create(
-                title=_normalize(row["title"]),
-                defaults={
-                    "description": _str(row.get("description")),
-                    "start_date": _to_int(row.get("start_year")),
-                    "end_date": _to_int(row.get("end_year")),
-                    "field": _str(row.get("field")),
-                    "tools": _str(row.get("tools")),
-                    "Logo": _str(row.get("Logo")),
-                    "Documentation_Path": _str(row.get("Documentation_Path")),
-                    "state": state_obj,
-                    "created_by": supervisor_user,
-                }
-            )
-
-            if created:
-                created_projects += 1
-            else:
-                updated_projects += 1
-
-    return Response({
-        "message": "تم الاستيراد بنجاح 🎉",
-        "total_rows": len(rows),
-        "valid_rows": valid_rows,
-        "created_projects": created_projects,
-        "updated_projects": updated_projects,
-        "users_created": created_users
-    })
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def import_projects_template(request):
+    # ... (Pre-fill logic remains the same) ...
+    pre_city = request.GET.get("pre_city_name") or "صنعاء"
+    pre_uni = request.GET.get("pre_university_name") or "جامعة صنعاء"
+    pre_coll = request.GET.get("pre_college_name") or "كلية الحاسوب"
+    pre_dept = request.GET.get("pre_department_name") or "علوم الحاسوب"
+    pre_prog = request.GET.get("pre_program_name") or "تكنولوجيا المعلومات"
 
     wb = Workbook()
     ws = wb.active
     ws.title = "Projects"
+    ws.sheet_view.rightToLeft = True
 
-    # Title row
-    ws["A1"] = "استيراد المشاريع من Excel"
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(AR_HEADER_MAP))
+    headers = list(AR_HEADER_MAP.keys())
+    num_cols = len(headers)
+    last_col = get_column_letter(num_cols)
+    
+    # Define our Brand Color
+    brand_color = "FF312583"
 
-    ws["A1"].font = Font(bold=True)
+    # ==========================================================
+    # ROW 1: TITLE (COLOR: 312583, TEXT: WHITE, HEIGHT: 40)
+    # ==========================================================
+    ws.merge_cells(f'A1:{last_col}1')
+    title_cell = ws['A1']
+    title_cell.value = "قالب استيراد بيانات المشاريع والطلاب"
+    title_cell.font = Font(name='Arial', bold=True, size=16, color="FFFFFFFF")
+    title_cell.fill = PatternFill(start_color=brand_color, end_color=brand_color, fill_type="solid")
+    title_cell.alignment = Alignment(horizontal='center', vertical='center')
+    ws.row_dimensions[1].height = 40
 
-    # Headers row
-    for col, header in enumerate(AR_HEADER_MAP.keys(), start=1):
+    # ==========================================================
+# ==========================================================
+    # ROW 2: HEADERS (TRANSPARENT BACKGROUND, BRAND TEXT)
+    # ==========================================================
+    ws.row_dimensions[2].height = 30 
+    
+    # Change text color to the brand color (312583) since background is now white
+    header_font = Font(name='Arial', bold=True, size=12, color="312583")
+    
+    # Set fill_type to None for transparency
+    header_fill = PatternFill(fill_type=None) 
+    
+    header_alignment = Alignment(horizontal='center', vertical='center')
+    
+    # Use the brand color for borders so the "transparent" cells have structure
+    header_border = Border(
+        left=Side(style='thin', color='312583'), 
+        right=Side(style='thin', color='312583'), 
+        top=Side(style='thin', color='312583'), 
+        bottom=Side(style='thin', color='312583')
+    )
 
-        cell = ws.cell(row=2, column=col, value=header)
-        cell.font = Font(bold=True)
+    for col, header_text in enumerate(headers, start=1):
+        cell = ws.cell(row=2, column=col, value=header_text)
+        cell.font = header_font
+        cell.fill = header_fill # This is now transparent
+        cell.alignment = header_alignment
+        cell.border = header_border
+        ws.column_dimensions[get_column_letter(col)].width = 25
 
-    # Example row to guide users
-    example = [
-        "نظام إدارة المكتبة",      # title
-        "مشروع لإدارة الكتب",      # description
-        "معلق",                   # state
-        "123456789",               # supervisor CID
-        "محمد",                   # first name
-        "أحمد",                   # last name
-        "777777777",              # phone
-        "test@test.com",          # email
-        "دكتوراه",                # qualification
-        "ذكر",                    # gender
-        "", "", "", "", "", "",   # co supervisor
-        2023,                     # start year
-        2024,                     # end year
-        "الذكاء الاصطناعي",       # field
-        "Python, Django",         # tools
-        "",                       # logo
-        "جامعة صنعاء",            # university
-        "كلية الحاسوب",           # college
-        "علوم الحاسوب",           # department
-        "",                       # documentation
-        ""                        # students
-    ]
+    headers = list(AR_HEADER_MAP.keys()) # This will now include the longer names automatically
 
-    for col, value in enumerate(example, start=1):
-        ws.cell(row=3, column=col, value=value)
+    # ROW 3: EXAMPLE DATA
+    example_data = [
+            "نظام إدارة المكتبة",             # title
+            "Library Management System",      # title_en
+            "مشروع لإدارة الكتب والطلاب",      # description
+            "محمد أحمد",                   # supervisor_first_name
+            "خالد علي",                    # co_first_name
+            2025,                             # start_year
+            2026,                             # end_year
+            "الذكاء الاصطناعي",               # field
+            "Python, Django, React",          # tools
+            "مقترح",                          # project_type
+            pre_uni,                          # university
+            pre_coll,                         # college
+            pre_dept,                         # department
+            pre_prog,                         # program
+            pre_city,                         # city
+            "أحمد علي, خالد محمد",            # students_names
+            "2020101, 2020102",               # students_ids
+            "771234567, 770000000"            # students_phones
+    
+        ]
 
+    # Standard border for data cells
+    data_border = Border(
+        left=Side(style='thin', color='312583'), 
+        right=Side(style='thin', color='312583'), 
+        top=Side(style='thin', color='312583'), 
+        bottom=Side(style='thin', color='312583')
+    )
+
+    for col, value in enumerate(example_data, start=1):
+        cell = ws.cell(row=3, column=col, value=value)
+        cell.alignment = Alignment(horizontal='right')
+        cell.border = data_border
+
+    # ==========================================================
+    # GENERATE RESPONSE
+    # ==========================================================
     output = BytesIO()
     wb.save(output)
     output.seek(0)
-
-    response = HttpResponse(
-        output.getvalue(),
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
-    response["Content-Disposition"] = 'attachment; filename="projects_import_template.xlsx"'
-
+    response = HttpResponse(output.getvalue(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = 'attachment; filename="projects_template.xlsx"'
     return response
+def validate_project_rows(rows):
+    """
+    Checks each row for data integrity without saving to the database.
+    Returns (errors_list, count_of_valid_rows).
+    """
+    errors = []
+    valid_count = 0
+
+    for excel_row, row in rows:
+        row_errors = []
+        
+        # 1. Check Required Fields
+        for key in REQUIRED_KEYS:
+            if not _normalize(row.get(key)):
+                # We use the Arabic name from our map for the error message
+                ar_name = [k for k, v in AR_HEADER_MAP.items() if v == key][0]
+                row_errors.append({
+                    "row": excel_row,
+                    "field": ar_name,
+                    "message": f"الحقل '{ar_name}' مطلوب ولا يمكن أن يكون فارغاً"
+                })
+
+        # 2. Validate Year Logic
+        start_year = _to_int(row.get("start_year"))
+        end_year = _to_int(row.get("end_year"))
+        
+        if start_year and (start_year < 2000 or start_year > 2100):
+            row_errors.append({
+                "row": excel_row,
+                "field": "سنة بداية المشروع",
+                "message": "سنة البداية غير منطقية"
+            })
+            
+        if start_year and end_year and end_year < start_year:
+            row_errors.append({
+                "row": excel_row,
+                "field": "سنة نهاية المشروع",
+                "message": "سنة النهاية لا يمكن أن تكون قبل سنة البداية"
+            })
+
+        # 3. Check Students Data Consistency
+        # Ensure if names are provided, IDs are also provided (standard practice)
+        s_names = [_normalize(x) for x in _str(row.get("students_names")).split(",") if _normalize(x)]
+        s_ids = [_normalize(x) for x in _str(row.get("students_ids")).split(",") if _normalize(x)]
+        
+        if len(s_names) > 0 and len(s_ids) == 0:
+            row_errors.append({
+                "row": excel_row,
+                "field": "أرقام قيد الطلاب",
+                "message": "يجب إدخال أرقام القيد طالما تم إدخال أسماء الطلاب"
+            })
+
+        if row_errors:
+            errors.extend(row_errors)
+        else:
+            valid_count += 1
+
+    return errors, valid_count
+

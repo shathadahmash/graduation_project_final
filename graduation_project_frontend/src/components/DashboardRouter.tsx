@@ -14,6 +14,8 @@ import ExternalCompanyDashboard from "../Pages/dashboards/ExternalCompanyDashboa
 import StudentDashboard from "../Pages/dashboards/StudentDashboard.tsx";
 import ProjectDetails from "../components/uni_college_department_branch/ProjectDetails.tsx";
 import SysManagerImportProjects from "../Pages/dashboards/SystemManager/sysManagerImportProjects.tsx";
+import ImportStudentsPage from "../Pages/dashboards/SystemManager/ImportStudentsPage";
+
 
 const DashboardRouter: React.FC = () => {
   const { user } = useAuthStore();
@@ -75,6 +77,11 @@ if (Array.isArray(user.roles) && user.roles.length > 0) {
       <Route
         path="system-manager/import-projects"
         element={<SysManagerImportProjects />}
+      />
+
+      <Route
+        path="/system/import/students"
+        element={<ImportStudentsPage />}
       />
 
       {/* Fallback */}

@@ -31,9 +31,9 @@ export default function ConnectUs() {
       <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-[#31257D]/20 to-transparent"></div>
       
       {/* عناصر زخرفية خفيفة */}
-      <div className="absolute top-20 right-20 w-64 h-64 border-2 border-[#31257D]/5 rounded-full"></div>
+      {/* <div className="absolute top-20 right-20 w-64 h-64 border-2 border-[#31257D]/5 rounded-full"></div>
       <div className="absolute bottom-20 left-20 w-96 h-96 border-2 border-[#4937BF]/5 rounded-full"></div>
-      
+       */}
       <div className="max-w-5xl mx-auto px-6 lg:px-8 relative z-10">
         
         {/* عنوان أكاديمي */}

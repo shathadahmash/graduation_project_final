@@ -2,6 +2,7 @@ import api from './api';
 import { bulkFetch } from './bulkService';
 import { groupService } from './groupService';
 
+
 // Basic supervisor interface
 export interface Supervisor {
   id: number;
@@ -29,7 +30,7 @@ export interface Project {
   title: string;
   description: string;
   project_type?: string;
-
+  title_en?: string;
   groups?: Group[];
 
   members?: { id: number; name?: string }[];
@@ -61,6 +62,8 @@ export interface Project {
 
   supervisor_name?: string | null;
   co_supervisor_name?: string | null;
+  rating?: number;
+  ratings_count?: number;
 
   created_by?: any;
 }
@@ -83,7 +86,7 @@ function mapBackendProject(raw: any): Project {
     title: raw.title,
     description: raw.description,
     project_type: raw.project_type,
-
+    title_en: raw.title_en,
     state: raw.state,
     state_name: raw.state_name,
 
@@ -114,28 +117,35 @@ function mapBackendProject(raw: any): Project {
 
     groups: groups,
     members: members,
+    rating: Number(raw.rating || raw.average_rating || 0),
+    ratings_count: raw.ratings_count || raw.total_ratings || 0,
 
     created_by: creator
       ? {
-          id: creator.id,
-          username: creator.username,
-          first_name: creator.first_name,
-          last_name: creator.last_name,
-          name: creator.name,
-          email: creator.email ?? null,
-          phone: creator.phone ?? null,
-          gender: creator.gender ?? null,
-          CID: creator.CID ?? null,
-        }
+        id: creator.id,
+        username: creator.username,
+        first_name: creator.first_name,
+        last_name: creator.last_name,
+        name: creator.name,
+        email: creator.email ?? null,
+        phone: creator.phone ?? null,
+        gender: creator.gender ?? null,
+        CID: creator.CID ?? null,
+      }
       : null,
   };
 }
 export const projectService = {
+
+
+
   async getProjects(params?: any) {
     try {
       const response = await api.get('projects/', { params });
-      console.log('[projectService] getProjects response:', response.data);
-      return (response.data as any[]).map(mapBackendProject);
+      // normalize data: either plain array or { results: [...] }
+      const data = Array.isArray(response.data) ? response.data : response.data?.results || [];
+      console.log('[projectService] getProjects normalized data:', data);
+      return data.map(mapBackendProject);
     } catch (error: any) {
       console.error(
         '[projectService] getProjects failed:',
@@ -144,6 +154,26 @@ export const projectService = {
       return [];
     }
   },
+  // Inside projectService
+  // Inside projectService
+  async getPublicProjects(params?: any) {
+    try {
+      // Pass params directly to the request
+      const response = await api.get('/projects/public/', { params });
+
+      // Normalize data: array or { results: [...] }
+      const data = Array.isArray(response.data) ? response.data : response.data?.results || [];
+
+      return data.map(mapBackendProject);
+    } catch (error: any) {
+      console.error(
+        '[projectService] getPublicProjects failed:',
+        error?.response?.data ?? error
+      );
+      return [];
+    }
+  },
+
 
   async getProjectById(projectId: number) {
     try {
@@ -155,16 +185,16 @@ export const projectService = {
     }
   },
 
-//   async getProjectGroups(projectId: number) {
-//   try {
-//     const response = await api.get(`/groups/?project=${projectId}`);
-//     console.log("[projectService] project groups:", response.data);
-//     return response.data;
-//   } catch (error) {
-//     console.error("[projectService] getProjectGroups failed:", error);
-//     return [];
-//   }
-// },
+  //   async getProjectGroups(projectId: number) {
+  //   try {
+  //     const response = await api.get(`/groups/?project=${projectId}`);
+  //     console.log("[projectService] project groups:", response.data);
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error("[projectService] getProjectGroups failed:", error);
+  //     return [];
+  //   }
+  // },
 
   async getFilterOptions() {
     try {
@@ -175,43 +205,72 @@ export const projectService = {
       return { colleges: [], supervisors: [], years: [], states: [], tools: [], fields: [] };
     }
   },
-// داخل projectService
-async getProjectGroups(projectId: number) {
-  try {
-    // المسار الصحيح: /groups/?project=projectId
-    // هذا سيجلب فقط المجموعات المرتبطة بهذا المشروع المحدد
-    const response = await api.get('/groups/', {
-      params: { project: projectId }  // التأكد من استخدام 'project' كمفتاح params
-    });
-    
-    console.log(`[projectService] جلب مجموعات المشروع ${projectId}:`, response.data);
-    
-    // التعامل مع هيكل البيانات
-    // قد يكون response.data مباشرة أو response.data.results
-    const groupsData = response.data?.results || response.data;
-    
-    // التحقق من أن البيانات مصفوفة
-    if (Array.isArray(groupsData)) {
-      return groupsData;
-    }
-    
-    console.warn('[projectService] البيانات المستلمة ليست مصفوفة:', groupsData);
-    return [];
-  } catch (error: any) {
-    console.error(`[projectService] فشل جلب مجموعات المشروع ${projectId}:`, error?.response?.data || error);
-    
-    // محاولة مسار بديل إذا فشل الأول
+  // داخل projectService
+  async getProjectGroups(projectId: number) {
     try {
-      console.log('[projectService] محاولة مسار بديل...');
-      const fallbackResponse = await api.get(`/projects/${projectId}/groups/`);
-      const fallbackData = fallbackResponse.data?.results || fallbackResponse.data;
-      return Array.isArray(fallbackData) ? fallbackData : [];
-    } catch (fallbackError) {
-      console.error('[projectService] فشل المسار البديل:', fallbackError);
+      // المسار الصحيح: /groups/?project=projectId
+      // هذا سيجلب فقط المجموعات المرتبطة بهذا المشروع المحدد
+      const response = await api.get('/groups/', {
+        params: { project: projectId }  // التأكد من استخدام 'project' كمفتاح params
+      });
+
+      console.log(`[projectService] جلب مجموعات المشروع ${projectId}:`, response.data);
+
+      // التعامل مع هيكل البيانات
+      // قد يكون response.data مباشرة أو response.data.results
+      const groupsData = response.data?.results || response.data;
+
+      // التحقق من أن البيانات مصفوفة
+      if (Array.isArray(groupsData)) {
+        return groupsData;
+      }
+
+      console.warn('[projectService] البيانات المستلمة ليست مصفوفة:', groupsData);
       return [];
+    } catch (error: any) {
+      console.error(`[projectService] فشل جلب مجموعات المشروع ${projectId}:`, error?.response?.data || error);
+
+      // محاولة مسار بديل إذا فشل الأول
+      try {
+        console.log('[projectService] محاولة مسار بديل...');
+        const fallbackResponse = await api.get(`/projects/${projectId}/groups/`);
+        const fallbackData = fallbackResponse.data?.results || fallbackResponse.data;
+        return Array.isArray(fallbackData) ? fallbackData : [];
+      } catch (fallbackError) {
+        console.error('[projectService] فشل المسار البديل:', fallbackError);
+        return [];
+      }
     }
+  
+  
+},
+async getRatings(projectId: number): Promise<{ average: number; count: number }> {
+  try {
+    const response = await api.get('/ratings/', {
+      params: { project: projectId }
+    });
+
+    const ratings = Array.isArray(response.data)
+      ? response.data
+      : response.data?.results || [];
+
+    const count = ratings.length;
+
+    const total = ratings.reduce(
+      (sum: number, r: any) => sum + (r.rating || 0),
+      0
+    );
+
+    const average = count > 0 ? total / count : 0;
+
+    return { average, count };
+
+  } catch (err) {
+    console.error('[projectService] getRatings failed', err);
+    return { average: 0, count: 0 };
   }
 },
+  
   async searchProjects(query: string, params?: any) {
     try {
       const response = await api.get('/projects/search/', {
@@ -331,68 +390,68 @@ async getProjectGroups(projectId: number) {
     }
   },
   // Add this inside projectService
- async getUniversityProjects(universityId: number) {
-  try {
-    const response = await api.get('/projects/', {
-      params: { university: universityId }  // <-- filter by university
-    });
-    return (response.data as any[]).map(mapBackendProject);
-  } catch (error) {
-    console.error('[projectService] getUniversityProjects failed', error);
-    return [];
-  }
-},
+  async getUniversityProjects(universityId: number) {
+    try {
+      const response = await api.get('/projects/', {
+        params: { university: universityId }  // <-- filter by university
+      });
+      return (response.data as any[]).map(mapBackendProject);
+    } catch (error) {
+      console.error('[projectService] getUniversityProjects failed', error);
+      return [];
+    }
+  },
 
-async getCollegeProjects(collegeId: number) {
-  try {
-    const response = await api.get('/projects/', {
-      params: { college_id: collegeId }
-    });
+  async getCollegeProjects(collegeId: number) {
+    try {
+      const response = await api.get('/projects/', {
+        params: { college_id: collegeId }
+      });
 
-    const data = Array.isArray(response.data)
-      ? response.data
-      : response.data?.results || [];
+      const data = Array.isArray(response.data)
+        ? response.data
+        : response.data?.results || [];
 
-    return data.map(mapBackendProject);
-  } catch (error) {
-    console.error('getCollegeProjects failed', error);
-    return [];
-  }
-},
+      return data.map(mapBackendProject);
+    } catch (error) {
+      console.error('getCollegeProjects failed', error);
+      return [];
+    }
+  },
 
-async getDepartmentProjects(departmentId: number) {
-  try {
-    const response = await api.get('/projects/', {
-      params: { department_id: departmentId }
-    });
+  async getDepartmentProjects(departmentId: number) {
+    try {
+      const response = await api.get('/projects/', {
+        params: { department_id: departmentId }
+      });
 
-    const data = Array.isArray(response.data)
-      ? response.data
-      : response.data?.results || [];
+      const data = Array.isArray(response.data)
+        ? response.data
+        : response.data?.results || [];
 
-    return data.map(mapBackendProject);
-  } catch (error) {
-    console.error('getDepartmentProjects failed', error);
-    return [];
-  }
-},
+      return data.map(mapBackendProject);
+    } catch (error) {
+      console.error('getDepartmentProjects failed', error);
+      return [];
+    }
+  },
 
-async getProgramProjects(programId: number) {
-  try {
-    const response = await api.get('/projects/', {
-      params: { program_id: programId }
-    });
+  async getProgramProjects(programId: number) {
+    try {
+      const response = await api.get('/projects/', {
+        params: { program_id: programId }
+      });
 
-    const data = Array.isArray(response.data)
-      ? response.data
-      : response.data?.results || [];
+      const data = Array.isArray(response.data)
+        ? response.data
+        : response.data?.results || [];
 
-    return data.map(mapBackendProject);
-  } catch (error) {
-    console.error('getProgramProjects failed', error);
-    return [];
-  }
-},
+      return data.map(mapBackendProject);
+    } catch (error) {
+      console.error('getProgramProjects failed', error);
+      return [];
+    }
+  },
 
 
 
@@ -435,4 +494,15 @@ async getProgramProjects(programId: number) {
     const data = await bulkFetch(req);
     return data;
   },
+};
+// جلب التقييمات لمشروع معين
+export const getRatings = async (projectId: number) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}ratings/?project=${projectId}`);
+    const data = await response.json();
+    return data; // متوقع مصفوفة من التقييمات
+  } catch (err) {
+    console.error('خطأ في جلب التقييمات', err);
+    return [];
+  }
 };

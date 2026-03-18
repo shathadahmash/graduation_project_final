@@ -153,14 +153,14 @@ class BranchAdmin(admin.ModelAdmin):
 
 @admin.register(College)
 class CollegeAdmin(admin.ModelAdmin):
-    list_display = ('cid', 'name_ar', 'name_en', 'branch', 'image_preview')
+    list_display = ('cid', 'name_ar', 'name_en', 'branch', 'image_preview','description')
     list_filter = ('branch__university', 'branch__city')
-    search_fields = ('name_ar', 'name_en', 'branch__university__uname_ar', 'branch__city__bname_ar')
+    search_fields = ('name_ar', 'name_en', 'branch__university__uname_ar', 'branch__city__bname_ar','description')
     autocomplete_fields = ('branch',)
     inlines = [CollegeProgressPatternInline]
 
     # Include image in the admin form
-    fields = ('name_ar', 'name_en', 'branch', 'image')
+    fields = ('name_ar', 'name_en', 'branch', 'image', 'description')  # add image field to the form
 
     # Customize file upload widget
     def formfield_for_dbfield(self, db_field, request, **kwargs):
@@ -360,20 +360,21 @@ class ProjectAdmin(admin.ModelAdmin):
 
     list_display = (
         'project_id', 'title', 'project_type', 'state', 'university_name', 'branch', 'college',
-        'created_by', 'start_date', 'end_date', 'field', 'tools', 'logo_preview', 'documentation_link'
+        'created_by', 'start_date', 'end_date', 'field', 'tools', 'logo_preview', 'documentation_link','department',
+        'program'
     )
     list_filter = ('project_type', 'state', 'start_date', 'end_date')
     search_fields = (
         'title', 'description', 'field', 'tools', 'created_by__username',
         'university__uname_ar', 'branch__uname_ar', 'branch__university__uname_ar',
-        'college__name_ar'
+        'college__name_ar','department__name','program__p_name'
     )
-    autocomplete_fields = ('created_by', 'state', 'university', 'branch', 'college')
+    autocomplete_fields = ('created_by', 'state', 'university', 'branch', 'college','department','program')
 
     fieldsets = (
         (None, {
             'fields': ('title', 'description', 'state', 'created_by', 'project_type', 
-                       'external_company', 'university', 'branch', 'college')
+                       'external_company', 'university', 'branch', 'college','department','program')
         }),
         (_('Project Timeline'), {
             'fields': ('start_date', 'end_date')
@@ -622,9 +623,9 @@ class GroupMemberApprovalAdmin(admin.ModelAdmin):
     readonly_fields = ('responded_at',)
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ('student_id', 'user', 'university', 'college', 'department', 'program', 'status', 'phone','current_academic_year_display')
-    search_fields = ('student_id', 'user__username', 'user__name')
-    list_filter = ('status', 'university', 'college', 'department', 'program')
+    list_display = ('student_id', 'user', 'university', 'college', 'department', 'program', 'status', 'phone','current_academic_year_display','graduation_year')
+    search_fields = ('student_id', 'user__username', 'user__name', 'graduation_year')
+    list_filter = ('status', 'university', 'college', 'department', 'program','graduation_year')
 
     # دالة لتظهر السنة الدراسية الحالية
     @admin.display(description='Current Academic Year')

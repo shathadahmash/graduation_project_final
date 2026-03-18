@@ -961,7 +961,40 @@ const SystemManagerDashboard: React.FC = () => {
                         </div>
                       </div>
                     </div>
+                      {/* Import Users Card */}
+                {activeCardPanel === 'المستخدمون' && (
+                  <div
+                    onClick={() => navigate('system/import/students')}
+                    className="group relative bg-white rounded-2xl p-8 shadow-lg border border-[#312583]/10 hover:shadow-2xl hover:border-[#312583]/30 transition-all duration-500 cursor-pointer overflow-hidden transform hover:-translate-y-2"
+                  >
+                    {/* Background effect */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#312583]/0 to-[#4a3fa0]/0 group-hover:from-[#312583]/5 group-hover:to-[#4a3fa0]/5 transition-all duration-500 rounded-2xl"></div>
 
+                    <div className="relative z-10">
+                      {/* Icon */}
+                      <div className="w-16 h-16 bg-gradient-to-br from-[#312583] to-[#4a3fa0] rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform">
+                        <FiDownload size={28} className="text-white" />
+                      </div>
+
+                      {/* Title */}
+                      <h4 className="text-xl font-black text-[#312583] mb-3">
+                        استيراد المستخدمين
+                      </h4>
+
+                      {/* Description */}
+                      <p className="text-slate-600 text-sm leading-relaxed mb-6">
+                        استيراد المستخدمين من ملفات Excel أو CSV وإضافتهم للنظام دفعة واحدة.
+                      </p>
+
+                      {/* Indicator */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-[#312583] bg-[#312583]/10 px-3 py-1 rounded-full">
+                          استيراد دفعي
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
                     {/* Import Projects Card - NEW */}
                     {activeCardPanel === 'المشاريع' && (
                       <div

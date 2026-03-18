@@ -6,14 +6,18 @@ from django.utils import timezone
 import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Exists, OuterRef
+from core.models import ProjectRating
+
 
 from core.models import (
     User, Group, Project, ApprovalRequest, Role, College, UserRoles,
-    AcademicAffiliation, ProjectState, GroupSupervisors, University
+    AcademicAffiliation, ProjectState, GroupSupervisors, University,GroupMembers
 )
 from core.serializers import ProjectSerializer
 from core.permissions import PermissionManager
 import logging
+from core.serializers import ProjectRatingSerializer
+
 
 logger = logging.getLogger(__name__)
 
@@ -267,6 +271,23 @@ class ProjectViewSet(viewsets.ModelViewSet):
             )
 
         return Response(self.get_serializer(project).data)
+    
+    @action(detail=False, methods=["get"], url_path="public", permission_classes=[AllowAny])
+    def public_projects(self, request):
+     """
+     Public endpoint used for homepage statistics and browsing.
+     Returns all projects without role-based filtering.
+     """
+
+     qs = (
+        Project.objects
+        .select_related("state", "created_by", "college", "department", "program", "branch", "university")
+        .prefetch_related("groups", "groups__groupsupervisors__user")
+        .order_by("-start_date")
+     )
+
+     serializer = self.get_serializer(qs, many=True)
+     return Response(serializer.data)
 
     @action(detail=False, methods=["post"], url_path="propose-project")
     def propose_project(self, request):
@@ -475,3 +496,21 @@ def dropdown_data(request):
         "supervisors": [{"id": sp.id, "name": sp.name} for sp in supervisors],
         "assistants": [{"id": a.id, "name": a.name} for a in assistants],
     })
+class ProjectRatingViewSet(viewsets.ModelViewSet):
+    queryset = ProjectRating.objects.all()
+    serializer_class = ProjectRatingSerializer
+
+    def create(self, request, *args, **kwargs):
+        ip = request.META.get('REMOTE_ADDR')
+        project_id = request.data.get('project')
+
+        if ProjectRating.objects.filter(project_id=project_id, ip_address=ip).exists():
+            return Response(
+                {"error": "لقد قمت بتقييم هذا المشروع مسبقًا"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        request.data['ip_address'] = ip
+        return super().create(request, *args, **kwargs)
+
+

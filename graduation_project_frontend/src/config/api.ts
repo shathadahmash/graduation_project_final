@@ -57,13 +57,14 @@ export const API_ENDPOINTS = {
     REJECT: (id: number) => buildUrl(`/approvals/${id}/reject`),
   },
 
-  PROJECTS: {
-    LIST: buildUrl('/projects'),
-    CREATE: buildUrl('/projects'),
-    DETAIL: (id: number) => buildUrl(`/projects/${id}`),
-    UPDATE: (id: number) => buildUrl(`/projects/${id}`),
-    DELETE: (id: number) => buildUrl(`/projects/${id}`),
-  },
+ PROJECTS: {
+  LIST: buildUrl('/projects'),
+  PUBLIC: buildUrl('/projects/public'),  // <- new public projects endpoint
+  CREATE: buildUrl('/projects'),
+  DETAIL: (id: number) => buildUrl(`/projects/${id}`),
+  UPDATE: (id: number) => buildUrl(`/projects/${id}`),
+  DELETE: (id: number) => buildUrl(`/projects/${id}`),
+},
 
   COLLEGES: {
     LIST: buildUrl('/colleges'),

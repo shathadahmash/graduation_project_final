@@ -25,7 +25,6 @@ interface Props {
 const ProjectCollegeSearch: React.FC<Props> = ({ collegeId }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedProjectStudents, setSelectedProjectStudents] = useState<{ name: string; id?: string }[]>([]);
 
@@ -36,7 +35,7 @@ const ProjectCollegeSearch: React.FC<Props> = ({ collegeId }) => {
       try {
         setLoading(true);
         const response = await projectService.getProjects({ college_id: collegeId });
-        setProjects(response);
+        setProjects(response || []);
       } catch (err) {
         console.error('Error fetching college projects', err);
         setProjects([]);
@@ -71,7 +70,7 @@ const ProjectCollegeSearch: React.FC<Props> = ({ collegeId }) => {
   if (loading) {
     return (
       <div className="text-center py-10">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#31257D]"></div>
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#31257D]" />
         <p className="mt-4 text-[#4A5568]">جاري تحميل المشاريع...</p>
       </div>
     );
@@ -85,8 +84,14 @@ const ProjectCollegeSearch: React.FC<Props> = ({ collegeId }) => {
     );
   }
 
+  const collegeName = projects[0].college_name || 'الكلية غير محددة';
+
   return (
     <>
+      <h1 className="text-3xl font-bold text-[#31257D] mb-6 text-center">
+        مشاريع كلية: {collegeName}
+      </h1>
+
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {projects.map((p) => {
           const badge = getProjectTypeBadge(p.project_type);
@@ -96,19 +101,15 @@ const ProjectCollegeSearch: React.FC<Props> = ({ collegeId }) => {
               className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all border border-[#31257D]/10 flex flex-col"
             >
               {/* Image and Badge */}
-              <div className="relative h-48 overflow-hidden rounded-t-xl">
+              <div className="relative h-48 overflow-hidden rounded-t-xl flex items-center justify-center bg-gray-100">
                 <img
-                  src={p.logo?.startsWith('http') ? p.logo : `http://localhost:8000${p.logo}`}
+                  src={p.logo?.startsWith('http') ? p.logo : `http://localhost:8001${p.logo}`}
                   alt={p.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = '/default-project-logo.png';
-                  }}
+                  className="w-full h-full object-contain"
+                  onError={(e) => { e.currentTarget.src = '/default-project-logo.png'; }}
                 />
                 <div className="absolute top-3 right-3">
-                  <span
-                    className={`${badge.bg} ${badge.color} px-3 py-1 rounded-full text-xs font-bold`}
-                  >
+                  <span className={`${badge.bg} ${badge.color} px-3 py-1 rounded-full text-xs font-bold`}>
                     {badge.label}
                   </span>
                 </div>
@@ -123,26 +124,14 @@ const ProjectCollegeSearch: React.FC<Props> = ({ collegeId }) => {
 
                 <div className="grid grid-cols-2 gap-3 mb-4 text-sm text-gray-600">
                   {p.university_name && (
-                    <div>
-                      <FiMapPin className="inline mr-1" />
-                      {p.university_name}
-                    </div>
+                    <div><FiMapPin className="inline mr-1" />{p.university_name}</div>
                   )}
                   {p.college_name && (
-                    <div>
-                      <FiBookOpen className="inline mr-1" />
-                      {p.college_name}
-                    </div>
+                    <div><FiBookOpen className="inline mr-1" />{p.college_name}</div>
                   )}
-                  <div>
-                    <FiCalendar className="inline mr-1" />
-                    {extractYear(p.start_date)}
-                  </div>
+                  <div><FiCalendar className="inline mr-1" />{extractYear(p.start_date)}</div>
                   {p.supervisor_name && (
-                    <div>
-                      <FiUser className="inline mr-1" />
-                      {p.supervisor_name}
-                    </div>
+                    <div><FiUser className="inline mr-1" />{p.supervisor_name}</div>
                   )}
                 </div>
 

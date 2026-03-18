@@ -51,7 +51,7 @@ export default function HomePage() {
     studentService.getStudentCount(),  // returns a number
     collegeService.getColleges(),
     departmentService.getDepartments(),
-    projectService.getProjects(),
+    projectService.getPublicProjects()
   ]);
 
   console.log('Students response:', studentsRes);

@@ -56,11 +56,6 @@ interface Props {
 const ProjectDetailModal: React.FC<Props> = ({ project, onClose }) => {
   const navigate = useNavigate();
 
-  console.log(
-    "-----------------ProjectDetailModal received project:---------------",
-    project
-  );
-
   const extractYear = (date?: number) =>
     date ? new Date(date).getFullYear() : "غير محدد";
 
@@ -77,7 +72,6 @@ const ProjectDetailModal: React.FC<Props> = ({ project, onClose }) => {
     }
   };
 
-  // ✅ Extract students from all groups
   const students =
     project.groups?.flatMap((group) =>
       group.members?.map((member) => ({
@@ -105,19 +99,21 @@ const ProjectDetailModal: React.FC<Props> = ({ project, onClose }) => {
 
           {/* Header */}
           <div className="flex flex-col sm:flex-row gap-4">
-            <img
-              src={
-                project.logo?.startsWith("http")
-                  ? project.logo
-                  : `http://127.0.0.1:8001${project.logo}`
-              }
-              alt={project.title}
-              className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-xl border"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src =
-                  "/default-project-logo.png";
-              }}
-            />
+            <div className="w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-center rounded-xl border overflow-hidden bg-gray-100">
+              <img
+                src={
+                  project.logo?.startsWith("http")
+                    ? project.logo
+                    : `http://127.0.0.1:8001${project.logo}`
+                }
+                alt={project.title}
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src =
+                    "/default-project-logo.png";
+                }}
+              />
+            </div>
 
             <div className="flex-1">
               <h2 className="text-2xl font-bold text-[#31257D]">

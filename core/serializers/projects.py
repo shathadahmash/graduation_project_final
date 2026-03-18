@@ -2,6 +2,8 @@ from rest_framework import serializers
 from core.models import Project
 from core.serializers.users import UserSerializer
 from django.conf import settings
+from core.models import ProjectRating
+from django.db.models import Avg
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -32,6 +34,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     branch_name = serializers.CharField(source="branch.name", read_only=True)
     department_name = serializers.CharField(source="department.name", read_only=True)
     program_name = serializers.CharField(source="program.p_name", read_only=True)
+    title_en = serializers.CharField(read_only=True)
 
     # URLs
     logo_url = serializers.SerializerMethodField()
@@ -83,8 +86,15 @@ class ProjectSerializer(serializers.ModelSerializer):
             "groups",
 
             "created_by",
+            'average_rating',
+            "title_en",
         ]
+    def get_average_rating(self, obj):
+        avg = obj.ratings.aggregate(Avg('rating'))['rating__avg']
+        return round(avg, 2) if avg else 0
 
+    def get_ratings_count(self, obj):
+        return obj.ratings.count()
     # ---------------------------
     # Groups
     # ---------------------------
@@ -160,3 +170,14 @@ class ProjectSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.documentation.url)
 
         return f"{settings.MEDIA_URL}{obj.documentation}"
+class ProjectRatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectRating
+        fields = '__all__'
+average_rating = serializers.FloatField(read_only=True)
+ratings_count = serializers.IntegerField(read_only=True)
+
+class Meta:
+    model = Project
+    fields = "__all__"
+
