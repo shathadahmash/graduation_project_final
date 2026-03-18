@@ -160,7 +160,7 @@ DATABASES = {
         'NAME': 'graduation_projects',
         'USER': 'fgps',
         'PASSWORD': '9Q8$w^Lueny!r@m9&we4n',
-        'HOST': 'ycithe.net',
+        'HOST': 'localhost',
         'PORT': '3308',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
